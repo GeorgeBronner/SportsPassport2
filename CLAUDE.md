@@ -104,6 +104,27 @@ All statistics implemented:
 - **Health check endpoints** ✅
 - **Alembic migrations auto-run on startup** ✅
 
+## Development Best Practices
+
+### Git Workflow
+- Use feature branches for all new features/changes
+- Branch naming: `feature-name` (e.g., `enhanced-search`)
+- Merge to `main` when feature is complete and tested
+- **ALWAYS rebuild and restart Docker after merging to main:**
+  ```bash
+  docker compose up -d --build
+  ```
+- Verify app starts successfully after rebuild:
+  ```bash
+  docker logs cfb-tracker-backend --tail 10
+  ```
+
+### Code Organization
+- Keep routers focused and organized by domain (auth, games, teams, attendance, admin)
+- Add new schemas to appropriate schema files
+- Update documentation (README.md, QUICKSTART.md, CLAUDE.md) with new features
+- Test new endpoints before committing
+
 ## Future Enhancements
 - Mobile app support
 - Social features (share attended games, find friends at games)
