@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from college_football_tracker.schemas.game import GameListResponse
 
 
@@ -37,3 +37,21 @@ class AttendanceStats(BaseModel):
     games_by_season: dict[int, int]
     stadiums_visited: list[str]
     states_visited: list[str]
+
+
+class BulkAttendanceItem(BaseModel):
+    """Single game attendance item for bulk operations"""
+    game_id: int
+    notes: Optional[str] = None
+
+
+class BulkAttendanceRequest(BaseModel):
+    """Request to mark multiple games as attended"""
+    games: List[BulkAttendanceItem]
+
+
+class BulkAttendanceResponse(BaseModel):
+    """Response from bulk attendance operation"""
+    created: int
+    skipped: int
+    errors: List[str] = []

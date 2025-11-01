@@ -13,7 +13,9 @@ from college_football_tracker.schemas.attendance import (
     AttendanceCreate,
     AttendanceUpdate,
     AttendanceResponse,
-    AttendanceStats
+    AttendanceStats,
+    BulkAttendanceRequest,
+    BulkAttendanceResponse
 )
 from college_football_tracker.core.dependencies import get_current_user
 
@@ -182,3 +184,62 @@ def delete_attendance(
     db.commit()
 
     return None
+
+
+@router.post("/bulk", response_model=BulkAttendanceResponse, status_code=status.HTTP_201_CREATED)
+def mark_games_bulk_attended(
+    bulk_request: BulkAttendanceRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Mark multiple games as attended in a single request"""
+    created = 0
+    skipped = 0
+    errors = []
+
+    for item in bulk_request.games:
+        try:
+            # Check if game exists
+            game = db.query(Game).filter(Game.id == item.game_id).first()
+            if not game:
+                errors.append(f"Game {item.game_id} not found")
+                continue
+
+            # Check if already marked as attended
+            existing = db.query(UserGameAttendance).filter(
+                UserGameAttendance.user_id == current_user.id,
+                UserGameAttendance.game_id == item.game_id
+            ).first()
+
+            if existing:
+                skipped += 1
+                continue
+
+            # Create attendance record
+            attendance = UserGameAttendance(
+                user_id=current_user.id,
+                game_id=item.game_id,
+                notes=item.notes
+            )
+            db.add(attendance)
+            created += 1
+
+        except Exception as e:
+            errors.append(f"Game {item.game_id}: {str(e)}")
+            continue
+
+    # Commit all at once
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save attendance records: {str(e)}"
+        )
+
+    return BulkAttendanceResponse(
+        created=created,
+        skipped=skipped,
+        errors=errors
+    )

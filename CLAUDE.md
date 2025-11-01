@@ -60,9 +60,17 @@ An application that allows users to track college football games they have atten
 - Users can mark individual games as attended ✅
 - Users can add notes/memories for attended games ✅
 - Users can update or delete attendance records ✅
+- **Bulk attendance marking via API** (mark multiple games at once) ✅
 - **Batch CSV upload for bulk game attendance import** (To be implemented in later phase - format TBD)
 
-### 4. Statistics & Reporting
+### 4. Enhanced Search & Discovery ✅
+- **List all teams** (with filtering by conference or search) ✅
+- **View available seasons** (with game counts per season) ✅
+- **Filter games by team AND season** (combined filtering) ✅
+- **Count games** matching specific filters ✅
+- **Get team-specific games** (all games for a specific team) ✅
+
+### 5. Statistics & Reporting
 **Priority:** Games by team is the most important statistic
 
 All statistics implemented:

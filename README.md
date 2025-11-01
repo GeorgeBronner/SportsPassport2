@@ -251,13 +251,20 @@ SportsPassport2/
 - `POST /api/auth/login` - Login and get token
 - `GET /api/auth/me` - Get current user info
 
+### Teams
+- `GET /api/teams/` - List all teams (filterable by conference or search term)
+
 ### Games
-- `GET /api/games/` - List games (with filters)
+- `GET /api/games/` - List games (with optional season and/or team filters)
 - `GET /api/games/{id}` - Get game details
 - `GET /api/games/search/` - Search games by team
+- `GET /api/games/seasons` - Get list of available seasons with game counts
+- `GET /api/games/count` - Count games matching filters (season, team)
+- `GET /api/games/team/{team_id}` - Get all games for a specific team
 
 ### Attendance
 - `POST /api/attendance/` - Mark game as attended
+- `POST /api/attendance/bulk` - Mark multiple games as attended
 - `GET /api/attendance/` - List attended games
 - `GET /api/attendance/stats` - Get attendance statistics
 - `PATCH /api/attendance/{id}` - Update attendance notes

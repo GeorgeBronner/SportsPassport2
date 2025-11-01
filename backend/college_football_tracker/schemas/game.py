@@ -48,3 +48,9 @@ class GameListResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SeasonInfo(BaseModel):
+    """Season metadata with game count"""
+    season: int
+    game_count: int

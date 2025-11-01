@@ -99,6 +99,50 @@ alembic revision --autogenerate -m "description"
 uvicorn app.main:app --reload
 ```
 
+## Enhanced Search Features
+
+### List All Teams
+```bash
+# Get all teams
+GET /api/teams/
+
+# Search teams by name
+GET /api/teams/?search=Alabama
+
+# Filter by conference
+GET /api/teams/?conference=SEC
+```
+
+### Get Available Seasons
+```bash
+GET /api/games/seasons
+# Returns seasons with game counts
+```
+
+### Filter Games by Team and Season
+```bash
+# Get all Alabama games in 2023
+GET /api/games/?team=Alabama&season=2023
+
+# Get game count for specific filters
+GET /api/games/count?team=Michigan&season=2024
+
+# Get all games for team ID 3 (Alabama)
+GET /api/games/team/3?season=2023
+```
+
+### Bulk Mark Games as Attended
+```bash
+POST /api/attendance/bulk
+{
+  "games": [
+    {"game_id": 123, "notes": "Great game!"},
+    {"game_id": 456, "notes": "Amazing atmosphere"},
+    {"game_id": 789}
+  ]
+}
+```
+
 ## API Quick Reference
 
 | Endpoint | Method | Description | Auth |
@@ -106,9 +150,14 @@ uvicorn app.main:app --reload
 | `/api/auth/register` | POST | Register new user | No |
 | `/api/auth/login` | POST | Login | No |
 | `/api/auth/me` | GET | Get current user | Yes |
-| `/api/games/` | GET | List games | Yes |
+| `/api/teams/` | GET | List all teams | Yes |
+| `/api/games/` | GET | List games (filter by team/season) | Yes |
+| `/api/games/seasons` | GET | Get available seasons | Yes |
+| `/api/games/count` | GET | Count games by filters | Yes |
+| `/api/games/team/{id}` | GET | Get team's games | Yes |
 | `/api/games/{id}` | GET | Get game details | Yes |
 | `/api/attendance/` | POST | Mark game attended | Yes |
+| `/api/attendance/bulk` | POST | Mark multiple games | Yes |
 | `/api/attendance/` | GET | List attended games | Yes |
 | `/api/attendance/stats` | GET | Get statistics | Yes |
 | `/api/admin/refresh-data` | POST | Import data | Admin |
