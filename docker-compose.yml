@@ -10,8 +10,6 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=sqlite:////app/data/college_football.db
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-this-in-production}
-      - CFB_API_KEY=${CFB_API_KEY}
     volumes:
       - ./data:/app/data
       - ./backend/.env:/app/.env

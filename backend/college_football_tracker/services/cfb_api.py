@@ -114,10 +114,10 @@ class CollegeFootballDataService:
         for game_data in games_data:
             # Get team IDs
             home_team = self.db.query(Team).filter(
-                Team.school == game_data.get("home_team")
+                Team.school == game_data.get("homeTeam")
             ).first()
             away_team = self.db.query(Team).filter(
-                Team.school == game_data.get("away_team")
+                Team.school == game_data.get("awayTeam")
             ).first()
 
             if not home_team or not away_team:
@@ -125,9 +125,9 @@ class CollegeFootballDataService:
 
             # Get venue ID if available
             venue_id = None
-            if game_data.get("venue_id"):
+            if game_data.get("venueId"):
                 venue = self.db.query(Venue).filter(
-                    Venue.api_venue_id == game_data.get("venue_id")
+                    Venue.api_venue_id == game_data.get("venueId")
                 ).first()
                 if venue:
                     venue_id = venue.id
@@ -139,18 +139,18 @@ class CollegeFootballDataService:
 
             # Parse date
             game_date = None
-            if game_data.get("start_date"):
+            if game_data.get("startDate"):
                 try:
                     game_date = datetime.fromisoformat(
-                        game_data.get("start_date").replace("Z", "+00:00")
+                        game_data.get("startDate").replace("Z", "+00:00")
                     ).date()
                 except:
                     pass
 
             if existing_game:
                 # Update existing game
-                existing_game.home_score = game_data.get("home_points")
-                existing_game.away_score = game_data.get("away_points")
+                existing_game.home_score = game_data.get("homePoints")
+                existing_game.away_score = game_data.get("awayPoints")
                 existing_game.game_date = game_date
                 existing_game.week = game_data.get("week")
                 existing_game.venue_id = venue_id
@@ -161,8 +161,8 @@ class CollegeFootballDataService:
                     api_game_id=game_data.get("id"),
                     home_team_id=home_team.id,
                     away_team_id=away_team.id,
-                    home_score=game_data.get("home_points"),
-                    away_score=game_data.get("away_points"),
+                    home_score=game_data.get("homePoints"),
+                    away_score=game_data.get("awayPoints"),
                     game_date=game_date,
                     season=season,
                     week=game_data.get("week"),

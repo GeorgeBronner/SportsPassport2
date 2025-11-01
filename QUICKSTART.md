@@ -28,9 +28,7 @@ Visit the API docs at http://localhost:8000/docs
 
 2. Make them an admin:
 ```bash
-sqlite3 backend/data/college_football.db
-UPDATE users SET is_admin = 1 WHERE email = 'admin@example.com';
-.quit
+sqlite3 data/college_football.db "UPDATE users SET is_admin = 1 WHERE email = 'admin@example.com';"
 ```
 
 ### 3. Login and Get Token
@@ -73,16 +71,16 @@ Use `GET /api/attendance/stats` to see:
 ### Docker
 ```bash
 # Start
-docker-compose up -d
+docker compose up -d
 
 # Stop
-docker-compose down
+docker compose down
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Restart
-docker-compose restart
+docker compose restart
 ```
 
 ### Development
@@ -120,11 +118,11 @@ uvicorn app.main:app --reload
 
 ### Can't connect to API
 - Check Docker is running: `docker ps`
-- Check logs: `docker-compose logs -f`
+- Check logs: `docker compose logs -f`
 
 ### Database errors
-- Restart container: `docker-compose restart`
-- Check migrations: `docker-compose exec backend alembic current`
+- Restart container: `docker compose restart`
+- Check migrations: `docker compose exec backend alembic current`
 
 ### Authentication errors
 - Ensure you clicked "Authorize" in the API docs
@@ -135,7 +133,7 @@ uvicorn app.main:app --reload
 1. Visit https://collegefootballdata.com/key
 2. Sign up for a free account
 3. Get your API key
-4. Add to `backend/.env`: `CFB_API_KEY=your-key-here`
-5. Restart: `docker-compose restart`
+4. Add to `backend/.env`: `CFB_API_KEY="your-key-here"` (use quotes if key contains special characters)
+5. Restart: `docker compose restart`
 
 The API works without a key but has rate limits. A free key gives you higher limits.

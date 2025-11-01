@@ -43,3 +43,6 @@ alembic/versions/*.py
 .pytest_cache/
 .coverage
 htmlcov/
+
+#ai
+.claude/

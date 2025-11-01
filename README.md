@@ -75,7 +75,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 From the project root:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 This will:
@@ -200,16 +200,28 @@ alembic upgrade head
 
 After registering your first user, make them an admin:
 
-1. Connect to the database:
-   ```bash
-   sqlite3 college_football.db
-   ```
+### Option 1: Using SQLite CLI (from host machine)
 
-2. Set admin status:
-   ```sql
-   UPDATE users SET is_admin = 1 WHERE email = 'your@email.com';
-   .quit
-   ```
+```bash
+sqlite3 data/college_football.db "UPDATE users SET is_admin = 1 WHERE email = 'your@email.com';"
+```
+
+### Option 2: Using Docker exec with Python
+
+```bash
+docker exec cfb-tracker-backend python -c "
+from college_football_tracker.db.database import SessionLocal
+from college_football_tracker.models.user import User
+
+db = SessionLocal()
+user = db.query(User).filter(User.email == 'your@email.com').first()
+if user:
+    user.is_admin = True
+    db.commit()
+    print(f'User {user.email} is now an admin')
+db.close()
+"
+```
 
 ## Project Structure
 
@@ -271,7 +283,7 @@ SportsPassport2/
 1. Visit https://collegefootballdata.com/key
 2. Sign up for a free account
 3. Get your API key
-4. Add to `backend/.env`: `CFB_API_KEY=your-key-here`
-5. Restart: `docker-compose restart`
+4. Add to `backend/.env`: `CFB_API_KEY="your-key-here"` (use quotes if key contains special characters)
+5. Restart: `docker compose restart`
 
 Note: The API works without a key but has rate limits. A free key provides higher limits.
