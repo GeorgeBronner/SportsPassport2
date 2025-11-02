@@ -10,9 +10,11 @@ COPY pyproject.toml ./
 COPY college_football_tracker ./college_football_tracker
 COPY alembic ./alembic
 COPY alembic.ini ./
+COPY tests ./tests
 
 # Install dependencies using uv
-RUN uv pip install --system -e .
+RUN uv pip install --system -e . && \
+    uv pip install --system pytest pytest-asyncio
 
 # Expose port
 EXPOSE 8000

@@ -110,6 +110,10 @@ All statistics implemented:
 - Use feature branches for all new features/changes
 - Branch naming: `feature-name` (e.g., `enhanced-search`)
 - Merge to `main` when feature is complete and tested
+- **Commit Messages:**
+  - Keep messages concise and focused
+  - NEVER mention Claude, AI, or code generation tools in commit messages
+  - Focus on what changed and why, not how it was created
 - **ALWAYS rebuild and restart Docker after merging to main:**
   ```bash
   docker compose up -d --build
@@ -124,6 +128,41 @@ All statistics implemented:
 - Add new schemas to appropriate schema files
 - Update documentation (README.md, QUICKSTART.md, CLAUDE.md) with new features
 - Test new endpoints before committing
+
+### Testing ✅
+- **Framework**: pytest with dependency injection
+- **Test Database**: In-memory SQLite for isolation
+- **Coverage**: 94 tests covering all endpoints
+- **Test Structure**:
+  - `backend/tests/conftest.py` - Fixtures and test database setup
+  - `backend/tests/test_auth.py` - Authentication tests (12 tests)
+  - `backend/tests/test_teams.py` - Team listing tests (7 tests)
+  - `backend/tests/test_games.py` - Game endpoints tests (26 tests)
+  - `backend/tests/test_attendance.py` - Attendance tracking tests (29 tests)
+  - `backend/tests/test_admin.py` - Admin endpoint tests (20 tests)
+
+**Running Tests:**
+```bash
+# Run all tests
+docker compose exec backend pytest tests/ -v
+
+# Run specific test file
+docker compose exec backend pytest tests/test_auth.py -v
+
+# Run specific test
+docker compose exec backend pytest tests/test_auth.py::TestUserLogin::test_login_success -v
+
+# Run with coverage
+docker compose exec backend pytest tests/ --cov=college_football_tracker --cov-report=term-missing
+```
+
+**Test Features:**
+- Isolated test database (no impact on production data)
+- Dependency injection for FastAPI endpoints
+- Comprehensive fixtures for users, teams, games, venues, attendance
+- Authentication testing with JWT tokens
+- Admin permission testing
+- Mock testing for external API calls
 
 ## Future Enhancements
 - Mobile app support
