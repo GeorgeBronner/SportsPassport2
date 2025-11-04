@@ -13,53 +13,36 @@ This will:
 - Set up the data directory
 - Optionally start the application
 
-### 2. Create First Admin User
+### 2. Access the Application
 
-Visit the API docs at http://localhost:8000/docs
+Visit http://localhost:8000 to access the web interface.
 
-1. Register a user using `POST /api/auth/register`:
-```json
-{
-  "email": "admin@example.com",
-  "password": "your-secure-password",
-  "full_name": "Your Name"
-}
-```
+### 3. Create First Admin User
 
-2. Make them an admin:
+1. Click "Sign up" and create your account
+2. Make yourself an admin:
 ```bash
-sqlite3 data/college_football.db "UPDATE users SET is_admin = 1 WHERE email = 'admin@example.com';"
+sqlite3 data/college_football.db "UPDATE users SET is_admin = 1 WHERE email = 'your@email.com';"
 ```
-
-### 3. Login and Get Token
-
-Use `POST /api/auth/login` in the docs:
-- username: `admin@example.com`
-- password: `your-secure-password`
-
-Click "Authorize" button in top right and paste your token.
 
 ### 4. Import Game Data
 
-Use `POST /api/admin/refresh-data?season=2023` to import 2023 season data.
-
-You can import multiple seasons (e.g., 2020, 2021, 2022, 2023).
+As an admin:
+1. Go to the Admin page
+2. Enter a season year (e.g., 2023, 2024, 2025)
+3. Click "Import Season Data"
+4. Repeat for multiple seasons if desired
 
 ### 5. Track Your First Game
 
-1. Find a game using `GET /api/games/` or `GET /api/games/search/?q=Michigan`
-2. Note the `game_id` from the results
-3. Mark it as attended using `POST /api/attendance/`:
-```json
-{
-  "game_id": 123,
-  "notes": "Amazing game!"
-}
-```
+1. Go to the "Games" page
+2. Use filters to find games (by team or season)
+3. Click "Mark Attended" on any game
+4. Optionally add notes about the game
 
 ### 6. View Your Statistics
 
-Use `GET /api/attendance/stats` to see:
+Visit the "Statistics" page to see:
 - Total games attended
 - Games by team
 - Games by season

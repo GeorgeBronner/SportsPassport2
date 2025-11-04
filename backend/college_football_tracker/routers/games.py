@@ -29,9 +29,9 @@ def list_games(
         query = query.filter(Game.season == season)
 
     if team:
-        # Search by team school name
+        # Search by exact team school name
         team_ids = db.query(Team.id).filter(
-            Team.school.ilike(f"%{team}%")
+            Team.school == team
         ).all()
         team_ids = [t[0] for t in team_ids]
         query = query.filter(
@@ -104,9 +104,9 @@ def count_games(
         query = query.filter(Game.season == season)
 
     if team:
-        # Search by team school name
+        # Search by exact team school name
         team_ids = db.query(Team.id).filter(
-            Team.school.ilike(f"%{team}%")
+            Team.school == team
         ).all()
         team_ids = [t[0] for t in team_ids]
         query = query.filter(

@@ -46,3 +46,8 @@ htmlcov/
 
 #ai
 .claude/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+backend/static/

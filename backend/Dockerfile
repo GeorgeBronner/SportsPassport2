@@ -1,3 +1,21 @@
+# Stage 1: Build frontend
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /frontend
+
+# Copy frontend package files
+COPY frontend/package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy frontend source
+COPY frontend ./
+
+# Build frontend
+RUN npm run build
+
+# Stage 2: Backend with static files
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -5,12 +23,15 @@ WORKDIR /app
 # Install uv
 RUN pip install uv
 
-# Copy project files
-COPY pyproject.toml ./
-COPY college_football_tracker ./college_football_tracker
-COPY alembic ./alembic
-COPY alembic.ini ./
-COPY tests ./tests
+# Copy backend project files
+COPY backend/pyproject.toml ./
+COPY backend/college_football_tracker ./college_football_tracker
+COPY backend/alembic ./alembic
+COPY backend/alembic.ini ./
+COPY backend/tests ./tests
+
+# Copy built frontend from previous stage
+COPY --from=frontend-builder /frontend/../backend/static ./static
 
 # Install dependencies using uv
 RUN uv pip install --system -e . && \

@@ -2,7 +2,7 @@
 
 A web application for tracking college football games you've attended, with comprehensive statistics and historical game data from CollegeFootballData.com.
 
-**Status:** ✅ Backend API Complete | 🚧 Frontend Coming Soon
+**Status:** ✅ Backend API Complete | ✅ Frontend Complete
 
 ## Features
 
@@ -29,8 +29,16 @@ A web application for tracking college football games you've attended, with comp
 - JWT authentication
 - CollegeFootballData.com API integration
 
+### Frontend
+- React 18 with TypeScript
+- Vite (build tool)
+- Tailwind CSS (styling)
+- React Router (navigation)
+- Axios (API client)
+
 ### Deployment
-- Docker & Docker Compose
+- Docker & Docker Compose (multi-stage build)
+- Static frontend served by FastAPI
 
 ## Prerequisites
 
@@ -79,15 +87,27 @@ docker compose up -d
 ```
 
 This will:
+- Build the frontend (React + TypeScript + Tailwind)
 - Build the backend container
 - Run database migrations
-- Start the API server on http://localhost:8000
+- Start the application on http://localhost:8000
 
-### 4. Access the API
+### 4. Access the Application
 
+- **Web Application**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/docs
 - **Alternative Docs**: http://localhost:8000/redoc
 - **Health Check**: http://localhost:8000/health
+
+### 5. Create Your First Admin User
+
+After accessing the app, register an account at http://localhost:8000/register, then make yourself an admin:
+
+```bash
+sqlite3 data/college_football.db "UPDATE users SET is_admin = 1 WHERE email = 'your@email.com';"
+```
+
+As an admin, you can import game data from the Admin page in the web interface.
 
 ## Development Setup (without Docker)
 
@@ -227,17 +247,28 @@ db.close()
 
 ```
 SportsPassport2/
+├── frontend/                      # React TypeScript frontend
+│   ├── src/
+│   │   ├── api/                   # API client modules
+│   │   ├── components/            # React components
+│   │   ├── context/               # React context (auth)
+│   │   ├── pages/                 # Page components
+│   │   ├── types/                 # TypeScript types
+│   │   └── App.tsx
+│   ├── package.json
+│   └── vite.config.ts
 ├── backend/
-│   ├── app/
-│   │   ├── core/           # Config, security, dependencies
-│   │   ├── db/             # Database setup
-│   │   ├── models/         # SQLAlchemy models
-│   │   ├── routers/        # API endpoints
-│   │   ├── schemas/        # Pydantic schemas
-│   │   ├── services/       # Business logic (CFB API client)
-│   │   └── main.py         # FastAPI application
-│   ├── alembic/            # Database migrations
-│   ├── pyproject.toml      # Python dependencies
+│   ├── college_football_tracker/
+│   │   ├── core/                  # Config, security, dependencies
+│   │   ├── db/                    # Database setup
+│   │   ├── models/                # SQLAlchemy models
+│   │   ├── routers/               # API endpoints
+│   │   ├── schemas/               # Pydantic schemas
+│   │   ├── services/              # Business logic (CFB API client)
+│   │   └── main.py                # FastAPI application
+│   ├── alembic/                   # Database migrations
+│   ├── static/                    # Built frontend (generated)
+│   ├── pyproject.toml             # Python dependencies
 │   ├── Dockerfile
 │   └── .env
 ├── docker-compose.yml
@@ -276,10 +307,31 @@ SportsPassport2/
 - `POST /api/admin/users/{id}/promote` - Promote user to admin
 - `POST /api/admin/users/{id}/demote` - Demote user from admin
 
+## Frontend Development
+
+### Running Frontend in Development Mode
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The dev server will run on http://localhost:5173 with API proxying to http://localhost:8000.
+
+### Building Frontend for Production
+
+```bash
+cd frontend
+npm run build
+```
+
+This builds the frontend to `backend/static/` directory, which is served by FastAPI.
+
 ## Future Enhancements
 
 - [ ] CSV bulk upload for attendance
-- [ ] React frontend
+- [ ] Data visualization charts for statistics
 - [ ] Mobile app
 - [ ] Photo uploads for games
 - [ ] Social features
