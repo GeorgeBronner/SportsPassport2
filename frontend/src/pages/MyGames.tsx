@@ -83,45 +83,45 @@ const MyGames: React.FC = () => {
   return (
     <Layout>
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">My Attended Games</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-8">My Attended Games</h1>
 
         {error && <Alert type="error" message={error} onClose={() => setError('')} />}
         {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
         {attendedGames.length === 0 ? (
-          <Card>
-            <div className="text-center py-8">
-              <p className="text-gray-600 mb-4">
+          <Card className="bg-gradient-to-br from-accent-50 to-white">
+            <div className="text-center py-12">
+              <p className="text-gray-700 mb-6 text-lg">
                 You haven't marked any games as attended yet.
               </p>
-              <a href="/games" className="text-blue-600 hover:text-blue-700">
+              <a href="/games" className="inline-block px-8 py-3 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-all shadow-md hover:shadow-lg font-semibold">
                 Browse games to get started
               </a>
             </div>
           </Card>
         ) : (
           <div>
-            <p className="text-sm text-gray-600 mb-6 font-medium">
+            <p className="text-sm text-gray-700 mb-8 font-semibold uppercase tracking-wide">
               {attendedGames.length} game{attendedGames.length !== 1 ? 's' : ''} attended
             </p>
             <div className="space-y-6">
               {attendedGames.map((attendance) => (
-                <Card key={attendance.id} className="hover:shadow-xl transition-all duration-200">
-                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                <Card key={attendance.id} className="bg-gradient-to-r from-white to-gray-50 hover:border-accent-300">
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
                     <div className="flex-1">
-                      <div className="text-xs font-medium text-blue-600 mb-2 uppercase tracking-wide">
+                      <div className="text-xs font-bold text-accent-600 mb-3 uppercase tracking-wider bg-accent-50 inline-block px-3 py-1 rounded-full">
                         {formatDateShort(attendance.game.game_date)} • Week {attendance.game.week || 'N/A'}
                       </div>
-                      <div className="text-xl font-bold text-gray-900 mb-2">
+                      <div className="text-2xl font-bold text-gray-900 mb-3">
                         {attendance.game.away_team.school} @ {attendance.game.home_team.school}
                       </div>
-                      <div className="text-base text-gray-600 mb-3">
-                        <span className="font-semibold">Score:</span> {formatScore(attendance.game.away_score, attendance.game.home_score)}
+                      <div className="text-lg text-gray-700 mb-3">
+                        <span className="font-semibold">Score:</span> <span className="text-primary-600 font-bold">{formatScore(attendance.game.away_score, attendance.game.home_score)}</span>
                       </div>
                       {attendance.game.venue && (
-                        <div className="text-sm text-gray-500 mb-3">
+                        <div className="text-sm text-gray-600 bg-sage-50 inline-block px-3 py-2 rounded-lg mb-4">
                           <span className="inline-block mr-1">📍</span>
-                          {attendance.game.venue.name}
+                          <span className="font-medium">{attendance.game.venue.name}</span>
                           {attendance.game.venue.city && attendance.game.venue.state && (
                             <span> • {attendance.game.venue.city}, {attendance.game.venue.state}</span>
                           )}
@@ -129,15 +129,15 @@ const MyGames: React.FC = () => {
                       )}
 
                       {editingId === attendance.id ? (
-                        <div className="mt-3">
+                        <div className="mt-4">
                           <textarea
                             value={editNotes}
                             onChange={(e) => setEditNotes(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             rows={3}
                             placeholder="Add notes about this game..."
                           />
-                          <div className="mt-2 flex space-x-2">
+                          <div className="mt-3 flex space-x-2">
                             <Button size="sm" onClick={() => handleUpdateNotes(attendance.id)}>
                               Save
                             </Button>
@@ -149,8 +149,8 @@ const MyGames: React.FC = () => {
                       ) : (
                         <>
                           {attendance.notes && (
-                            <div className="mt-2 p-3 bg-gray-50 rounded-lg">
-                              <p className="text-sm text-gray-700">{attendance.notes}</p>
+                            <div className="mt-3 p-4 bg-primary-50 rounded-xl border-l-4 border-primary-500">
+                              <p className="text-sm text-gray-800 font-medium">{attendance.notes}</p>
                             </div>
                           )}
                         </>

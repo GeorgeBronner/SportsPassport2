@@ -34,22 +34,22 @@ const GameCard: React.FC<GameCardProps> = ({
   };
 
   return (
-    <Card className="hover:shadow-xl transition-all duration-200 hover:border-blue-300">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+    <Card className="hover:border-primary-300 bg-gradient-to-r from-white to-gray-50">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
         <div className="flex-1">
-          <div className="text-xs font-medium text-blue-600 mb-2 uppercase tracking-wide">
+          <div className="text-xs font-bold text-primary-600 mb-3 uppercase tracking-wider bg-primary-50 inline-block px-3 py-1 rounded-full">
             {formatDateShort(game.game_date)} • Week {game.week || 'N/A'}
           </div>
-          <div className="text-xl font-bold text-gray-900 mb-2">
+          <div className="text-2xl font-bold text-gray-900 mb-3">
             {game.away_team.school} @ {game.home_team.school}
           </div>
-          <div className="text-base text-gray-600 mb-3">
-            <span className="font-semibold">Score:</span> {formatScore(game.away_score, game.home_score)}
+          <div className="text-lg text-gray-700 mb-3">
+            <span className="font-semibold">Score:</span> <span className="text-accent-600 font-bold">{formatScore(game.away_score, game.home_score)}</span>
           </div>
           {game.venue && (
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-600 bg-sage-50 inline-block px-3 py-2 rounded-lg">
               <span className="inline-block mr-1">📍</span>
-              {game.venue.name}
+              <span className="font-medium">{game.venue.name}</span>
               {game.venue.city && game.venue.state && (
                 <span> • {game.venue.city}, {game.venue.state}</span>
               )}
@@ -65,13 +65,13 @@ const GameCard: React.FC<GameCardProps> = ({
                   Mark Attended
                 </Button>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <input
                     type="text"
                     placeholder="Add notes (optional)"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="px-2 py-1 text-sm border border-gray-300 rounded"
+                    className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 w-full"
                   />
                   <div className="flex space-x-2">
                     <Button size="sm" onClick={handleAttend} disabled={loading}>
@@ -93,7 +93,7 @@ const GameCard: React.FC<GameCardProps> = ({
             </div>
           ) : (
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-green-600 font-medium">✓ Attended</span>
+              <span className="text-sm text-sage-600 font-bold bg-sage-50 px-4 py-2 rounded-lg">✓ Attended</span>
               {onRemoveAttendance && (
                 <Button
                   size="sm"

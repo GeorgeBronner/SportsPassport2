@@ -1,6 +1,46 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #f0fdf4;
+  --color-primary-100: #dcfce7;
+  --color-primary-200: #bbf7d0;
+  --color-primary-300: #86efac;
+  --color-primary-400: #4ade80;
+  --color-primary-500: #1B4332;
+  --color-primary-600: #16372a;
+  --color-primary-700: #122b21;
+  --color-primary-800: #0d1f18;
+  --color-primary-900: #09130f;
+
+  --color-accent-50: #fef2f2;
+  --color-accent-100: #fee2e2;
+  --color-accent-200: #fecaca;
+  --color-accent-300: #fca5a5;
+  --color-accent-400: #f87171;
+  --color-accent-500: #E76F51;
+  --color-accent-600: #dc5a3e;
+  --color-accent-700: #c4472a;
+  --color-accent-800: #a3391e;
+  --color-accent-900: #7f2d17;
+
+  --color-sage-50: #f0fdf4;
+  --color-sage-100: #dcfce7;
+  --color-sage-200: #bbf7d0;
+  --color-sage-300: #95D5B2;
+  --color-sage-400: #6ec89a;
+  --color-sage-500: #52b788;
+  --color-sage-600: #3a9b6f;
+  --color-sage-700: #2d7f5b;
+  --color-sage-800: #24654a;
+  --color-sage-900: #1e533d;
+
+  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -1px rgb(0 0 0 / 0.04);
+  --shadow-card-hover: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
+  --shadow-elevated: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
 
 body {
   margin: 0;
@@ -8,4 +48,36 @@ body {
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #F8F9FA;
+}
+
+/* Custom component styles */
+.card-elevated {
+  background-color: white;
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease-in-out;
+}
+
+.card-elevated:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-0.25rem);
+}
+
+.section-spacing {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.gradient-primary {
+  background: linear-gradient(135deg, #1B4332 0%, #2D7F5B 100%);
+}
+
+.gradient-sage {
+  background: linear-gradient(135deg, #95D5B2 0%, #52b788 100%);
+}
+
+.gradient-accent {
+  background: linear-gradient(135deg, #E76F51 0%, #c4472a 100%);
 }

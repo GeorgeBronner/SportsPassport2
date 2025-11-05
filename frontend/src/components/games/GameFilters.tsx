@@ -36,10 +36,11 @@ const GameFilters: React.FC<GameFiltersProps> = ({
   }, [searchTerm, teams]);
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="card-elevated p-6 mb-8 bg-gradient-to-br from-white to-primary-50 border-primary-100">
+      <h3 className="text-lg font-bold text-gray-900 mb-5">Filter Games</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
             Search Team
           </label>
           <input
@@ -47,18 +48,18 @@ const GameFilters: React.FC<GameFiltersProps> = ({
             placeholder="Type to search..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
             Team
           </label>
           <select
             value={selectedTeam}
             onChange={(e) => onTeamChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
           >
             <option value="">All Teams</option>
             {filteredTeams.map((team) => (
@@ -70,13 +71,13 @@ const GameFilters: React.FC<GameFiltersProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
             Season
           </label>
           <select
             value={selectedSeason || ''}
             onChange={(e) => onSeasonChange(e.target.value ? Number(e.target.value) : undefined)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
           >
             <option value="">All Seasons</option>
             {seasons.map((season) => (
@@ -89,10 +90,10 @@ const GameFilters: React.FC<GameFiltersProps> = ({
       </div>
 
       {(selectedTeam || selectedSeason) && (
-        <div className="mt-4">
+        <div className="mt-6">
           <button
             onClick={onReset}
-            className="text-sm text-blue-600 hover:text-blue-700"
+            className="text-sm font-semibold text-accent-600 hover:text-accent-700 transition-colors"
           >
             Clear all filters
           </button>

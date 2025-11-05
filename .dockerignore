@@ -8,6 +8,7 @@ npm-debug.log
 data/
 .idea/
 .claude/
+backend/.venv/
 frontend/node_modules
 frontend/dist
 backend/__pycache__

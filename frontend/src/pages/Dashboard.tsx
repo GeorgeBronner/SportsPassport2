@@ -52,71 +52,71 @@ const Dashboard: React.FC = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-gradient-to-br from-primary-50 to-white border-primary-200 !p-4">
             <div className="text-center">
-              <div className="text-4xl font-bold text-blue-600">{stats.total_games}</div>
-              <div className="text-sm text-gray-600 mt-1">Total Games</div>
+              <div className="text-3xl font-bold text-primary-600 mb-1">{stats.total_games}</div>
+              <div className="text-xs text-gray-700 font-medium">Total Games</div>
             </div>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-sage-50 to-white border-sage-200 !p-4">
             <div className="text-center">
-              <div className="text-4xl font-bold text-green-600">{stats.unique_stadiums}</div>
-              <div className="text-sm text-gray-600 mt-1">Stadiums</div>
+              <div className="text-3xl font-bold text-sage-600 mb-1">{stats.unique_stadiums}</div>
+              <div className="text-xs text-gray-700 font-medium">Stadiums</div>
             </div>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-accent-50 to-white border-accent-200 !p-4">
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">{stats.unique_states}</div>
-              <div className="text-sm text-gray-600 mt-1">States</div>
+              <div className="text-3xl font-bold text-accent-600 mb-1">{stats.unique_states}</div>
+              <div className="text-xs text-gray-700 font-medium">States</div>
             </div>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200 !p-4">
             <div className="text-center">
-              <div className="text-4xl font-bold text-orange-600">
+              <div className="text-3xl font-bold text-blue-600 mb-1">
                 {Object.keys(stats.games_by_team).length}
               </div>
-              <div className="text-sm text-gray-600 mt-1">Teams</div>
+              <div className="text-xs text-gray-700 font-medium">Teams</div>
             </div>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <h2 className="text-xl font-semibold mb-4">Top Teams</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className="bg-gradient-to-br from-primary-50 to-white border-primary-100 !p-5">
+            <h2 className="text-lg font-bold text-primary-700 mb-4">Top Teams</h2>
             {topTeams.length === 0 ? (
-              <p className="text-gray-600">No games attended yet</p>
+              <p className="text-gray-600 text-sm">No games attended yet</p>
             ) : (
               <div className="space-y-2">
                 {topTeams.map(([team, count]) => (
-                  <div key={team} className="flex justify-between items-center">
-                    <span className="text-gray-700">{team}</span>
-                    <span className="font-semibold text-blue-600">{count}</span>
+                  <div key={team} className="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                    <span className="text-gray-800 text-sm font-medium truncate pr-2">{team}</span>
+                    <span className="font-bold text-primary-600 text-sm flex-shrink-0">{count}</span>
                   </div>
                 ))}
               </div>
             )}
             <Link
               to="/statistics"
-              className="text-sm text-blue-600 hover:text-blue-700 mt-4 inline-block"
+              className="text-xs text-primary-600 hover:text-primary-700 mt-4 inline-block font-semibold"
             >
               View all stats →
             </Link>
           </Card>
 
-          <Card>
-            <h2 className="text-xl font-semibold mb-4">Recent Seasons</h2>
+          <Card className="bg-gradient-to-br from-sage-50 to-white border-sage-100 !p-5">
+            <h2 className="text-lg font-bold text-sage-700 mb-4">Recent Seasons</h2>
             {recentSeasons.length === 0 ? (
-              <p className="text-gray-600">No games attended yet</p>
+              <p className="text-gray-600 text-sm">No games attended yet</p>
             ) : (
               <div className="space-y-2">
                 {recentSeasons.map(([season, count]) => (
-                  <div key={season} className="flex justify-between items-center">
-                    <span className="text-gray-700">{season}</span>
-                    <span className="font-semibold text-green-600">{count} games</span>
+                  <div key={season} className="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                    <span className="text-gray-800 text-sm font-medium">{season}</span>
+                    <span className="font-bold text-sage-600 text-sm">{count} games</span>
                   </div>
                 ))}
               </div>
@@ -125,17 +125,17 @@ const Dashboard: React.FC = () => {
         </div>
 
         {stats.total_games === 0 && (
-          <Card className="mt-6">
-            <div className="text-center py-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <Card className="mt-6 bg-gradient-to-br from-accent-50 to-white border-accent-100 !p-6">
+            <div className="text-center py-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
                 Start tracking your games
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-700 mb-4 text-sm">
                 Browse games and mark the ones you've attended to see your statistics here.
               </p>
               <Link
                 to="/games"
-                className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="inline-block px-6 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-all shadow-md hover:shadow-lg font-semibold text-sm"
               >
                 Browse Games
               </Link>

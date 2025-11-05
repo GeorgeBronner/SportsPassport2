@@ -53,48 +53,48 @@ const Statistics: React.FC = () => {
   return (
     <Layout>
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Statistics</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-8">Statistics</h1>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+          <Card className="bg-gradient-to-br from-primary-50 to-white border-primary-200">
             <div className="text-center">
-              <div className="text-4xl font-bold text-blue-600">{stats.total_games}</div>
-              <div className="text-sm text-gray-600 mt-1">Total Games Attended</div>
+              <div className="text-5xl font-bold text-primary-600 mb-2">{stats.total_games}</div>
+              <div className="text-sm text-gray-700 font-medium uppercase tracking-wide">Total Games Attended</div>
             </div>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-sage-50 to-white border-sage-200">
             <div className="text-center">
-              <div className="text-4xl font-bold text-green-600">{stats.unique_stadiums}</div>
-              <div className="text-sm text-gray-600 mt-1">Unique Stadiums</div>
+              <div className="text-5xl font-bold text-sage-600 mb-2">{stats.unique_stadiums}</div>
+              <div className="text-sm text-gray-700 font-medium uppercase tracking-wide">Unique Stadiums</div>
             </div>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-accent-50 to-white border-accent-200">
             <div className="text-center">
-              <div className="text-4xl font-bold text-purple-600">{stats.unique_states}</div>
-              <div className="text-sm text-gray-600 mt-1">States Visited</div>
+              <div className="text-5xl font-bold text-accent-600 mb-2">{stats.unique_states}</div>
+              <div className="text-sm text-gray-700 font-medium uppercase tracking-wide">States Visited</div>
             </div>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200">
             <div className="text-center">
-              <div className="text-4xl font-bold text-orange-600">
+              <div className="text-5xl font-bold text-blue-600 mb-2">
                 {Object.keys(stats.games_by_team).length}
               </div>
-              <div className="text-sm text-gray-600 mt-1">Different Teams</div>
+              <div className="text-sm text-gray-700 font-medium uppercase tracking-wide">Different Teams</div>
             </div>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <Card>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Games by Team</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <Card className="bg-gradient-to-br from-primary-50 to-white border-primary-100">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-primary-700">Games by Team</h2>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'name' | 'count')}
-                className="text-sm px-2 py-1 border border-gray-300 rounded"
+                className="text-sm px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium"
               >
                 <option value="count">Sort by Count</option>
                 <option value="name">Sort by Name</option>
@@ -103,33 +103,33 @@ const Statistics: React.FC = () => {
             {sortedTeams.length === 0 ? (
               <p className="text-gray-600">No games attended yet</p>
             ) : (
-              <div className="max-h-96 overflow-y-auto space-y-2">
+              <div className="max-h-96 overflow-y-auto space-y-3">
                 {sortedTeams.map(([team, count]) => (
                   <div
                     key={team}
-                    className="flex justify-between items-center p-2 hover:bg-gray-50 rounded"
+                    className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
                   >
-                    <span className="text-gray-700">{team}</span>
-                    <span className="font-semibold text-blue-600">{count}</span>
+                    <span className="text-gray-800 font-medium">{team}</span>
+                    <span className="font-bold text-primary-600 text-lg">{count}</span>
                   </div>
                 ))}
               </div>
             )}
           </Card>
 
-          <Card>
-            <h2 className="text-xl font-semibold mb-4">Games by Season</h2>
+          <Card className="bg-gradient-to-br from-sage-50 to-white border-sage-100">
+            <h2 className="text-2xl font-bold text-sage-700 mb-6">Games by Season</h2>
             {sortedSeasons.length === 0 ? (
               <p className="text-gray-600">No games attended yet</p>
             ) : (
-              <div className="max-h-96 overflow-y-auto space-y-2">
+              <div className="max-h-96 overflow-y-auto space-y-3">
                 {sortedSeasons.map(([season, count]) => (
                   <div
                     key={season}
-                    className="flex justify-between items-center p-2 hover:bg-gray-50 rounded"
+                    className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
                   >
-                    <span className="text-gray-700">{season}</span>
-                    <span className="font-semibold text-green-600">{count} games</span>
+                    <span className="text-gray-800 font-medium">{season}</span>
+                    <span className="font-bold text-sage-600 text-lg">{count} games</span>
                   </div>
                 ))}
               </div>
@@ -137,16 +137,16 @@ const Statistics: React.FC = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <h2 className="text-xl font-semibold mb-4">Stadiums Visited</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <Card className="bg-gradient-to-br from-accent-50 to-white border-accent-100">
+            <h2 className="text-2xl font-bold text-accent-700 mb-6">Stadiums Visited</h2>
             {stats.stadiums_visited.length === 0 ? (
               <p className="text-gray-600">No stadiums visited yet</p>
             ) : (
               <div className="max-h-96 overflow-y-auto">
-                <ul className="space-y-1">
+                <ul className="space-y-2">
                   {stats.stadiums_visited.sort().map((stadium) => (
-                    <li key={stadium} className="text-gray-700 p-2 hover:bg-gray-50 rounded">
+                    <li key={stadium} className="text-gray-800 p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow font-medium">
                       {stadium}
                     </li>
                   ))}
@@ -155,15 +155,15 @@ const Statistics: React.FC = () => {
             )}
           </Card>
 
-          <Card>
-            <h2 className="text-xl font-semibold mb-4">States Visited</h2>
+          <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100">
+            <h2 className="text-2xl font-bold text-blue-700 mb-6">States Visited</h2>
             {stats.states_visited.length === 0 ? (
               <p className="text-gray-600">No states visited yet</p>
             ) : (
               <div className="max-h-96 overflow-y-auto">
-                <ul className="space-y-1">
+                <ul className="space-y-2">
                   {stats.states_visited.sort().map((state) => (
-                    <li key={state} className="text-gray-700 p-2 hover:bg-gray-50 rounded">
+                    <li key={state} className="text-gray-800 p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow font-medium">
                       {state}
                     </li>
                   ))}

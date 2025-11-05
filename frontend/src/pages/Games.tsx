@@ -4,6 +4,7 @@ import { teamsApi } from '../api/teams';
 import { attendanceApi } from '../api/attendance';
 import type { GameListItem, Team, SeasonInfo } from '../types/api';
 import Layout from '../components/layout/Layout';
+import Card from '../components/common/Card';
 import GameCard from '../components/games/GameCard';
 import GameFilters from '../components/games/GameFilters';
 import Loading from '../components/common/Loading';
@@ -80,7 +81,7 @@ const Games: React.FC = () => {
   return (
     <Layout>
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Browse Games</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-8">Browse Games</h1>
 
         {error && <Alert type="error" message={error} onClose={() => setError('')} />}
         {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
@@ -98,12 +99,12 @@ const Games: React.FC = () => {
         {loading ? (
           <Loading message="Loading games..." />
         ) : games.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">No games found. Try adjusting your filters.</p>
-          </div>
+          <Card className="text-center py-12">
+            <p className="text-gray-600 text-lg">No games found. Try adjusting your filters.</p>
+          </Card>
         ) : (
           <div>
-            <p className="text-sm text-gray-600 mb-6 font-medium">
+            <p className="text-sm text-gray-700 mb-8 font-semibold uppercase tracking-wide">
               Showing {games.length} game{games.length !== 1 ? 's' : ''}
             </p>
             <div className="space-y-6">

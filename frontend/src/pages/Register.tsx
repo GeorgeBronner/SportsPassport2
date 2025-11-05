@@ -31,19 +31,19 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-sage-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">College Football Tracker</h1>
-          <p className="mt-2 text-gray-600">Create your account</p>
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold text-primary-700 mb-3">College Football Tracker</h1>
+          <p className="text-lg text-gray-700 font-medium">Create your account</p>
         </div>
 
-        <Card>
-          <h2 className="text-2xl font-semibold mb-6">Sign Up</h2>
+        <Card className="bg-gradient-to-br from-white to-gray-50 shadow-elevated">
+          <h2 className="text-3xl font-bold mb-8 text-gray-900">Sign Up</h2>
 
           {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} className="space-y-6">
             <Input
               label="Full Name"
               type="text"
@@ -77,9 +77,9 @@ const Register: React.FC = () => {
             </Button>
           </form>
 
-          <p className="mt-4 text-center text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-gray-700">
             Already have an account?{' '}
-            <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium">
+            <Link to="/login" className="text-primary-600 hover:text-primary-700 font-bold">
               Sign in
             </Link>
           </p>

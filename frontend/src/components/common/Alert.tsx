@@ -8,20 +8,20 @@ interface AlertProps {
 
 const Alert: React.FC<AlertProps> = ({ type = 'info', message, onClose }) => {
   const typeClasses = {
-    info: 'bg-blue-50 border-blue-500 text-blue-700',
-    success: 'bg-green-50 border-green-500 text-green-700',
-    warning: 'bg-yellow-50 border-yellow-500 text-yellow-700',
-    error: 'bg-red-50 border-red-500 text-red-700',
+    info: 'bg-blue-50 border-blue-400 text-blue-800',
+    success: 'bg-sage-50 border-sage-500 text-sage-800',
+    warning: 'bg-yellow-50 border-yellow-500 text-yellow-800',
+    error: 'bg-accent-50 border-accent-500 text-accent-800',
   };
 
   return (
-    <div className={`border-l-4 p-4 mb-4 ${typeClasses[type]}`}>
+    <div className={`border-l-4 p-5 mb-6 rounded-xl shadow-sm ${typeClasses[type]}`}>
       <div className="flex items-center justify-between">
-        <p>{message}</p>
+        <p className="font-medium">{message}</p>
         {onClose && (
           <button
             onClick={onClose}
-            className="ml-4 text-gray-500 hover:text-gray-700"
+            className="ml-4 text-gray-600 hover:text-gray-800 transition-colors font-bold text-xl"
           >
             ×
           </button>
