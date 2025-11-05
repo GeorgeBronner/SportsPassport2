@@ -106,7 +106,7 @@ class CollegeFootballDataService:
         # Get games for the season
         games_data = await self._get("/games", params={
             "year": season,
-            "seasonType": "regular",
+            "seasonType": "both",
             "division": "fbs"
         })
 
