@@ -14,13 +14,18 @@ router = APIRouter(prefix="/api/teams", tags=["teams"])
 def list_teams(
     conference: Optional[str] = None,
     search: Optional[str] = None,
+    division: Optional[str] = Query("fbs", description="Filter by division (fbs, fcs, or all)"),
     skip: int = 0,
     limit: int = 200,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """List all teams with optional filters"""
+    """List all teams with optional filters (defaults to FBS teams only)"""
     query = db.query(Team)
+
+    # Filter by division (default to FBS teams only)
+    if division and division.lower() != "all":
+        query = query.filter(Team.division.ilike(f"%{division}%"))
 
     if conference:
         query = query.filter(Team.conference.ilike(f"%{conference}%"))

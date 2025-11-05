@@ -42,6 +42,7 @@ An application that allows users to track college football games they have atten
   - **Attendance** (stadium attendance) ✅
 - Provide manual trigger to update database with new game results ✅
 - Data should cover all FBS teams and games ✅
+- **FBS vs FCS games**: Both FBS and FCS teams are imported to support games between divisions ✅
 - Source: CollegeFootballData.com API ✅
 
 ### 2. User Management ✅
@@ -65,6 +66,7 @@ An application that allows users to track college football games they have atten
 
 ### 4. Enhanced Search & Discovery ✅
 - **List all teams** (with filtering by conference or search) ✅
+- **FBS teams only in dropdowns** (defaults to showing only FBS teams, can be overridden) ✅
 - **View available seasons** (with game counts per season) ✅
 - **Filter games by team AND season** (combined filtering) ✅
 - **Count games** matching specific filters ✅

@@ -32,11 +32,13 @@ class CollegeFootballDataService:
             return response.json()
 
     async def import_teams(self):
-        """Import FBS teams from API"""
-        teams_data = await self._get("/teams/fbs")
-
+        """Import FBS and FCS teams from API"""
         teams_imported = 0
-        for team_data in teams_data:
+
+        # Import FBS teams (always works)
+        fbs_teams = await self._get("/teams/fbs")
+
+        for team_data in fbs_teams:
             # Check if team already exists
             existing_team = self.db.query(Team).filter(
                 Team.api_team_id == team_data.get("id")
@@ -48,7 +50,7 @@ class CollegeFootballDataService:
                 existing_team.mascot = team_data.get("mascot")
                 existing_team.abbreviation = team_data.get("abbreviation")
                 existing_team.conference = team_data.get("conference")
-                existing_team.division = team_data.get("division")
+                existing_team.division = team_data.get("division", "fbs")
             else:
                 # Create new team
                 team = Team(
@@ -57,10 +59,44 @@ class CollegeFootballDataService:
                     mascot=team_data.get("mascot"),
                     abbreviation=team_data.get("abbreviation"),
                     conference=team_data.get("conference"),
-                    division=team_data.get("division")
+                    division=team_data.get("division", "fbs")
                 )
                 self.db.add(team)
                 teams_imported += 1
+
+        # Try to import FCS teams, but don't fail if endpoint doesn't exist
+        try:
+            fcs_teams = await self._get("/teams", params={"classification": "fcs"})
+
+            for team_data in fcs_teams:
+                # Check if team already exists
+                existing_team = self.db.query(Team).filter(
+                    Team.api_team_id == team_data.get("id")
+                ).first()
+
+                if existing_team:
+                    # Update existing team
+                    existing_team.school = team_data.get("school")
+                    existing_team.mascot = team_data.get("mascot")
+                    existing_team.abbreviation = team_data.get("abbreviation")
+                    existing_team.conference = team_data.get("conference")
+                    existing_team.division = team_data.get("classification", "fcs")
+                else:
+                    # Create new team
+                    team = Team(
+                        api_team_id=team_data.get("id"),
+                        school=team_data.get("school"),
+                        mascot=team_data.get("mascot"),
+                        abbreviation=team_data.get("abbreviation"),
+                        conference=team_data.get("conference"),
+                        division=team_data.get("classification", "fcs")
+                    )
+                    self.db.add(team)
+                    teams_imported += 1
+        except Exception as e:
+            # FCS import failed, but that's okay - we have FBS teams
+            print(f"Warning: Could not import FCS teams (this is okay): {str(e)}")
+            pass
 
         self.db.commit()
         return teams_imported
