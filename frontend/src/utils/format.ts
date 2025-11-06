@@ -1,6 +1,8 @@
 // Format date to readable string
 export const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
+  // Parse date as local time to avoid timezone conversion issues
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -10,7 +12,9 @@ export const formatDate = (dateString: string): string => {
 
 // Format date to short form
 export const formatDateShort = (dateString: string): string => {
-  const date = new Date(dateString);
+  // Parse date as local time to avoid timezone conversion issues
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
