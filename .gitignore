@@ -47,6 +47,7 @@ htmlcov/
 
 #ai
 .claude/
+.playwright-mcp/
 
 # Frontend
 frontend/node_modules/

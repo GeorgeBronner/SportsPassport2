@@ -1,4 +1,4 @@
-i idoes services:
+services:
   backend:
     build:
       context: .
