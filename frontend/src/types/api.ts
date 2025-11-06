@@ -31,6 +31,7 @@ export interface Team {
   abbreviation: string | null;
   conference: string | null;
   division: string | null;
+  classification: string | null;
   api_team_id: number | null;
 }
 

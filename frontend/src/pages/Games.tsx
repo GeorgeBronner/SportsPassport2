@@ -15,6 +15,7 @@ const Games: React.FC = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [seasons, setSeasons] = useState<SeasonInfo[]>([]);
   const [attendedGameIds, setAttendedGameIds] = useState<Set<number>>(new Set());
+  const [gameIdToAttendanceId, setGameIdToAttendanceId] = useState<Map<number, number>>(new Map());
   const [selectedTeam, setSelectedTeam] = useState('');
   const [selectedSeason, setSelectedSeason] = useState<number | undefined>();
   const [loading, setLoading] = useState(true);
@@ -40,6 +41,13 @@ const Games: React.FC = () => {
       setTeams(teamsData);
       setSeasons(seasonsData.sort((a, b) => b.season - a.season));
       setAttendedGameIds(new Set(attendedGames.map((a) => a.game_id)));
+
+      // Build map of game ID to attendance ID
+      const idMap = new Map<number, number>();
+      attendedGames.forEach((attendance) => {
+        idMap.set(attendance.game_id, attendance.id);
+      });
+      setGameIdToAttendanceId(idMap);
     } catch (err) {
       setError('Failed to load data');
     }
@@ -64,12 +72,39 @@ const Games: React.FC = () => {
 
   const handleAttend = async (gameId: number, notes?: string) => {
     try {
-      await attendanceApi.createAttendance({ game_id: gameId, notes });
+      const attendance = await attendanceApi.createAttendance({ game_id: gameId, notes });
       setAttendedGameIds(new Set([...attendedGameIds, gameId]));
+      setGameIdToAttendanceId(new Map(gameIdToAttendanceId.set(gameId, attendance.id)));
       setSuccess('Game marked as attended!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to mark game as attended');
+    }
+  };
+
+  const handleRemoveAttendance = async (gameId: number) => {
+    try {
+      const attendanceId = gameIdToAttendanceId.get(gameId);
+      if (!attendanceId) {
+        setError('Attendance record not found');
+        return;
+      }
+
+      await attendanceApi.deleteAttendance(attendanceId);
+
+      // Update state
+      const newAttendedGameIds = new Set(attendedGameIds);
+      newAttendedGameIds.delete(gameId);
+      setAttendedGameIds(newAttendedGameIds);
+
+      const newIdMap = new Map(gameIdToAttendanceId);
+      newIdMap.delete(gameId);
+      setGameIdToAttendanceId(newIdMap);
+
+      setSuccess('Attendance removed!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to remove attendance');
     }
   };
 
@@ -114,6 +149,7 @@ const Games: React.FC = () => {
                   game={game}
                   isAttended={attendedGameIds.has(game.id)}
                   onAttend={handleAttend}
+                  onRemoveAttendance={handleRemoveAttendance}
                 />
               ))}
             </div>

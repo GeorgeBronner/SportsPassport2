@@ -8,6 +8,7 @@ class TeamBase(BaseModel):
     abbreviation: Optional[str] = None
     conference: Optional[str] = None
     division: Optional[str] = None
+    classification: Optional[str] = None
 
 
 class TeamCreate(TeamBase):

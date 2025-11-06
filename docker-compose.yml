@@ -1,11 +1,11 @@
-services:
+i idoes services:
   backend:
     build:
       context: .
       dockerfile: ./backend/Dockerfile
     container_name: cfb-tracker-backend
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       - DATABASE_URL=sqlite:////app/data/college_football.db
     volumes:

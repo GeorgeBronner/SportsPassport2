@@ -34,7 +34,7 @@ const GameCard: React.FC<GameCardProps> = ({
   };
 
   return (
-    <Card className="hover:border-primary-300 bg-gradient-to-r from-white to-gray-50">
+    <Card className="hover:border-primary-300 bg-gradient-to-r from-white to-gray-50 relative">
       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
         <div className="flex-1">
           <div className="text-xs font-bold text-primary-600 mb-3 uppercase tracking-wider bg-primary-50 inline-block px-3 py-1 rounded-full">
@@ -92,21 +92,23 @@ const GameCard: React.FC<GameCardProps> = ({
               )}
             </div>
           ) : (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center">
               <span className="text-sm text-sage-600 font-bold bg-sage-50 px-4 py-2 rounded-lg">✓ Attended</span>
-              {onRemoveAttendance && (
-                <Button
-                  size="sm"
-                  variant="danger"
-                  onClick={() => onRemoveAttendance(game.id)}
-                >
-                  Remove
-                </Button>
-              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Small undo button in bottom right corner when attended */}
+      {isAttended && onRemoveAttendance && (
+        <button
+          onClick={() => onRemoveAttendance(game.id)}
+          className="absolute bottom-2 right-2 text-xs text-gray-400 hover:text-red-500 transition-colors px-2 py-1 hover:bg-red-50 rounded"
+          title="Remove attendance"
+        >
+          undo
+        </button>
+      )}
     </Card>
   );
 };

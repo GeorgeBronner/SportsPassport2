@@ -111,10 +111,10 @@ def get_attendance_stats(
         game = attendance.game
         games_by_season[game.season] += 1
 
-        # Count games for both home and away teams
-        if game.home_team:
+        # Count games for both home and away teams (FBS only)
+        if game.home_team and game.home_team.classification == "fbs":
             games_by_team[game.home_team.school] += 1
-        if game.away_team:
+        if game.away_team and game.away_team.classification == "fbs":
             games_by_team[game.away_team.school] += 1
 
         # Track stadiums and states

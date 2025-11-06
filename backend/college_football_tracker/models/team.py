@@ -12,6 +12,7 @@ class Team(Base):
     abbreviation = Column(String, index=True)
     conference = Column(String, index=True)
     division = Column(String)
+    classification = Column(String, index=True)  # fbs, fcs, etc.
     api_team_id = Column(Integer, unique=True, index=True)  # ID from CollegeFootballData API
 
     # Relationships

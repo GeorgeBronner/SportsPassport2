@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/teams", tags=["teams"])
 def list_teams(
     conference: Optional[str] = None,
     search: Optional[str] = None,
-    division: Optional[str] = Query("fbs", description="Filter by division (fbs, fcs, or all)"),
+    classification: Optional[str] = Query("fbs", description="Filter by classification (fbs, fcs, or all)"),
     skip: int = 0,
     limit: int = 200,
     db: Session = Depends(get_db),
@@ -23,9 +23,9 @@ def list_teams(
     """List all teams with optional filters (defaults to FBS teams only)"""
     query = db.query(Team)
 
-    # Filter by division (default to FBS teams only)
-    if division and division.lower() != "all":
-        query = query.filter(Team.division.ilike(f"%{division}%"))
+    # Filter by classification (default to FBS teams only)
+    if classification and classification.lower() != "all":
+        query = query.filter(Team.classification.ilike(f"%{classification}%"))
 
     if conference:
         query = query.filter(Team.conference.ilike(f"%{conference}%"))
