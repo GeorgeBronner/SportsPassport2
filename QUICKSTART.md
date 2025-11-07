@@ -169,3 +169,6 @@ POST /api/attendance/bulk
 5. Restart: `docker compose restart`
 
 The API works without a key but has rate limits. A free key gives you higher limits.
+
+Use this command to push and deploy to oracle.
+git push origin main && ssh oracle "cd SportsPassport2 && git pull origin main && docker compose up -d --build"
