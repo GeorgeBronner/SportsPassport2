@@ -50,3 +50,11 @@ export const getWinner = (
   }
   return 'Tie';
 };
+
+// Format game week or type (Bowl Game for postseason)
+export const formatGameWeek = (week: number | null, seasonType: string | null): string => {
+  if (seasonType === 'postseason') {
+    return 'Bowl Game';
+  }
+  return week ? `Week ${week}` : 'N/A';
+};

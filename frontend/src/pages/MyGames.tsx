@@ -6,7 +6,7 @@ import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Loading from '../components/common/Loading';
 import Alert from '../components/common/Alert';
-import { formatDateShort, formatScore } from '../utils/format';
+import { formatDateShort, formatScore, formatGameWeek } from '../utils/format';
 
 const MyGames: React.FC = () => {
   const [attendedGames, setAttendedGames] = useState<Attendance[]>([]);
@@ -110,7 +110,7 @@ const MyGames: React.FC = () => {
                   <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
                     <div className="flex-1">
                       <div className="text-xs font-bold text-accent-600 mb-3 uppercase tracking-wider bg-accent-50 inline-block px-3 py-1 rounded-full">
-                        {formatDateShort(attendance.game.start_date)} • Week {attendance.game.week || 'N/A'}
+                        {formatDateShort(attendance.game.start_date)} • {formatGameWeek(attendance.game.week, attendance.game.season_type)}
                       </div>
                       <div className="text-2xl font-bold text-gray-900 mb-3">
                         {attendance.game.away_team.school} @ {attendance.game.home_team.school}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { GameListItem } from '../../types/api';
-import { formatDateShort, formatScore } from '../../utils/format';
+import { formatDateShort, formatScore, formatGameWeek } from '../../utils/format';
 import Card from '../common/Card';
 import Button from '../common/Button';
 
@@ -38,7 +38,7 @@ const GameCard: React.FC<GameCardProps> = ({
       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
         <div className="flex-1">
           <div className="text-xs font-bold text-primary-600 mb-3 uppercase tracking-wider bg-primary-50 inline-block px-3 py-1 rounded-full">
-            {formatDateShort(game.start_date)} • Week {game.week || 'N/A'}
+            {formatDateShort(game.start_date)} • {formatGameWeek(game.week, game.season_type)}
           </div>
           <div className="text-2xl font-bold text-gray-900 mb-3">
             {game.away_team.school} @ {game.home_team.school}
