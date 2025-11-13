@@ -1,21 +1,19 @@
-// Format date to readable string
-export const formatDate = (dateString: string): string => {
-  // Parse date as local time to avoid timezone conversion issues
-  const [year, month, day] = dateString.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
+// Convert UTC datetime to Central Time and format as readable string
+export const formatDate = (isoDateString: string): string => {
+  const date = new Date(isoDateString);
   return date.toLocaleDateString('en-US', {
+    timeZone: 'America/Chicago',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
 };
 
-// Format date to short form
-export const formatDateShort = (dateString: string): string => {
-  // Parse date as local time to avoid timezone conversion issues
-  const [year, month, day] = dateString.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
+// Convert UTC datetime to Central Time and format as short form
+export const formatDateShort = (isoDateString: string): string => {
+  const date = new Date(isoDateString);
   return date.toLocaleDateString('en-US', {
+    timeZone: 'America/Chicago',
     year: 'numeric',
     month: 'short',
     day: 'numeric',

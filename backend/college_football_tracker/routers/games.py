@@ -41,7 +41,7 @@ def list_games(
             )
         )
 
-    query = query.order_by(Game.game_date.desc())
+    query = query.order_by(Game.start_date.desc())
     games = query.offset(skip).limit(limit).all()
 
     return games
@@ -68,7 +68,7 @@ def search_games(
             Game.home_team_id.in_(team_ids),
             Game.away_team_id.in_(team_ids)
         )
-    ).order_by(Game.game_date.desc()).offset(skip).limit(limit).all()
+    ).order_by(Game.start_date.desc()).offset(skip).limit(limit).all()
 
     return games
 
@@ -148,7 +148,7 @@ def list_team_games(
     if season:
         query = query.filter(Game.season == season)
 
-    games = query.order_by(Game.game_date.desc()).offset(skip).limit(limit).all()
+    games = query.order_by(Game.start_date.desc()).offset(skip).limit(limit).all()
     return games
 
 

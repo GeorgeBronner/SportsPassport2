@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from college_football_tracker.db.database import Base
 
@@ -11,8 +11,9 @@ class Game(Base):
     away_team_id = Column(Integer, ForeignKey("teams.id"), nullable=False, index=True)
     home_score = Column(Integer)
     away_score = Column(Integer)
-    game_date = Column(Date, nullable=False, index=True)
+    start_date = Column(DateTime, nullable=False, index=True)  # UTC datetime from API
     season = Column(Integer, nullable=False, index=True)
+    season_type = Column(String, index=True)  # 'regular' or 'postseason'
     week = Column(Integer, index=True)
     venue_id = Column(Integer, ForeignKey("venues.id"), index=True)
     attendance = Column(Integer)

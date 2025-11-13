@@ -194,13 +194,13 @@ class CollegeFootballDataService:
                 Game.api_game_id == game_data.get("id")
             ).first()
 
-            # Parse date
-            game_date = None
+            # Parse datetime (store as UTC)
+            start_date = None
             if game_data.get("startDate"):
                 try:
-                    game_date = datetime.fromisoformat(
+                    start_date = datetime.fromisoformat(
                         game_data.get("startDate").replace("Z", "+00:00")
-                    ).date()
+                    )
                 except:
                     pass
 
@@ -208,7 +208,8 @@ class CollegeFootballDataService:
                 # Update existing game
                 existing_game.home_score = game_data.get("homePoints")
                 existing_game.away_score = game_data.get("awayPoints")
-                existing_game.game_date = game_date
+                existing_game.start_date = start_date
+                existing_game.season_type = game_data.get("seasonType")
                 existing_game.week = game_data.get("week")
                 existing_game.venue_id = venue_id
                 existing_game.attendance = game_data.get("attendance")
@@ -220,8 +221,9 @@ class CollegeFootballDataService:
                     away_team_id=away_team.id,
                     home_score=game_data.get("homePoints"),
                     away_score=game_data.get("awayPoints"),
-                    game_date=game_date,
+                    start_date=start_date,
                     season=season,
+                    season_type=game_data.get("seasonType"),
                     week=game_data.get("week"),
                     venue_id=venue_id,
                     attendance=game_data.get("attendance")

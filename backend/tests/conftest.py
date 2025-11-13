@@ -198,8 +198,9 @@ def sample_games(db_session, sample_teams, sample_venues):
             away_team_id=sample_teams[1].id,  # Michigan
             home_score=35,
             away_score=28,
-            game_date=date(2023, 9, 2),
+            start_date=datetime(2023, 9, 2, 23, 30, 0),  # 6:30 PM Central = 11:30 PM UTC
             season=2023,
+            season_type='regular',
             week=1,
             venue_id=sample_venues[0].id,
             attendance=100077
@@ -210,8 +211,9 @@ def sample_games(db_session, sample_teams, sample_venues):
             away_team_id=sample_teams[2].id,  # Ohio State
             home_score=42,
             away_score=27,
-            game_date=date(2023, 11, 25),
+            start_date=datetime(2023, 11, 25, 17, 0, 0),  # Noon Central = 5:00 PM UTC
             season=2023,
+            season_type='regular',
             week=13,
             venue_id=sample_venues[1].id,
             attendance=107601
@@ -222,8 +224,9 @@ def sample_games(db_session, sample_teams, sample_venues):
             away_team_id=sample_teams[2].id,  # Ohio State
             home_score=31,
             away_score=24,
-            game_date=date(2024, 1, 1),
+            start_date=datetime(2024, 1, 2, 0, 0, 0),  # 7:00 PM Central on Jan 1 = Midnight UTC on Jan 2
             season=2023,
+            season_type='postseason',
             week=None,
             venue_id=sample_venues[0].id,
             attendance=100000

@@ -48,8 +48,9 @@ export interface Venue {
 // Game types
 export interface Game {
   id: number;
-  game_date: string;
+  start_date: string;  // ISO datetime string (UTC)
   season: number;
+  season_type: string | null;
   week: number | null;
   home_team_id: number;
   away_team_id: number;
@@ -65,8 +66,9 @@ export interface Game {
 
 export interface GameListItem {
   id: number;
-  game_date: string;
+  start_date: string;  // ISO datetime string (UTC)
   season: number;
+  season_type: string | null;
   week: number | null;
   home_team: Team;
   away_team: Team;

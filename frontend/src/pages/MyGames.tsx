@@ -25,7 +25,7 @@ const MyGames: React.FC = () => {
     try {
       const data = await attendanceApi.getAttendedGames();
       setAttendedGames(data.sort((a, b) =>
-        new Date(b.game.game_date).getTime() - new Date(a.game.game_date).getTime()
+        new Date(b.game.start_date).getTime() - new Date(a.game.start_date).getTime()
       ));
     } catch (err) {
       setError('Failed to load attended games');
@@ -110,7 +110,7 @@ const MyGames: React.FC = () => {
                   <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
                     <div className="flex-1">
                       <div className="text-xs font-bold text-accent-600 mb-3 uppercase tracking-wider bg-accent-50 inline-block px-3 py-1 rounded-full">
-                        {formatDateShort(attendance.game.game_date)} • Week {attendance.game.week || 'N/A'}
+                        {formatDateShort(attendance.game.start_date)} • Week {attendance.game.week || 'N/A'}
                       </div>
                       <div className="text-2xl font-bold text-gray-900 mb-3">
                         {attendance.game.away_team.school} @ {attendance.game.home_team.school}

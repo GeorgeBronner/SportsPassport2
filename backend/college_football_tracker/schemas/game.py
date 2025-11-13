@@ -1,13 +1,14 @@
 from pydantic import BaseModel
-from datetime import date
+from datetime import datetime
 from typing import Optional
 from college_football_tracker.schemas.team import TeamResponse
 from college_football_tracker.schemas.venue import VenueResponse
 
 
 class GameBase(BaseModel):
-    game_date: date
+    start_date: datetime  # UTC datetime from API
     season: int
+    season_type: Optional[str] = None
     week: Optional[int] = None
     home_score: Optional[int] = None
     away_score: Optional[int] = None
@@ -37,8 +38,9 @@ class GameResponse(GameBase):
 
 class GameListResponse(BaseModel):
     id: int
-    game_date: date
+    start_date: datetime  # UTC datetime from API
     season: int
+    season_type: Optional[str] = None
     week: Optional[int] = None
     home_team: TeamResponse
     away_team: TeamResponse
