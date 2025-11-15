@@ -66,7 +66,7 @@ def mark_game_attended(
 @router.get("/", response_model=List[AttendanceResponse])
 def list_attended_games(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 10000,  # High default limit to return all games for personal/family use
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
