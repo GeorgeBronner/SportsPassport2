@@ -28,44 +28,54 @@ def upgrade():
         # Tables will be created from models
         return
 
-    # Check if migration already applied
-    columns = [col['name'] for col in inspector.get_columns('games')]
-    if 'start_date' in columns:
-        # Migration already applied
-        return
+    # === GAMES TABLE MIGRATION ===
+    games_columns = [col['name'] for col in inspector.get_columns('games')]
 
-    # SQLite doesn't support ALTER COLUMN, so we need to:
-    # 1. Create new columns
-    # 2. Copy data (with conversion)
-    # 3. Drop old column (via table recreation)
+    # Only migrate if we still have the old schema
+    if 'game_date' in games_columns and 'start_date' not in games_columns:
+        # Step 1: Add new columns (simpler approach - no batch operation)
+        op.add_column('games', sa.Column('start_date', sa.DateTime(), nullable=True))
+        op.add_column('games', sa.Column('season_type', sa.String(), nullable=True))
 
-    # Add new columns
-    with op.batch_alter_table('games', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('start_date', sa.DateTime(), nullable=True))
-        batch_op.add_column(sa.Column('season_type', sa.String(), nullable=True))
-        batch_op.create_index(batch_op.f('ix_games_start_date'), ['start_date'], unique=False)
-        batch_op.create_index(batch_op.f('ix_games_season_type'), ['season_type'], unique=False)
+        # Step 2: Convert existing date data to datetime (midnight UTC)
+        op.execute("""
+            UPDATE games
+            SET start_date = datetime(game_date || ' 00:00:00')
+        """)
 
-    # Convert existing date data to datetime (midnight UTC)
-    # This is a placeholder - the real data will come from re-importing from API
-    op.execute("""
-        UPDATE games
-        SET start_date = datetime(game_date || ' 00:00:00')
-    """)
+        # Step 3: Create indexes on new columns
+        op.create_index('ix_games_start_date', 'games', ['start_date'])
+        op.create_index('ix_games_season_type', 'games', ['season_type'])
 
-    # Make start_date NOT NULL after populating it
-    with op.batch_alter_table('games', schema=None) as batch_op:
-        batch_op.alter_column('start_date', nullable=False)
-        # Drop old game_date column
-        batch_op.drop_index('ix_games_game_date')
-        batch_op.drop_column('game_date')
+        # Step 4: Drop old game_date column and index using batch operation
+        # (SQLite requires recreating table to drop columns)
+        with op.batch_alter_table('games', schema=None) as batch_op:
+            batch_op.drop_index('ix_games_game_date')
+            batch_op.drop_column('game_date')
+
+    # === TEAMS TABLE MIGRATION ===
+    teams_columns = [col['name'] for col in inspector.get_columns('teams')]
+
+    if 'classification' not in teams_columns:
+        # Add classification column to teams
+        op.add_column('teams', sa.Column('classification', sa.String(), nullable=True))
+
+        # Set default value for existing teams
+        op.execute("UPDATE teams SET classification = 'fbs'")
+
+        # Create index
+        op.create_index('ix_teams_classification', 'teams', ['classification'])
 
 
 def downgrade():
+    # === REVERT TEAMS TABLE ===
+    op.drop_index('ix_teams_classification', 'teams')
+    with op.batch_alter_table('teams', schema=None) as batch_op:
+        batch_op.drop_column('classification')
+
+    # === REVERT GAMES TABLE ===
     # Recreate game_date column from start_date
-    with op.batch_alter_table('games', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('game_date', sa.DATE(), nullable=True))
-        batch_op.create_index('ix_games_game_date', ['game_date'], unique=False)
+    op.add_column('games', sa.Column('game_date', sa.DATE(), nullable=True))
 
     # Convert datetime back to date
     op.execute("""
@@ -73,10 +83,12 @@ def downgrade():
         SET game_date = date(start_date)
     """)
 
-    # Make game_date NOT NULL and drop new columns
+    # Create index on game_date
+    op.create_index('ix_games_game_date', 'games', ['game_date'])
+
+    # Drop new columns using batch operation
     with op.batch_alter_table('games', schema=None) as batch_op:
-        batch_op.alter_column('game_date', nullable=False)
-        batch_op.drop_index(batch_op.f('ix_games_season_type'))
-        batch_op.drop_index(batch_op.f('ix_games_start_date'))
+        batch_op.drop_index('ix_games_season_type')
+        batch_op.drop_index('ix_games_start_date')
         batch_op.drop_column('season_type')
         batch_op.drop_column('start_date')

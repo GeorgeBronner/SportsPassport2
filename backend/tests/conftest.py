@@ -134,7 +134,8 @@ def sample_teams(db_session):
             mascot="Crimson Tide",
             abbreviation="ALA",
             conference="SEC",
-            division="West"
+            division="West",
+            classification="fbs"
         ),
         Team(
             api_team_id=2,
@@ -142,7 +143,8 @@ def sample_teams(db_session):
             mascot="Wolverines",
             abbreviation="MICH",
             conference="Big Ten",
-            division="East"
+            division="East",
+            classification="fbs"
         ),
         Team(
             api_team_id=3,
@@ -150,7 +152,8 @@ def sample_teams(db_session):
             mascot="Buckeyes",
             abbreviation="OSU",
             conference="Big Ten",
-            division="East"
+            division="East",
+            classification="fbs"
         ),
     ]
     for team in teams:
