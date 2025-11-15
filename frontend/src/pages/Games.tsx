@@ -38,6 +38,9 @@ const Games: React.FC = () => {
         attendanceApi.getAttendedGames(),
       ]);
 
+      console.log('Loaded attended games:', attendedGames);
+      console.log('Game IDs from attended games:', attendedGames.map((a) => a.game_id));
+
       setTeams(teamsData);
       setSeasons(seasonsData.sort((a, b) => b.season - a.season));
       setAttendedGameIds(new Set(attendedGames.map((a) => a.game_id)));
@@ -61,6 +64,9 @@ const Games: React.FC = () => {
         season: selectedSeason,
         limit: 100,
       });
+      console.log('Loaded games:', gamesData);
+      console.log('Game IDs from loaded games:', gamesData.map(g => g.id));
+      console.log('Attended game IDs:', Array.from(attendedGameIds));
       setGames(gamesData);
       setError('');
     } catch (err) {
