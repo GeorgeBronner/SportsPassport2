@@ -4,8 +4,6 @@ services:
       context: .
       dockerfile: ./backend/Dockerfile
     container_name: cfb-tracker-backend
-    ports:
-      - "8001:8000"
     environment:
       - DATABASE_URL=sqlite:////app/data/college_football.db
     volumes:
