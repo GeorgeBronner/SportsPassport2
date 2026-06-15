@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
 from college_football_tracker.schemas.team import TeamResponse
@@ -32,8 +32,7 @@ class GameResponse(GameBase):
     away_team: TeamResponse
     venue: Optional[VenueResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class GameListResponse(BaseModel):
@@ -48,8 +47,7 @@ class GameListResponse(BaseModel):
     away_score: Optional[int] = None
     venue: Optional[VenueResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SeasonInfo(BaseModel):
