@@ -1,3 +1,6 @@
+import logging
+
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -7,6 +10,21 @@ from college_football_tracker.db.database import engine, Base
 from college_football_tracker.routers import auth, games, attendance, admin, teams
 import os
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
+
+# Initialize Sentry as early as possible. Disabled (with a warning) when no DSN
+# is configured so the app still runs locally / in environments without Sentry.
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.sentry_environment,
+        traces_sample_rate=settings.sentry_traces_sample_rate,
+        send_default_pii=True,
+    )
+    logger.info("Sentry initialized (environment=%s)", settings.sentry_environment)
+else:
+    logger.warning("SENTRY_DSN not set — Sentry error reporting is disabled")
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
