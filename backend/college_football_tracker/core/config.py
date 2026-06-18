@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     app_name: str = "College Football Game Tracker"
     debug: bool = False
 
+    # Sentry
+    sentry_dsn: Optional[str] = None
+    sentry_environment: str = "production"
+    sentry_traces_sample_rate: float = 0.1
+
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
 

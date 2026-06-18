@@ -4,11 +4,12 @@ services:
       context: .
       dockerfile: ./backend/Dockerfile
     container_name: cfb-tracker-backend
+    env_file:
+      - ./backend/.env
     environment:
       - DATABASE_URL=sqlite:////app/data/college_football.db
     volumes:
       - ./data:/app/data
-      - ./backend/.env:/app/.env
     restart: unless-stopped
     networks:
       - nginx-proxy
