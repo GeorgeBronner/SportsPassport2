@@ -7,9 +7,11 @@ from sqlalchemy.orm import Session
 
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
 from sports_passport.services.adapters.cfb import CfbAdapter
+from sports_passport.services.adapters.nhl import NhlAdapter
 
 ADAPTERS: dict[str, type[LeagueAdapter]] = {
     CfbAdapter.league_code: CfbAdapter,
+    NhlAdapter.league_code: NhlAdapter,
 }
 
 

@@ -22,11 +22,15 @@ college-football-only app was preserved at `../cfb-tracker`.
 - [x] Attendance stats: `games_by_league`, pro teams counted, CFB still FBS-only
 - [x] Verify: 110 tests pass incl. new importer/multi-league/admin tests
 
-## Phase 2 — NHL + CFB adapters
+## Phase 2 — NHL + CFB adapters (NHL ✅)
 - [x] CFB adapter ported from cfb-tracker (`adapters/cfb.py`, source `cfbd`)
-- [ ] NHL adapter (`adapters/nhl.py`): teams, historical 1970→now via club-schedule-season, sync via /score/{date}
-- [ ] Verify: NHL 2023-24 regular season = 1,312 games; CFB season counts match cfb-tracker DB
-- [ ] Live smoke test: import one NHL season, spot-check a known game
+- [x] NHL adapter (`adapters/nhl.py`): teams (incl. defunct, franchise_id from API),
+      historical via standings + club-schedule-season (throttled, deduped), sync via /score/{date}
+- [x] Verify: NHL 2023-24 regular season = 1,312 games exact; 1993-94 = 1,092 exact
+- [x] Live smoke test: 1994 SCF Game 7 present (VAN 2 @ NYR 3, MSG); postseason 1993-94 = 90
+- [ ] CFB live verification: season import with CFBD API key, compare counts vs cfb-tracker DB
+- Note: NHL venues are name-keyed with no city/state from the API — needs a venue
+  enrichment seed (fold into Phase 4 seed work) for the states-visited stat to work for NHL.
 
 ## Phase 3 — NFL + MLB adapters
 - [ ] Download Kaggle Spreadspoke CSV → `backend/data/raw/nfl/`; NFL adapter + nflverse sync
@@ -53,3 +57,6 @@ _(fill in as phases complete)_
 - Phase 0+1 (2026-07-11): Scaffold + multi-league core complete. 110 tests green.
   Smoke-tested: health, register, login, leagues endpoints all working. Old app untouched
   at ../cfb-tracker.
+- Phase 2 NHL (2026-07-11): NHL adapter live-verified against the real API — season game
+  counts exact for 2023-24 (1,312) and 1993-94 (1,092), famous-game spot check passed.
+  115 tests green. Remaining in phase: CFB live verification (needs CFBD API key run).

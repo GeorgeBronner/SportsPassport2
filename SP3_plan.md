@@ -149,33 +149,42 @@ files). MLB/NHL/nflverse are plain `httpx` calls — no extra deps.
 
 ## 5. Build Phases
 
-### Phase 0 — Scaffold (½ day)
-- [ ] Create `SportsPassport2/` repo: copy cfb-tracker skeleton (backend layout, Dockerfile,
+### Phase 0 — Scaffold (½ day) ✅ DONE 2026-07-11
+- [x] Create `SportsPassport2/` repo: copy cfb-tracker skeleton (backend layout, Dockerfile,
       docker-compose, alembic config, frontend scaffold), rename package to `sports_passport`
-- [ ] Strip CFB-specific naming from models/routers; keep auth (`core/security.py`,
+- [x] Strip CFB-specific naming from models/routers; keep auth (`core/security.py`,
       `routers/auth.py`), user model, test harness as-is
-- [ ] New CLAUDE.md for SP3 (conventions carried from SP2)
-- [ ] Git init, initial commit on `main`, then feature branches per phase
-- **Verify:** `docker compose up -d --build` serves the login page; auth round-trip works
+- [x] New CLAUDE.md (conventions carried from cfb-tracker)
+- [x] Git init, initial commit on `main`
+- **Verified:** full pytest suite green; uvicorn smoke test — /health, register, login,
+  and /api/leagues all round-trip. (Docker build deferred to Phase 6; frontend still the
+  unported cfb-tracker UI until Phase 5.)
 
-### Phase 1 — Core schema + adapter framework (1 day)
-- [ ] Implement §3 models + Alembic initial migration
-- [ ] `LeagueAdapter` ABC + `importer.py` shared upsert helpers
-- [ ] Seed `leagues` table
-- [ ] Admin router: `POST /admin/import/{league}/teams`,
-      `POST /admin/import/{league}/historical?start=&end=`,
-      `POST /admin/sync/{league}` (mirror SP2's admin refresh pattern)
-- [ ] Games router: `GET /games?league=&season=&team=&date=` with pagination
-- **Verify:** pytest suite for models + a `FakeAdapter` exercising the import pipeline
+### Phase 1 — Core schema + adapter framework (1 day) ✅ DONE 2026-07-11
+- [x] Implement §3 models + Alembic initial migration (`9182bb4bc1d2`, applies cleanly)
+- [x] `LeagueAdapter` ABC + `importer.py` shared upsert helpers
+- [x] Seed `leagues` table at startup (CFB/MLB/NFL/NBA/NHL)
+- [x] Admin router: `POST /api/admin/import/{league}/teams`,
+      `POST /api/admin/import/{league}/historical?start_season=&end_season=`,
+      `POST /api/admin/sync/{league}`, plus `GET /api/admin/status`
+- [x] Games router: `GET /api/games?league=&season=&team=` with pagination; new `GET /api/leagues`
+- **Verified:** 110 tests passing, including importer idempotency, cross-league
+  source-id isolation, multi-league filters, and league-aware attendance stats.
 
-### Phase 2 — First two adapters: NHL, then CFB (1–2 days)
+### Phase 2 — First two adapters: NHL, then CFB (1–2 days) — NHL ✅ / CFB code ported, live check pending
 Start with NHL (single official source for everything = simplest proof of the architecture),
 then CFB (port of known-working SP2 code = validates parity with SP2).
-- [ ] NHL adapter: teams, historical 1970→now, sync. Handle OT/SO, defunct teams
-      (Atlanta Flames/Thrashers, Hartford Whalers…), venue from API
-- [ ] CFB adapter: direct port of `services/cfb_api.py` into adapter shape; 1990→now
-- **Verify:** row counts vs known season game counts (NHL 2023-24 regular season = 1,312
-  games; CFB counts match SP2's DB); spot-check famous games (e.g., NHL 1994 SCF Game 7)
+- [x] NHL adapter (`adapters/nhl.py`): teams (62 all-time incl. defunct, with the API's own
+      `franchiseId` mapped to our `franchise_id`), season backfill via standings +
+      club-schedule-season with dedupe and 0.25s throttle, sync via `/v1/score/{date}`,
+      OT/SO flags, venues from API (name-keyed; no city/state — enrich later)
+- [x] CFB adapter (`adapters/cfb.py`): ported from cfb-tracker into adapter shape
+- [ ] CFB live verification: run a season import with a CFBD API key and compare counts
+      against the cfb-tracker DB
+- **Verified (NHL, live API 2026-07-11):** 2023-24 regular season = **1,312 games exact**;
+  1993-94 = **1,092 exact** (26 teams × 84); 1994 SCF Game 7 present (VAN 2 @ NYR 3,
+  Madison Square Garden); 1993-94 postseason = 90 games; 5 NHL adapter unit tests green
+  (115 total).
 
 ### Phase 3 — NFL + MLB adapters (1–2 days)
 - [ ] Download Kaggle Spreadspoke CSV → `data/raw/nfl/`; NFL adapter: parse, filter 1970+,
