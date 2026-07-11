@@ -43,8 +43,9 @@ Companion doc: [SP3_data_sources.md](SP3_data_sources.md) — full data source r
 | Deploy | Docker + Docker Compose, frontend built to `backend/static/`, port 8000 | Same pattern; new container name |
 | Package mgmt | uv (backend), npm (frontend) | Same as SP2 |
 
-New repo/folder: `E:\Documents\Coding\myProjects\SportsPassport3` (codename SP3). Backend
-package name: `sports_passport` (drop the sport-specific `college_football_tracker` naming).
+Repo/folder: `E:\Documents\Coding\myProjects\SportsPassport2` (fresh repo; the old app is
+preserved at `cfb-tracker`). Backend package name: `sports_passport` (drop the sport-specific
+`college_football_tracker` naming).
 
 ---
 
