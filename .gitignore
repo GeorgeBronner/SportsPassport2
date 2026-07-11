@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Databases
+*.db
+*.db-journal
+
+# Env / secrets
+.env
+
+# Bulk historical data files (downloaded, not committed)
+backend/data/raw/
+
+# Frontend
+node_modules/
+frontend/dist/
+backend/static/*
+!backend/static/.gitkeep
+
+# Runtime data volume
+data/
+
+# OS
+.DS_Store
+Thumbs.db
