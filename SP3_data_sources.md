@@ -204,6 +204,188 @@ official free API.
 
 ---
 
+## College Basketball (CBB)
+
+Research into game-level data sources (teams, home/away, date, score, venue) for NCAA Division I
+men's basketball, evaluated against the same hobby/zero-cost bar as MLB/NFL/NBA/NHL above. Unlike
+those four, **college hoops has no single source with pro-league-style depth** — the cleanest
+structured API (CollegeBasketballData.com) only reaches back to 2003, and anything deeper trades
+away either data quality or a clean license. Research date: July 2026.
+
+### TL;DR — Recommended Pick
+
+| League | Historical Load (one-time) | Ongoing Updates (free) | Paid Fallback |
+|--------|---------------------------|------------------------|---------------|
+| CBB    | CollegeBasketballData.com (CBBD), free API key, 2003–present | Same: CBBD `/games` or `/scoreboard` | SportsDataIO NCAA Basketball |
+
+**Recommended floor year: 2003.** This is a hard downgrade from the app's CFB/pro-league 1990
+floor, but it's where the one clean, structured, adapter-friendly source starts. Deeper history
+(back to 1996) exists but only via a dataset with commercial-use-restricted licensing (see Kaggle
+NCAA Basketball entry below) — not worth building the pipeline on for a few extra seasons of
+top-line scores. Revisit later if a better pre-2003 source turns up.
+
+**Why CBBD is the natural fit:** it's built and maintained by the same team as
+CollegeFootballData.com — the "About" page and shared Patreon
+([patreon.com/collegefootballdata](https://www.patreon.com/collegefootballdata)) confirm
+CBBD is CFBD's sister project (maintainer: Bill Radjewski). Same auth model (register for a free
+API key, send as a `Bearer` token — identical to `CfbAdapter`'s `Authorization` header pattern),
+same free-tier shape (1,000 calls/month, matching CFBD's documented free tier at
+[collegefootballdata.com/api-tiers](https://collegefootballdata.com/api-tiers)), and official
+Python (`cbbd` on [PyPI](https://pypi.org/project/cbbd/), generated from an OpenAPI spec) and R
+(`cbbd-r`) clients mirroring CFBD's tooling. A `CbbAdapter` could very plausibly be a near-copy of
+`cfb.py` — swap the base URL and field names. Confirmed men's D-I coverage 2003–present, games from
+2003+, betting lines from 2013+ (per Patreon/blog and third-party wrapper docs — see sources). It
+currently does **not** offer NCAA women's data, which is fine since scope here is men's D-I.
+
+**Open item before committing:** I could not fully verify from docs alone whether CBBD's `/games`
+payload includes a venue field (the Swagger UI and GitHub client READMEs didn't expose full model
+schemas without live calls, which I avoided per the scraping-avoidance instruction). Recommend a
+one-time live smoke-test of `/games?season=2024` with a free key before building the adapter — if
+venue is present, great; if not, follow the NBA adapter's precedent (build a one-time
+arena-by-team-by-season lookup table) since CBB venues are less critical to attendance-tracking
+value than for pro leagues anyway (most home games are on-campus, name is often just "$School
+Arena").
+
+### Suggested Free (Historical): CollegeBasketballData.com (CBBD)
+[CollegeBasketballData.com](https://collegebasketballdata.com/) — see rationale above. Coverage:
+men's D-I games 2003–present. Free API key at
+[collegebasketballdata.com/key](https://collegebasketballdata.com/key); rate limits and full ToS
+weren't fully documented on the public pages I could reach without an account — same due-diligence
+gap existed for CFBD until a key was actually requested, so treat this the same way: register,
+read the Terms & Conditions page linked in the footer, and confirm limits before scripting a full
+2003–present backfill.
+
+### Suggested Free (Ongoing): CollegeBasketballData.com (CBBD)
+Same API, same key — call `/games` (or `/scoreboard` for live/day-of data) filtered to recent
+dates, exactly like the CFB adapter's `sync_recent`. One less integration to maintain than picking
+a separate ongoing source.
+
+**Backup/secondary ongoing source:** ESPN's hidden API has a standard college-hoops scoreboard
+endpoint: `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=YYYYMMDD&groups=50&limit=500`
+(`groups=50` + a high `limit` is needed to get the full Division I slate for a date, not just
+ranked/featured games). No key, no auth, same "unofficial and could change" caveat as ESPN's other
+sport endpoints already noted in this doc. Good as a redundant/fallback update source, not a
+primary.
+
+### Suggested Paid: SportsDataIO
+[SportsDataIO NCAA Basketball API](https://sportsdata.io/ncaa-college-basketball-api) — same
+posture as the other four leagues' paid fallback: commercial-grade, deep history, "contact sales"
+pricing, free scrambled trial. Unnecessary unless CBBD's free tier proves too thin or the app ever
+goes commercial. [Sportradar NCAAMB API](https://developer.sportradar.com/basketball/docs/ncaamb-ig-api-basics)
+is the enterprise-grade alternative (2013+ coverage per their docs), well over hobby budget.
+
+### All CBB sources found
+
+| # | Source | Coverage | Cost | Notes |
+|---|--------|----------|------|-------|
+| 1 | [CollegeBasketballData.com (CBBD)](https://collegebasketballdata.com/) | 2003–present (betting lines 2013+) | Free (1,000 calls/mo tier; more via Patreon) | Sister project to CFBD, same maintainer/auth model; best fit given existing CFB adapter pattern |
+| 2 | [Kaggle "NCAA Basketball" (Google BigQuery public dataset)](https://www.kaggle.com/datasets/ncaa/ncaa-basketball) | Final scores 1996–present; box scores/play-by-play 2009–present | Free to access | **Compliance flag**: data is Sportradar-sourced with a copyright notice restricting use to "internal research and testing purposes... not to be used for any business or commercial purpose." Stricter than MLB Stats API's non-commercial carve-out. Do not build the pipeline on this. |
+| 3 | [Kaggle "College Basketball Dataset" (andrewsundberg)](https://www.kaggle.com/datasets/andrewsundberg/college-basketball-dataset) | 2013–present (seasons 2013–2019, 2021–2025+) | Free | Advanced efficiency metrics (KenPom-style), not raw game logs; wrong shape for a `games` table, skip |
+| 4 | [ESPN hidden API](https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard) | Recent decades (undocumented how far back `dates=` reliably goes; treat as ~2002+ at best) | Free (unofficial) | Good ongoing/backup source; not for bulk backfill given undocumented historical reliability |
+| 5 | [NCAA.com via henrygd/ncaa-api](https://github.com/henrygd/ncaa-api) | Current/recent only | Free, MIT-licensed wrapper | Scrapes ncaa.com directly; no explicit ToS clearance from NCAA for this wrapper; public hosted instance capped at 5 req/sec; self-host if used at all; no bulk historical endpoint (only current stats/scoreboard pages) — avoid as a pipeline source, same spirit as the Sports-Reference warning even though it's not a Sports-Reference property |
+| 6 | [TheSportsDB — "NCAA Division I Basketball Mens" (league 4607)](https://www.thesportsdb.com/league/4607-ncaa-division-i-basketball-mens) | Fixtures/results present but historically thin, consistent with this doc's existing NBA/NHL notes on TheSportsDB | Free / ~$9 Patreon premium | Fine for team metadata/logos/an auxiliary update feed; not a historical backbone |
+| 7 | [BALLDONTLIE NCAAB](https://ncaab.balldontlie.io/) | Includes AP/Coaches poll rankings, standings, games; historical depth undocumented publicly | Freemium (5 req/min free tier includes games; box scores/PBP/standings need $9.99–$39.99/mo GOAT tier, per-sport) | Free tier likely fine for a "recent scores" ongoing check, but depth for backfill is unclear and priced per sport on top of any NBA/NFL/MLB BALLDONTLIE usage already in place |
+| 8 | [SportsDataIO NCAA Basketball](https://sportsdata.io/ncaa-college-basketball-api) | Deep history | Paid, contact sales (free scrambled trial) | Commercial-grade; the "suggested paid" pick |
+| 9 | [Sportradar NCAAMB API](https://developer.sportradar.com/basketball/docs/ncaamb-ig-api-basics) | 2013–present | Paid, enterprise | Same underlying data as the restricted Kaggle set (#2); over-budget/overkill for a hobby app |
+| 10 | Sports-Reference (sports-reference.com/cbb, basketball-reference.com college pages) | 1894–present (win/loss); modern era for full box scores | Free to browse; **no bulk/scrape** | **Off limits** — same Sports-Reference family policy already documented below: no tools built on scraped data, aggressive rate-limit/blocking, $5,000+ custom exports. Do not use for CBB either, including via basketball-reference.com's college arm. |
+
+### Scale sanity check
+
+- **Teams**: NCAA Division I men's basketball has **~365 teams** (361 full D-I conference members
+  plus a handful in transition from D-II, 2025–26 figures) — roughly **2.5–3x** the CFB adapter's
+  FBS team count (~134), and far more than any pro league in this doc (NFL 32, NBA/NHL 30-32,
+  MLB 30).
+- **Games**: D-I teams play **~30–38 games/season** each; total D-I games league-wide run
+  **~5,800–6,000/season** (5,826 in 2018–19, a representative recent year — each game counted
+  once).
+- **Historical volume at the recommended 2003 floor**: roughly 23 seasons (2003–04 through
+  2025–26) × ~5,800 games ≈ **~130,000–135,000 games**. If a future push to the 1996 floor (using
+  a better-licensed source than the restricted Kaggle set, should one appear) ever happens, that
+  adds ~7 more seasons ≈ another 40,000 games, for ~175,000 total.
+- **Comparison to existing app scale**: the app already handles ~320k rows across 5 leagues. CBB
+  at the 2003 floor adds roughly **40% more game rows** on top of that — a meaningful but not
+  architecturally significant lift; SQLite handles this without issue (single-digit-million-row
+  tables are routine for SQLite; this is two orders of magnitude below that). The team count
+  (~365 new rows) and the volume of team↔season↔conference realignment bookkeeping (D-I conference
+  membership churns yearly, more than CFB's FBS/FCS split) is the bigger practical complexity, not
+  raw row count — worth budgeting import-logic time for conference-affiliation-by-season handling,
+  similar to how the CFB adapter already carries `conference`/`division` per team.
+
+### Non-Division-I opponents ("buy games" / exhibitions)
+
+The app only needs to *log/track* D-I men's games (D-I is the CBB floor, same idea as CFB's
+FBS-only floor), but D-I teams routinely schedule "buy games" against D-II, D-III, and NAIA
+opponents, and a user could plausibly have attended one of those. The app doesn't need full
+non-D-I rosters/standings/historical bulk data — just enough identity (name, ideally location) to
+represent the opponent as a team row on a D-I team's game.
+
+CBBD's `GameInfo` model exposes `home_team`/`away_team` as plain name strings (confirmed via the
+`cbbd-python` client's model docs) independent of `home_team_id`/`away_team_id`/
+`home_conference`/`away_conference`, which are presumably only populated for teams in CBBD's own
+registry. CBBD's product is scoped to Division I, so **the safe assumption is a non-D-I opponent
+will come through as a name only** — no confirmed ID, conference, or location — unlike CFBD, which
+solves the equivalent FBS/FCS problem by also exposing a queryable `/teams?classification=fcs`
+endpoint that the CFB adapter imports best-effort (see `cfb.py`'s `import_teams`). It's unconfirmed
+whether CBBD offers any equivalent lower-division team lookup; this should be verified with a live
+test call before the adapter is built, since public docs don't settle it either way.
+
+Practical implication: budget for a **manual/small seed-data lookup** (name → city/state, similar
+in spirit to the NBA adapter's arena-by-team-by-season table already noted above) to backfill
+location for whatever non-D-I opponent names turn up in D-I teams' game logs, rather than expecting
+the primary API to supply it. Given how infrequently buy games happen (a handful per D-I team per
+season, mostly in November), this is a small, occasional-maintenance list, not an ongoing bulk
+import.
+
+**Design question for implementation (not resolved here):** CBB teams will need a `classification`
+value on the `Team` row, following the existing precedent (`Team.classification`, and
+`_counts_for_stats` in `backend/sports_passport/routers/attendance.py`, which currently treats
+`classification is None or classification == "fbs"` as stats-eligible for CFB). Whoever builds the
+`CbbAdapter` needs to decide: (a) what classification value(s) non-D-I opponents get (a single
+generic non-D-I bucket is probably sufficient given the "no full non-D-I data" scope), and (b)
+whether attendance stats should count only D-I-vs-D-I games, or any game involving at least one D-I
+team (the latter seems more consistent with the existing FBS/FCS precedent, where FCS opponents
+don't block a game from being logged — they just don't personally count as an "FBS team" in
+team-based stats). This mirrors the FBS/FCS handling already in place and shouldn't need new
+architecture, just a CBB-appropriate classification value and the same style of stats filter.
+
+### Compliance/ToS notes specific to CBB
+
+- **CBBD**: same posture as CFBD — free key, monthly call cap, Patreon tiers unlock more. No
+  scraping involved (this is a documented, versioned, key-gated API), so it doesn't carry the
+  Sports-Reference-style prohibition. Re-verify the Terms & Conditions page after requesting a key
+  (not fully readable from the public marketing pages alone).
+- **Kaggle "NCAA Basketball" BigQuery dataset**: flagged above — Sportradar's copyright notice
+  restricts use to internal research/testing, explicitly excluding "business or commercial
+  purpose." SportsPassport2 is non-commercial/personal-family use, which arguably clears the
+  commercial-purpose bar, but "internal research and testing" is narrower language than "personal
+  use" and doesn't obviously cover "runs as a self-hosted web app my family uses to log games
+  attended." Given CBBD already covers 2003+ cleanly, there's no need to lean on this dataset —
+  recommend leaving it out of the pipeline entirely rather than relying on a favorable reading of
+  ambiguous terms.
+- **ESPN hidden API**: same caveat as everywhere else in this doc — unofficial, undocumented,
+  stable-but-not-guaranteed. Fine as a backup update layer only.
+- **NCAA.com (via any wrapper)**: NCAA.com itself doesn't publish an official public API or clear
+  data-reuse terms; the community wrappers scrape the site. Treat with the same caution as
+  Sports-Reference even though there's no documented $5,000-export policy — no formal permission to
+  build on top of it either. Skip it; CBBD + ESPN cover the need without this risk.
+- **Sports-Reference (cbb arm)**: explicitly off limits, per the existing project-wide warning —
+  no bulk use, no scraping, regardless of which Sports-Reference subdomain it's under.
+- **BALLDONTLIE NCAAB**: standard BALLDONTLIE account/key terms (same family already covered for
+  NBA/NFL/NHL/MLB in this doc); note it bills *per sport*, so adding CBB at a paid tier is an
+  additive cost, not covered by an existing NBA subscription.
+
+### Recommendation summary
+
+Build `CbbAdapter` on **CollegeBasketballData.com** for both historical backfill and ongoing sync
+— it's the only source here with clean licensing, a documented API, and an auth pattern that's
+already proven out in `CfbAdapter`. Set the historical floor at **2003** (CBBD's own floor) rather
+than reaching into the Sportradar-restricted Kaggle dataset for a few earlier seasons. Keep ESPN's
+scoreboard endpoint in reserve as a backup ongoing-sync source, same role it plays for the other
+four leagues. Treat NCAA.com scrapers and the Kaggle BigQuery dataset as sources to avoid outright
+rather than sources to lean on cautiously.
+
+---
+
 ## Multi-Sport / Combined Sources
 
 A single provider for all four leagues is appealing for code simplicity, but none of the free
@@ -249,5 +431,5 @@ ongoing-update layer** (one adapter, four leagues) while historical loads stay p
   [FBref](https://fbref.com/)-derived historical file would follow the same
   bulk-load-then-sync pattern. (FBref is a Sports-Reference property — same scraping
   restrictions apply.)
-- Same pattern works for WNBA, CFL, college basketball, etc. — the per-league adapter +
+- Same pattern works for WNBA, CFL, etc. — the per-league adapter +
   common `games` schema is the design decision that makes this cheap.
