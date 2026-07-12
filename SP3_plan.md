@@ -192,6 +192,16 @@ then CFB (port of known-working SP2 code = validates parity with SP2).
   the old cfb-tracker DB (`cfb-tracker/data/college_football-11-15.2025.db`) row-for-row on both
   the total and the regular/postseason split. 1,911 teams and 841 venues imported (CFBD's
   `/teams` endpoints return all-time rosters, not season-scoped).
+- **Known gap found during Phase 5 (2026-07-12):** NHL's `import_teams` never sets
+  `first_season`/`last_season` on team rows — confirmed live, `api.nhle.com/stats/rest/en/team`
+  (the only teams endpoint used) doesn't return season-range fields at all. This surfaced as a
+  wrong/misleading franchise-history ordering on the new team detail page (e.g. Colorado
+  Avalanche sorting before Quebec Nordiques). Worked around at the UI layer (don't display or
+  sort on a season range we don't actually have — see `TeamDetail.tsx`) rather than guessing;
+  the real fix is computing each NHL team's season range from its imported games
+  (MIN/MAX `Game.season` per team) after `import_historical` runs, which is separate work, not
+  a one-line adapter fix. Every other league's adapter (CFB/MLB/NFL/NBA) already sets these
+  fields correctly.
 
 ### Phase 3 — NFL + MLB adapters (1–2 days) ✅ DONE 2026-07-11
 - [x] NFL adapter (`adapters/nfl.py`, source `nflverse`): historical + sync both read
@@ -321,15 +331,49 @@ before this phase can close. Nothing written this phase has been committed yet;
   **Phase 4 closed** except for the still-pending live `sync_recent` test (needs a
   network that can reach `stats.nba.com`; do this once deployed).
 
-### Phase 5 — Frontend (2–3 days)
-Port SP2 frontend and add the league dimension:
-- [ ] League switcher (top-level nav or filter chip row) + "All leagues" view
-- [ ] Game search/browse: league, season, team, date filters; mark-attended flow (same UX as SP2)
-- [ ] Stats dashboard: totals by league; games by team, by season; unique venues; states
-      visited; per-league passport "completion" (venues visited / active venues)
-- [ ] Team pages aware of franchise history where populated
-- **Verify:** manual walkthrough — register, mark games attended in ≥3 leagues, confirm all
-  dashboard numbers by hand against the DB
+### Phase 5 — Frontend (2–3 days) ✅ DONE 2026-07-12
+Ported the still-CFB-only cfb-tracker frontend to the generalized backend (types/API clients
+still used the old `school`/`mascot`/`api_team_id` field names from before Phase 1's schema
+generalization) and added the league dimension:
+- [x] League filter lives on the Games/browse page (`GameFilters`), not a global header
+      switcher — Dashboard/Statistics already show every league at once via
+      `AttendanceStats.games_by_league`, so a global switcher would have no effect there.
+      Selecting a league re-scopes the team/season dropdowns and resets the team selection.
+- [x] Game search/browse: league, season, team filters; mark-attended flow unchanged from SP2's
+      UX. Season/date filters already existed; added league.
+- [x] Stats dashboard: "Games by League" section added to both Dashboard and Statistics,
+      sourced from the backend's existing (previously unused by the frontend)
+      `games_by_league` field.
+- [x] Team pages aware of franchise history: new `/teams/:id` page, reachable from team names
+      on game cards. Needed two small backend additions — `GET /api/teams/{id}` and a
+      `franchise_id` filter on `GET /api/teams/` (neither existed before; only a list endpoint
+      did). 4 new backend tests (134 total).
+- [x] **Two real bugs fixed along the way** (not regressions — both pre-existing):
+  - `formatDate`/`formatDateShort` hardcoded `timeZone: 'America/Chicago'`. Bulk-imported
+    historical rows (confirmed in `mlb.py`) store `start_date` as naive midnight UTC, so
+    converting to Central time rolled the displayed date back a day for most historical MLB
+    games. Fixed to format in UTC — the app never shows time-of-day, only the calendar date,
+    so this is strictly safer for every league.
+  - Building the team franchise-history view surfaced that NHL's `import_teams` never sets
+    `first_season`/`last_season` (confirmed live: `api.nhle.com/stats/rest/en/team` has no
+    season-range fields at all) — every other league's adapter sets these correctly. This
+    produced a wrong-order, falsely-"present" franchise timeline for NHL teams. Fixed at the
+    UI layer (don't display or sort on data that isn't there) rather than guessing; the real
+    fix — computing each team's season range from its imported games — is separate work,
+    logged above under Phase 2.
+- [ ] **Deferred, not built:** per-league "passport completion" (venues visited / active
+      venues). No endpoint exists for "total venues for a league," and the semantics are
+      genuinely ambiguous (do a relocated team's old venues count forever?) — rather than guess,
+      left for a later phase alongside the NBA arena seed file.
+- **Verified (2026-07-12):** full walkthrough via the Chrome browser tools against a live
+  dev instance — registered/logged in, imported known-good cross-league data (CFB 3,734 /
+  MLB 2,429 / NBA 1,383 / NFL 285 / NHL 1,400 games, matching every prior phase's verified
+  counts exactly), browsed games with the league filter (confirmed team/season lists reload
+  and the MLB date-shift bug is gone), marked attendance across CFB/MLB/NBA, confirmed
+  Dashboard + Statistics "Games by League" numbers matched by hand, exercised a team page with
+  franchise history (Quebec Nordiques ↔ Colorado Avalanche) and one without, and ran a real
+  Admin "Import Teams" action end-to-end through the UI. Zero browser console errors. Backend:
+  134 tests green; `tsc -b` and `vite build` both clean.
 
 ### Phase 6 — Sync scheduling + deploy (½–1 day)
 - [ ] Nightly sync job (APScheduler in-process, matching SP2's simplicity; per-league

@@ -47,6 +47,8 @@ const Dashboard: React.FC = () => {
     .sort(([a], [b]) => Number(b) - Number(a))
     .slice(0, 5);
 
+  const byLeague = Object.entries(stats.games_by_league).sort(([, a], [, b]) => b - a);
+
   return (
     <Layout>
       <div>
@@ -84,7 +86,23 @@ const Dashboard: React.FC = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100 !p-5">
+            <h2 className="text-lg font-bold text-blue-700 mb-4">By League</h2>
+            {byLeague.length === 0 ? (
+              <p className="text-gray-600 text-sm">No games attended yet</p>
+            ) : (
+              <div className="space-y-2">
+                {byLeague.map(([league, count]) => (
+                  <div key={league} className="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                    <span className="text-gray-800 text-sm font-medium">{league}</span>
+                    <span className="font-bold text-blue-600 text-sm flex-shrink-0">{count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
           <Card className="bg-gradient-to-br from-primary-50 to-white border-primary-100 !p-5">
             <h2 className="text-lg font-bold text-primary-700 mb-4">Top Teams</h2>
             {topTeams.length === 0 ? (

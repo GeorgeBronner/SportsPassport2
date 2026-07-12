@@ -97,11 +97,27 @@ college-football-only app was preserved at `../cfb-tracker`.
   `test_nba_adapter.py`, `conftest.py`, and this file / SP3_plan.md as modified/new,
   plus the untracked (gitignored) `Games.csv`.
 
-## Phase 5 — Frontend multi-league
-- [ ] League switcher + all-leagues view; update Team type (`school`→`name` etc.)
-- [ ] Game browse/search with league filter; attendance flow unchanged
-- [ ] Stats dashboard with league breakdown
-- [ ] Verify: manual walkthrough across ≥3 leagues
+## Phase 5 — Frontend multi-league ✅
+- [x] Rewrote `types/api.ts` + all API clients to match the real backend schemas (was still
+      the pre-Phase-1 `school`/`mascot`/`api_team_id` shape); added `api/leagues.ts`,
+      rewrote `api/admin.ts` for the real per-league endpoints
+- [x] League filter on Games/browse page (chip dropdown, not a global header switcher —
+      see SP3_plan.md Phase 5 for why); team/season lists re-scope on league change
+- [x] `GameCard`/`MyGames`/`Admin` ported off old field names; added league + OT/SO badges,
+      team-name links to new team pages
+- [x] New `/teams/:id` page with franchise-history timeline; needed `GET /api/teams/{id}`
+      + `franchise_id` filter added to the backend (4 new tests, 134 total)
+- [x] Dashboard + Statistics: "Games by League" section
+- [x] Admin page rebuilt: per-league import teams/historical/sync actions + status table
+- [x] Fixed a real date-shift bug (hardcoded America/Chicago rolled historical MLB dates back
+      a day) and a real NHL data gap (missing first_season/last_season broke franchise-history
+      ordering) — both found during this phase, details in SP3_plan.md
+- [x] Verify: full browser walkthrough (Chrome tools) against live cross-league data —
+      login, league-filtered browse, attendance across 3 leagues, dashboard/stats numbers,
+      team franchise page, admin import action. Zero console errors. 134 backend tests green,
+      `tsc -b` + `vite build` clean.
+- Deferred: per-league "passport completion" stat (no endpoint, ambiguous semantics — see
+  SP3_plan.md)
 
 ## Phase 6 — Sync scheduling + deploy
 - [ ] Nightly per-league sync (APScheduler); admin UI for status/last-sync
@@ -155,3 +171,18 @@ _(fill in as phases complete)_
   this sandbox), and the `data/seed/nba_arenas.csv` venue research pass (~120 rows,
   manual Wikipedia lookup — not a coding task, needs a scoping decision on when/how
   to do it or whether to defer to Phase 5+).
+- Phase 5 Frontend (2026-07-12): the frontend was still entirely the pre-Phase-1
+  cfb-tracker UI — types and API clients used field names (`school`, `mascot`,
+  `api_team_id`) that stopped matching the backend back in Phase 1. Rewrote both,
+  added the league dimension throughout, and added team detail pages with franchise
+  history (needed two small new backend endpoints). Found and fixed two real
+  pre-existing bugs along the way: a hardcoded-timezone date formatter that rolled
+  historical MLB game dates back a day, and a missing NHL data field that made
+  franchise-history ordering wrong (worked around at the UI layer; the real fix is
+  separate follow-up work, logged in SP3_plan.md under Phase 2). Full browser
+  walkthrough against live cross-league data confirmed the whole flow end-to-end —
+  login, league-filtered browsing, attendance across 3 leagues, dashboard/stats
+  numbers, team pages, and a real admin import action — with zero console errors.
+  134 backend tests green, clean typecheck and production build. Deferred:
+  per-league "passport completion" stat (no backend support yet, ambiguous
+  semantics). Next: Phase 6 (sync scheduling + deploy).

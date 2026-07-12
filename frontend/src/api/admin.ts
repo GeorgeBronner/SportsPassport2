@@ -1,14 +1,38 @@
 import apiClient from './client';
-import type { User } from '../types/api';
+import type { User, ImportResult, AdminStatusRow } from '../types/api';
 
 export const adminApi = {
-  // Refresh data from API for a specific season
-  refreshData: async (season: number): Promise<{ message: string }> => {
-    const response = await apiClient.post<{ message: string }>(
-      '/admin/refresh-data',
+  // Import/refresh teams for a league
+  importTeams: async (league: string): Promise<ImportResult> => {
+    const response = await apiClient.post<ImportResult>(`/admin/import/${league}/teams`);
+    return response.data;
+  },
+
+  // One-time bulk historical import for a league
+  importHistorical: async (
+    league: string,
+    startSeason: number,
+    endSeason: number
+  ): Promise<ImportResult> => {
+    const response = await apiClient.post<ImportResult>(
+      `/admin/import/${league}/historical`,
       null,
-      { params: { season } }
+      { params: { start_season: startSeason, end_season: endSeason } }
     );
+    return response.data;
+  },
+
+  // Incremental sync of recent games for a league
+  syncLeague: async (league: string, days: number = 7): Promise<ImportResult> => {
+    const response = await apiClient.post<ImportResult>(`/admin/sync/${league}`, null, {
+      params: { days },
+    });
+    return response.data;
+  },
+
+  // Per-league row counts and season coverage
+  getStatus: async (): Promise<AdminStatusRow[]> => {
+    const response = await apiClient.get<AdminStatusRow[]>('/admin/status');
     return response.data;
   },
 

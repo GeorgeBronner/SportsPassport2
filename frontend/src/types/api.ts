@@ -23,16 +23,30 @@ export interface Token {
   token_type: string;
 }
 
+// League types
+export interface League {
+  id: number;
+  code: string;
+  name: string;
+  sport: string;
+  active: boolean;
+}
+
 // Team types
 export interface Team {
   id: number;
-  school: string;
-  mascot: string | null;
+  league_id: number;
+  name: string;
+  nickname: string | null;
   abbreviation: string | null;
+  city: string | null;
+  state: string | null;
   conference: string | null;
   division: string | null;
   classification: string | null;
-  api_team_id: number | null;
+  first_season: number | null;
+  last_season: number | null;
+  franchise_id: number | null;
 }
 
 // Venue types
@@ -41,14 +55,16 @@ export interface Venue {
   name: string;
   city: string | null;
   state: string | null;
+  country: string | null;
   capacity: number | null;
-  api_venue_id: number | null;
 }
 
 // Game types
 export interface Game {
   id: number;
+  league: League;
   start_date: string;  // ISO datetime string (UTC)
+  has_time: boolean;
   season: number;
   season_type: string | null;
   week: number | null;
@@ -57,7 +73,8 @@ export interface Game {
   home_score: number | null;
   away_score: number | null;
   venue_id: number | null;
-  api_game_id: number | null;
+  neutral_site: boolean;
+  overtime_flag: string | null;
   home_team: Team;
   away_team: Team;
   venue: Venue | null;
@@ -66,10 +83,14 @@ export interface Game {
 
 export interface GameListItem {
   id: number;
+  league: League;
   start_date: string;  // ISO datetime string (UTC)
+  has_time: boolean;
   season: number;
   season_type: string | null;
   week: number | null;
+  neutral_site: boolean;
+  overtime_flag: string | null;
   home_team: Team;
   away_team: Team;
   home_score: number | null;
@@ -105,6 +126,7 @@ export interface AttendanceStats {
   total_games: number;
   unique_stadiums: number;
   unique_states: number;
+  games_by_league: Record<string, number>;
   games_by_team: Record<string, number>;
   games_by_season: Record<number, number>;
   stadiums_visited: string[];
@@ -126,8 +148,28 @@ export interface BulkAttendanceResponse {
   errors: string[];
 }
 
+// Admin / import types
+export interface ImportResult {
+  league: string;
+  teams_imported: number;
+  venues_imported: number;
+  games_imported: number;
+  games_updated: number;
+  errors: string[];
+}
+
+export interface AdminStatusRow {
+  league: string;
+  adapter_available: boolean;
+  teams: number;
+  games: number;
+  first_season: number | null;
+  last_season: number | null;
+}
+
 // Filter types
 export interface GameFilters {
+  league?: string;
   season?: number;
   team?: string;
   skip?: number;
@@ -135,6 +177,8 @@ export interface GameFilters {
 }
 
 export interface TeamFilters {
+  league?: string;
   conference?: string;
   search?: string;
+  franchise_id?: number;
 }

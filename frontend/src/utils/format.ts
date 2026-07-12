@@ -1,19 +1,24 @@
-// Convert UTC datetime to Central Time and format as readable string
+// Format a UTC datetime as a readable date string. Formatted in UTC, not a
+// fixed US timezone: many historical rows (e.g. Retrosheet-sourced MLB games)
+// store start_date as a naive midnight-UTC date, and converting that to any
+// non-UTC timezone rolls the displayed date back a day. The app never shows
+// time-of-day, only the calendar date, so UTC is the safe default across
+// every league rather than a CFB-specific approximation.
 export const formatDate = (isoDateString: string): string => {
   const date = new Date(isoDateString);
   return date.toLocaleDateString('en-US', {
-    timeZone: 'America/Chicago',
+    timeZone: 'UTC',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
 };
 
-// Convert UTC datetime to Central Time and format as short form
+// Short form of formatDate (e.g. "Jul 12, 2026")
 export const formatDateShort = (isoDateString: string): string => {
   const date = new Date(isoDateString);
   return date.toLocaleDateString('en-US', {
-    timeZone: 'America/Chicago',
+    timeZone: 'UTC',
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -51,10 +56,19 @@ export const getWinner = (
   return 'Tie';
 };
 
-// Format game week or type (Bowl Game for postseason)
-export const formatGameWeek = (week: number | null, seasonType: string | null): string => {
-  if (seasonType === 'postseason') {
-    return 'Bowl Game';
+const SEASON_TYPE_LABELS: Record<string, string> = {
+  postseason: 'Postseason',
+  preseason: 'Preseason',
+  cup_final: 'Cup Final',
+  regular: 'Regular Season',
+};
+
+// Format game week or season type (e.g. "Week 5", "Postseason", "Cup Final").
+// Not every league has a week number (only CFB/NFL do), so this falls back
+// to a season-type label shared across all leagues.
+export const formatSeasonType = (week: number | null, seasonType: string | null): string => {
+  if (week) {
+    return `Week ${week}`;
   }
-  return week ? `Week ${week}` : 'N/A';
+  return SEASON_TYPE_LABELS[seasonType ?? ''] ?? 'Regular Season';
 };

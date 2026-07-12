@@ -74,3 +74,49 @@ class TestListTeams:
         assert "conference" in team
         assert "division" in team
         assert "league_id" in team
+
+    def test_list_teams_filter_by_franchise_id(self, client, db_session, nhl_league, auth_headers):
+        """Test filtering teams by franchise_id groups relocated identities."""
+        from sports_passport.models.team import Team
+
+        seattle = Team(
+            league_id=nhl_league.id, source="nhl", source_team_id="SEA-OLD",
+            name="Seattle Metropolitans", franchise_id=100, first_season=1917, last_season=1924,
+        )
+        relocated = Team(
+            league_id=nhl_league.id, source="nhl", source_team_id="NEW",
+            name="New Franchise", franchise_id=100, first_season=1925,
+        )
+        unrelated = Team(
+            league_id=nhl_league.id, source="nhl", source_team_id="OTHER",
+            name="Other Team", franchise_id=200,
+        )
+        db_session.add_all([seattle, relocated, unrelated])
+        db_session.commit()
+
+        response = client.get("/api/teams/?franchise_id=100", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        assert {t["name"] for t in data} == {"Seattle Metropolitans", "New Franchise"}
+
+
+class TestGetTeam:
+    """Tests for GET /api/teams/{team_id} endpoint."""
+
+    def test_get_team(self, client, sample_teams, auth_headers):
+        team_id = sample_teams[0].id
+        response = client.get(f"/api/teams/{team_id}", headers=auth_headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["id"] == team_id
+        assert data["name"] == sample_teams[0].name
+
+    def test_get_team_not_found(self, client, auth_headers):
+        response = client.get("/api/teams/999999", headers=auth_headers)
+        assert response.status_code == 404
+
+    def test_get_team_requires_auth(self, client, sample_teams):
+        team_id = sample_teams[0].id
+        response = client.get(f"/api/teams/{team_id}")
+        assert response.status_code == 401

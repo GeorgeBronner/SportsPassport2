@@ -5,6 +5,7 @@ export const gamesApi = {
   // Get all games with optional filters
   getGames: async (filters?: GameFilters): Promise<GameListItem[]> => {
     const params = new URLSearchParams();
+    if (filters?.league) params.append('league', filters.league);
     if (filters?.season) params.append('season', filters.season.toString());
     if (filters?.team) params.append('team', filters.team);
     if (filters?.skip) params.append('skip', filters.skip.toString());
@@ -21,22 +22,25 @@ export const gamesApi = {
   },
 
   // Search games by team name
-  searchGames: async (query: string): Promise<GameListItem[]> => {
-    const response = await apiClient.get<GameListItem[]>('/games/search/', {
-      params: { q: query },
-    });
+  searchGames: async (query: string, league?: string): Promise<GameListItem[]> => {
+    const params: Record<string, string> = { q: query };
+    if (league) params.league = league;
+    const response = await apiClient.get<GameListItem[]>('/games/search/', { params });
     return response.data;
   },
 
   // Get available seasons with game counts
-  getSeasons: async (): Promise<SeasonInfo[]> => {
-    const response = await apiClient.get<SeasonInfo[]>('/games/seasons');
+  getSeasons: async (league?: string): Promise<SeasonInfo[]> => {
+    const params = new URLSearchParams();
+    if (league) params.append('league', league);
+    const response = await apiClient.get<SeasonInfo[]>('/games/seasons', { params });
     return response.data;
   },
 
   // Count games matching filters
   countGames: async (filters?: GameFilters): Promise<number> => {
     const params = new URLSearchParams();
+    if (filters?.league) params.append('league', filters.league);
     if (filters?.season) params.append('season', filters.season.toString());
     if (filters?.team) params.append('team', filters.team);
 

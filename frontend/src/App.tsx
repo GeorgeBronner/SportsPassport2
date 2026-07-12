@@ -9,6 +9,7 @@ import Games from './pages/Games';
 import MyGames from './pages/MyGames';
 import Statistics from './pages/Statistics';
 import Admin from './pages/Admin';
+import TeamDetail from './pages/TeamDetail';
 
 const App: React.FC = () => {
   return (
@@ -59,6 +60,15 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute requireAdmin>
                 <Admin />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/teams/:id"
+            element={
+              <ProtectedRoute>
+                <TeamDetail />
               </ProtectedRoute>
             }
           />

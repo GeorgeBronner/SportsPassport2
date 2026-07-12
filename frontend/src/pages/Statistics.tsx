@@ -39,6 +39,8 @@ const Statistics: React.FC = () => {
     );
   }
 
+  const byLeague = Object.entries(stats.games_by_league).sort(([, a], [, b]) => b - a);
+
   const sortedTeams = Object.entries(stats.games_by_team).sort((a, b) => {
     if (sortBy === 'count') {
       return b[1] - a[1];
@@ -86,6 +88,25 @@ const Statistics: React.FC = () => {
             </div>
           </Card>
         </div>
+
+        <Card className="mb-8 bg-gradient-to-br from-blue-50 to-white border-blue-100">
+          <h2 className="text-2xl font-bold text-blue-700 mb-6">Games by League</h2>
+          {byLeague.length === 0 ? (
+            <p className="text-gray-600">No games attended yet</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+              {byLeague.map(([league, count]) => (
+                <div
+                  key={league}
+                  className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <span className="text-2xl font-bold text-blue-600">{count}</span>
+                  <span className="text-gray-700 font-medium text-sm">{league}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           <Card className="bg-gradient-to-br from-primary-50 to-white border-primary-100">

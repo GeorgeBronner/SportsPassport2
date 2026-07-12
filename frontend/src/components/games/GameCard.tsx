@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { GameListItem } from '../../types/api';
-import { formatDateShort, formatScore, formatGameWeek } from '../../utils/format';
+import { formatDateShort, formatScore, formatSeasonType } from '../../utils/format';
 import Card from '../common/Card';
 import Button from '../common/Button';
 
@@ -37,14 +38,31 @@ const GameCard: React.FC<GameCardProps> = ({
     <Card className="hover:border-primary-300 bg-gradient-to-r from-white to-gray-50 relative">
       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
         <div className="flex-1">
-          <div className="text-xs font-bold text-primary-600 mb-3 uppercase tracking-wider bg-primary-50 inline-block px-3 py-1 rounded-full">
-            {formatDateShort(game.start_date)} • {formatGameWeek(game.week, game.season_type)}
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs font-bold text-primary-600 uppercase tracking-wider bg-primary-50 inline-block px-3 py-1 rounded-full">
+              {formatDateShort(game.start_date)} • {formatSeasonType(game.week, game.season_type)}
+            </span>
+            <span className="text-xs font-bold text-gray-600 uppercase tracking-wider bg-gray-100 inline-block px-3 py-1 rounded-full">
+              {game.league.code}
+            </span>
           </div>
           <div className="text-2xl font-bold text-gray-900 mb-3">
-            {game.away_team.school} @ {game.home_team.school}
+            <Link to={`/teams/${game.away_team.id}`} className="hover:text-primary-600 transition-colors">
+              {game.away_team.name}
+            </Link>
+            {' @ '}
+            <Link to={`/teams/${game.home_team.id}`} className="hover:text-primary-600 transition-colors">
+              {game.home_team.name}
+            </Link>
           </div>
           <div className="text-lg text-gray-700 mb-3">
-            <span className="font-semibold">Score:</span> <span className="text-accent-600 font-bold">{formatScore(game.away_score, game.home_score)}</span>
+            <span className="font-semibold">Score:</span>{' '}
+            <span className="text-accent-600 font-bold">{formatScore(game.away_score, game.home_score)}</span>
+            {game.overtime_flag && (
+              <span className="ml-2 text-xs font-bold text-accent-700 bg-accent-50 px-2 py-1 rounded-full align-middle">
+                {game.overtime_flag}
+              </span>
+            )}
           </div>
           {game.venue && (
             <div className="text-sm text-gray-600 bg-sage-50 inline-block px-3 py-2 rounded-lg">

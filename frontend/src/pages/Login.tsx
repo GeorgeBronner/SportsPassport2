@@ -33,7 +33,7 @@ const Login: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-sage-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-primary-700 mb-3">College Football Tracker</h1>
+          <h1 className="text-4xl font-bold text-primary-700 mb-3">SportsPassport2</h1>
           <p className="text-lg text-gray-700 font-medium">Sign in to track your games</p>
         </div>
 

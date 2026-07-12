@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { attendanceApi } from '../api/attendance';
 import type { Attendance } from '../types/api';
 import Layout from '../components/layout/Layout';
@@ -6,7 +7,7 @@ import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Loading from '../components/common/Loading';
 import Alert from '../components/common/Alert';
-import { formatDateShort, formatScore, formatGameWeek } from '../utils/format';
+import { formatDateShort, formatScore, formatSeasonType } from '../utils/format';
 
 const MyGames: React.FC = () => {
   const [attendedGames, setAttendedGames] = useState<Attendance[]>([]);
@@ -109,14 +110,31 @@ const MyGames: React.FC = () => {
                 <Card key={attendance.id} className="bg-gradient-to-r from-white to-gray-50 hover:border-accent-300">
                   <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
                     <div className="flex-1">
-                      <div className="text-xs font-bold text-accent-600 mb-3 uppercase tracking-wider bg-accent-50 inline-block px-3 py-1 rounded-full">
-                        {formatDateShort(attendance.game.start_date)} • {formatGameWeek(attendance.game.week, attendance.game.season_type)}
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-xs font-bold text-accent-600 uppercase tracking-wider bg-accent-50 inline-block px-3 py-1 rounded-full">
+                          {formatDateShort(attendance.game.start_date)} • {formatSeasonType(attendance.game.week, attendance.game.season_type)}
+                        </span>
+                        <span className="text-xs font-bold text-gray-600 uppercase tracking-wider bg-gray-100 inline-block px-3 py-1 rounded-full">
+                          {attendance.game.league.code}
+                        </span>
                       </div>
                       <div className="text-2xl font-bold text-gray-900 mb-3">
-                        {attendance.game.away_team.school} @ {attendance.game.home_team.school}
+                        <Link to={`/teams/${attendance.game.away_team.id}`} className="hover:text-primary-600 transition-colors">
+                          {attendance.game.away_team.name}
+                        </Link>
+                        {' @ '}
+                        <Link to={`/teams/${attendance.game.home_team.id}`} className="hover:text-primary-600 transition-colors">
+                          {attendance.game.home_team.name}
+                        </Link>
                       </div>
                       <div className="text-lg text-gray-700 mb-3">
-                        <span className="font-semibold">Score:</span> <span className="text-primary-600 font-bold">{formatScore(attendance.game.away_score, attendance.game.home_score)}</span>
+                        <span className="font-semibold">Score:</span>{' '}
+                        <span className="text-primary-600 font-bold">{formatScore(attendance.game.away_score, attendance.game.home_score)}</span>
+                        {attendance.game.overtime_flag && (
+                          <span className="ml-2 text-xs font-bold text-accent-700 bg-accent-50 px-2 py-1 rounded-full align-middle">
+                            {attendance.game.overtime_flag}
+                          </span>
+                        )}
                       </div>
                       {attendance.game.venue && (
                         <div className="text-sm text-gray-600 bg-sage-50 inline-block px-3 py-2 rounded-lg mb-4">

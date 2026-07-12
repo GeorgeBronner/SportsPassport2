@@ -17,6 +17,7 @@ def list_teams(
     conference: Optional[str] = None,
     search: Optional[str] = None,
     classification: Optional[str] = None,
+    franchise_id: Optional[int] = None,
     active_only: bool = False,
     skip: int = 0,
     limit: int = 500,
@@ -45,8 +46,27 @@ def list_teams(
     if search:
         query = query.filter(Team.name.ilike(f"%{search}%"))
 
+    if franchise_id is not None:
+        query = query.filter(Team.franchise_id == franchise_id)
+
     if active_only:
         query = query.filter(Team.last_season.is_(None))
 
     teams = query.order_by(Team.name).offset(skip).limit(limit).all()
     return teams
+
+
+@router.get("/{team_id}", response_model=TeamResponse)
+def get_team(
+    team_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get a single team by ID"""
+    team = db.query(Team).filter(Team.id == team_id).first()
+    if not team:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Team not found"
+        )
+    return team

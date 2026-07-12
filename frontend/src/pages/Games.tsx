@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { gamesApi } from '../api/games';
 import { teamsApi } from '../api/teams';
+import { leaguesApi } from '../api/leagues';
 import { attendanceApi } from '../api/attendance';
-import type { GameListItem, Team, SeasonInfo } from '../types/api';
+import type { GameListItem, Team, SeasonInfo, League } from '../types/api';
 import Layout from '../components/layout/Layout';
 import Card from '../components/common/Card';
 import GameCard from '../components/games/GameCard';
@@ -12,10 +13,12 @@ import Alert from '../components/common/Alert';
 
 const Games: React.FC = () => {
   const [games, setGames] = useState<GameListItem[]>([]);
+  const [leagues, setLeagues] = useState<League[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [seasons, setSeasons] = useState<SeasonInfo[]>([]);
   const [attendedGameIds, setAttendedGameIds] = useState<Set<number>>(new Set());
   const [gameIdToAttendanceId, setGameIdToAttendanceId] = useState<Map<number, number>>(new Map());
+  const [selectedLeague, setSelectedLeague] = useState('');
   const [selectedTeam, setSelectedTeam] = useState('');
   const [selectedSeason, setSelectedSeason] = useState<number | undefined>();
   const [loading, setLoading] = useState(true);
@@ -26,20 +29,24 @@ const Games: React.FC = () => {
     loadInitialData();
   }, []);
 
+  // Team/season lists are scoped to the selected league (they stop making
+  // sense once narrowed to one league), so reload them whenever it changes.
+  useEffect(() => {
+    loadTeamsAndSeasons();
+  }, [selectedLeague]);
+
   useEffect(() => {
     loadGames();
-  }, [selectedTeam, selectedSeason]);
+  }, [selectedLeague, selectedTeam, selectedSeason]);
 
   const loadInitialData = async () => {
     try {
-      const [teamsData, seasonsData, attendedGames] = await Promise.all([
-        teamsApi.getTeams(),
-        gamesApi.getSeasons(),
+      const [leaguesData, attendedGames] = await Promise.all([
+        leaguesApi.getLeagues(),
         attendanceApi.getAttendedGames(),
       ]);
 
-      setTeams(teamsData);
-      setSeasons(seasonsData.sort((a, b) => b.season - a.season));
+      setLeagues(leaguesData);
       setAttendedGameIds(new Set(attendedGames.map((a) => a.game_id)));
 
       // Build map of game ID to attendance ID
@@ -53,10 +60,24 @@ const Games: React.FC = () => {
     }
   };
 
+  const loadTeamsAndSeasons = async () => {
+    try {
+      const [teamsData, seasonsData] = await Promise.all([
+        teamsApi.getTeams({ league: selectedLeague || undefined }),
+        gamesApi.getSeasons(selectedLeague || undefined),
+      ]);
+      setTeams(teamsData);
+      setSeasons(seasonsData.sort((a, b) => b.season - a.season));
+    } catch (err) {
+      setError('Failed to load teams/seasons');
+    }
+  };
+
   const loadGames = async () => {
     setLoading(true);
     try {
       const gamesData = await gamesApi.getGames({
+        league: selectedLeague || undefined,
         team: selectedTeam || undefined,
         season: selectedSeason,
         limit: 100,
@@ -108,7 +129,14 @@ const Games: React.FC = () => {
     }
   };
 
+  const handleLeagueChange = (league: string) => {
+    setSelectedLeague(league);
+    setSelectedTeam('');
+    setSelectedSeason(undefined);
+  };
+
   const handleReset = () => {
+    setSelectedLeague('');
     setSelectedTeam('');
     setSelectedSeason(undefined);
   };
@@ -122,10 +150,13 @@ const Games: React.FC = () => {
         {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
         <GameFilters
+          leagues={leagues}
           teams={teams}
           seasons={seasons}
+          selectedLeague={selectedLeague}
           selectedTeam={selectedTeam}
           selectedSeason={selectedSeason}
+          onLeagueChange={handleLeagueChange}
           onTeamChange={setSelectedTeam}
           onSeasonChange={setSelectedSeason}
           onReset={handleReset}

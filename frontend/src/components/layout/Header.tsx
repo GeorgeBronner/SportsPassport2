@@ -28,7 +28,7 @@ const Header = () => {
         <div className="flex justify-between items-center py-3">
           <div className="flex items-center space-x-6">
             <Link to="/" className="text-xl font-bold text-primary-600 hover:text-primary-700 transition-colors">
-              CFB Tracker
+              SportsPassport2
             </Link>
 
             {/* Desktop Navigation */}
