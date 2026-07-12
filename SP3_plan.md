@@ -29,6 +29,8 @@ Companion doc: [SP3_data_sources.md](SP3_data_sources.md) — full data source r
 
 **Data floor:** 1970 for the four pro leagues (sources support earlier — importers take a
 `start_season` parameter so we can deepen later), 1990 for CFB (matches SP2 / CFBD coverage).
+**Exception:** NFL ships with a 1999 floor (see §5 Phase 3) — the free nflverse source only
+goes back that far; pre-1999 needs a Kaggle-gated dataset, deferred to Phase 7.
 
 ---
 
@@ -131,8 +133,8 @@ free APIs with tiny request counts.
 | League | `import_teams` | `import_historical` (one-time) | `sync_recent` (ongoing) |
 |--------|----------------|-------------------------------|------------------------|
 | **CFB** | CFBD `/teams/fbs` (API key, same as SP2) | CFBD `/games?year=` 1990→now (port SP2 code) | CFBD `/games?year={current}` |
-| **MLB** | MLB Stats API `/api/v1/teams` + Retrosheet team file for historical franchises | **Retrosheet game logs** ZIP (1970+; has date, teams, score, park code, attendance, day/night). Park code → venue via Retrosheet's ballparks file | **MLB Stats API** `/api/v1/schedule?date=` (keyless, non-bulk-friendly) |
-| **NFL** | nflverse teams data + historical franchises from the CSV itself | **Kaggle Spreadspoke `spreadspoke_scores.csv`** (1966+; has stadium). Manual one-time download (Kaggle needs a login) checked into `data/raw/nfl/` | **nflverse `games.csv`** raw GitHub URL — plain HTTP GET, no key, auto-updated |
+| **MLB** | Retrosheet `CurrentNames.csv` (franchise-linked team-identity eras, back to 1871) | **Retrosheet game logs** ZIP, fetched live per season (1970+; has date, teams, score, park code, attendance, day/night). Park code → venue via `parkcode.txt` (has real city/state). Regular season only — see §5 Phase 3 scope note | **MLB Stats API** `/api/v1/schedule?startDate=&endDate=` — team resolved via its `teamCode` field, which matches Retrosheet's codes exactly, so sync rows land on the same games the bulk import created |
+| **NFL** | nflverse `teams.csv` + franchise ids derived from `games.csv` team abbreviations | **nflverse `games.csv`** raw GitHub URL — plain HTTP GET, no key, auto-updated. 1999+ only (see §5 Phase 3 decision — Kaggle Spreadspoke would extend to 1966 but now needs a login/paid tier) | Same `games.csv` fetch, filtered by date |
 | **NBA** | `stats.nba.com` teams endpoint + hand-curated historical teams | **`nba_api` LeagueGameFinder** season-by-season 1970→now with 1–2s sleep between requests (throttle-safe), OR Kaggle `Games.csv` as a fallback. Venue from our seed `nba_arenas.csv` | **`nba_api` scoreboard/gamefinder** for recent dates |
 | **NHL** | NHL API `/v1/standings` + team endpoints | **Official NHL API** schedule endpoints, season-by-season 1970→now (keyless, official — no bulk concern) | Same NHL API, `/v1/score/{date}` |
 
@@ -171,7 +173,7 @@ files). MLB/NHL/nflverse are plain `httpx` calls — no extra deps.
 - **Verified:** 110 tests passing, including importer idempotency, cross-league
   source-id isolation, multi-league filters, and league-aware attendance stats.
 
-### Phase 2 — First two adapters: NHL, then CFB (1–2 days) — NHL ✅ / CFB code ported, live check pending
+### Phase 2 — First two adapters: NHL, then CFB (1–2 days) ✅ DONE 2026-07-11
 Start with NHL (single official source for everything = simplest proof of the architecture),
 then CFB (port of known-working SP2 code = validates parity with SP2).
 - [x] NHL adapter (`adapters/nhl.py`): teams (62 all-time incl. defunct, with the API's own
@@ -179,21 +181,52 @@ then CFB (port of known-working SP2 code = validates parity with SP2).
       club-schedule-season with dedupe and 0.25s throttle, sync via `/v1/score/{date}`,
       OT/SO flags, venues from API (name-keyed; no city/state — enrich later)
 - [x] CFB adapter (`adapters/cfb.py`): ported from cfb-tracker into adapter shape
-- [ ] CFB live verification: run a season import with a CFBD API key and compare counts
+- [x] CFB live verification: run a season import with a CFBD API key and compare counts
       against the cfb-tracker DB
 - **Verified (NHL, live API 2026-07-11):** 2023-24 regular season = **1,312 games exact**;
   1993-94 = **1,092 exact** (26 teams × 84); 1994 SCF Game 7 present (VAN 2 @ NYR 3,
   Madison Square Garden); 1993-94 postseason = 90 games; 5 NHL adapter unit tests green
   (115 total).
+- **Verified (CFB, live API 2026-07-11):** 2023 season import via `CfbAdapter.import_historical`
+  against the real CFBD API = **3,734 games exact** (3,595 regular + 139 postseason), matching
+  the old cfb-tracker DB (`cfb-tracker/data/college_football-11-15.2025.db`) row-for-row on both
+  the total and the regular/postseason split. 1,911 teams and 841 venues imported (CFBD's
+  `/teams` endpoints return all-time rosters, not season-scoped).
 
-### Phase 3 — NFL + MLB adapters (1–2 days)
-- [ ] Download Kaggle Spreadspoke CSV → `data/raw/nfl/`; NFL adapter: parse, filter 1970+,
-      synthesize game keys, map stadium strings → venues, wire nflverse sync
-- [ ] Download Retrosheet game logs + ballparks file → `data/raw/mlb/`; MLB adapter:
-      parse game logs (fixed field-order CSV — fields documented at retrosheet.org),
-      doubleheader handling (game-number field), park code → venue, wire MLB Stats API sync
-- **Verify:** NFL 1970 season = 182 games; MLB season counts (~1,944/yr pre-1977 expansion,
-  ~2,430 modern); cross-check a handful of games against Wikipedia box scores
+### Phase 3 — NFL + MLB adapters (1–2 days) ✅ DONE 2026-07-11
+- [x] NFL adapter (`adapters/nfl.py`, source `nflverse`): historical + sync both read
+      nflverse's `games.csv`/`teams.csv` directly (no local bulk file needed — the CSV is
+      small and auto-updated). **Floor changed from 1970 to 1999** — see decision below.
+- [x] MLB adapter (`adapters/mlb.py`, source `retrosheet` for bulk, MLB Stats API for sync):
+      parses Retrosheet's fixed-field gamelog CSV (fetched live per season, not cached to
+      `data/raw/` — same live-fetch pattern as CFB/NHL/NFL, since Retrosheet is a plain
+      static host with no rate limit), franchise-links relocated teams via `CurrentNames.csv`
+      column 1 (e.g. Expos→Nationals), and resolves park codes to venues (with real
+      city/state, unlike NHL/NFL's name-only venues) via `parkcode.txt`.
+- **Decision (2026-07-11):** the Kaggle "Spreadspoke" CSV that was supposed to cover NFL
+  1966–1998 now sits behind a Kaggle login or a $24.99/yr paid tier (site changed since the
+  original research pass) — not a plain HTTP fetch. User chose to ship NFL on nflverse alone
+  (auth-free, auto-updated) with a **1999 floor** instead of blocking on Kaggle access;
+  1970–1998 backfill is deferred, revisit if a free source appears (Phase 7 candidate).
+- **Verified (NFL, live nflverse fetch 2026-07-11):** 1999 season = **259 games exact** (248
+  regular + 11 postseason, 1999's single-bye 31-team format); 2020 = **269 exact** (256 + 13,
+  expanded playoff format); 2023 = **285 exact** (272 + 13, 17-game regular season). Franchise
+  linking verified: STL Rams (1999–2015) and LA Rams (2016–) share `franchise_id` 2510 from
+  nflverse's stable `nfl_team_id`. Super Bowl XXXIV score double-checked against the real
+  result (Rams 23, Titans 16) — exact match. 5 NFL adapter unit tests green (120 total).
+- **Verified (MLB, live Retrosheet + MLB Stats API fetch 2026-07-11):** 1970 season = **1,944
+  games exact** (24 teams × 162 / 2), zero unmatched-team errors; 2024 season = **2,429 games**
+  via Retrosheet. 1970 opening-day score double-checked (Tigers 5, Senators 0 at RFK Stadium,
+  attendance 45,015 — exact match). Franchise linking verified (Expos→Nationals share
+  `franchise_id`). Cross-source id alignment tested: MLB Stats API's `teamCode` field matches
+  Retrosheet's team codes exactly (verified against all 30 current teams), so `sync_recent`
+  resolves onto the *same* game rows the bulk import created — spot-checked a 10-day window
+  in the 2024 season, 130/132 games matched cleanly (2 edge-case mismatches, likely
+  rescheduled games — acceptable for a hobby tracker). 4 MLB adapter unit tests green
+  (124 total).
+- **Scope note:** Retrosheet's gamelogs are regular-season only; MLB postseason isn't backed
+  by a simple CSV on their site (would need real scraping) and is deferred — sync_recent will
+  pick up *future* postseason games automatically once they happen, just not historical ones.
 
 ### Phase 4 — NBA adapter (1 day; the fiddly one)
 - [ ] Build `data/seed/nba_arenas.csv` (team, arena, city, state, first_season, last_season)
@@ -235,7 +268,7 @@ Port SP2 frontend and add the league dimension:
 |------|------------|
 | Team name matching across sources (e.g., Retrosheet codes vs MLB API names) | Per-adapter alias tables in `data/seed/<league>_team_aliases.csv`; import fails loudly on unmatched teams rather than silently creating dupes |
 | stats.nba.com blocks the backfill | Fallback already chosen: Kaggle bulk CSV; backfill is one-time so even a slow crawl is acceptable |
-| Kaggle files need manual download (auth) | One-time manual step, documented in README; files kept in `data/raw/` (gitignored if large) |
+| Kaggle files need manual download (auth) | Hit for NFL 1966–1998 backfill; resolved by dropping that range (1999 floor via nflverse) rather than requiring a Kaggle account. Revisit if a free 1970–1998 source turns up |
 | nflverse/Kaggle schema drift | Importers validate expected columns before ingesting; sync failures surface in admin UI, never corrupt data (upserts are transactional) |
 | ESPN-style unofficial APIs breaking | Not load-bearing in this plan — NBA (`stats.nba.com`) is the only unofficial dependency, with a bulk-CSV escape hatch |
 | SQLite write contention during big imports | Imports are admin-triggered and sequential; WAL mode on (as in SP2) |
