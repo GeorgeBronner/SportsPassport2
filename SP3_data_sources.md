@@ -207,22 +207,43 @@ official free API.
 ## College Basketball (CBB)
 
 Research into game-level data sources (teams, home/away, date, score, venue) for NCAA Division I
-men's basketball, evaluated against the same hobby/zero-cost bar as MLB/NFL/NBA/NHL above. Unlike
-those four, **college hoops has no single source with pro-league-style depth** — the cleanest
-structured API (CollegeBasketballData.com) only reaches back to 2003, and anything deeper trades
-away either data quality or a clean license. Research date: July 2026.
+men's basketball, evaluated against the same hobby/zero-cost bar as MLB/NFL/NBA/NHL above.
+Research date: July 2026. **Update:** the original pass here (docs-only, no live API access)
+concluded the cleanest structured API (CollegeBasketballData.com) only reached back to 2003 —
+live testing during the actual adapter build found real data back to at least 1950. See the
+"Correction" callout further down for details; the app ships with a 1990 floor regardless, as a
+scope choice.
 
 ### TL;DR — Recommended Pick
 
 | League | Historical Load (one-time) | Ongoing Updates (free) | Paid Fallback |
 |--------|---------------------------|------------------------|---------------|
-| CBB    | CollegeBasketballData.com (CBBD), free API key, 2003–present | Same: CBBD `/games` or `/scoreboard` | SportsDataIO NCAA Basketball |
+| CBB    | CollegeBasketballData.com (CBBD), free API key, 1950s–present (see correction below) | Same: CBBD `/games` | SportsDataIO NCAA Basketball |
 
-**Recommended floor year: 2003.** This is a hard downgrade from the app's CFB/pro-league 1990
-floor, but it's where the one clean, structured, adapter-friendly source starts. Deeper history
-(back to 1996) exists but only via a dataset with commercial-use-restricted licensing (see Kaggle
-NCAA Basketball entry below) — not worth building the pipeline on for a few extra seasons of
-top-line scores. Revisit later if a better pre-2003 source turns up.
+**Correction (2026-07-12, adapter build session):** the "2003 floor" below was wrong — it was
+inferred from marketing/blog pages without a live API call. Live testing while building
+`CbbAdapter` found real, clean game data (real teams, real scores) at `season=1950` (1,240
+games) and every decade sampled between 1950 and 2024. **The app's CBB adapter ships with a 1990
+floor anyway** — a scope decision matching CFB's floor, not a data-availability limit; see
+`SP3_plan.md` Phase 8. The paragraph immediately below (recommending 2003) is the original,
+inaccurate research and is kept for context on how the recommendation changed, not as current
+guidance.
+
+**Also found during the adapter build: `GET /games` caps at exactly 3,000 rows**, regardless of
+`season`/`seasonType` filters (three different season queries each returned exactly 3,000 rows,
+with a 2023-24 regular-season query cutting off in mid-January despite the season running to
+April). The real pagination mechanism is `startDateRange`/`endDateRange` (verified working;
+monthly chunks stay safely under the cap even in the highest-volume month and the tournament
+month). Anyone building against this API should chunk by date range, not rely on `season` alone.
+
+**Original (inaccurate) floor-year recommendation, superseded above:** 2003. This was a hard
+downgrade from the app's CFB/pro-league 1990 floor, reasoned to be where the one clean,
+structured, adapter-friendly source starts. Deeper history (back to 1996) exists but only via a
+dataset with commercial-use-restricted licensing (see Kaggle NCAA Basketball entry below) — not
+worth building the pipeline on for a few extra seasons of top-line scores, was the (mistaken)
+thinking. In fact CBBD itself has much deeper history than 2003; only the restricted Kaggle
+dataset's *box-score/play-by-play* depth is actually capped around 1996 — final scores go back
+much further within CBBD itself.
 
 **Why CBBD is the natural fit:** it's built and maintained by the same team as
 CollegeFootballData.com — the "About" page and shared Patreon
@@ -379,11 +400,12 @@ architecture, just a CBB-appropriate classification value and the same style of 
 
 Build `CbbAdapter` on **CollegeBasketballData.com** for both historical backfill and ongoing sync
 — it's the only source here with clean licensing, a documented API, and an auth pattern that's
-already proven out in `CfbAdapter`. Set the historical floor at **2003** (CBBD's own floor) rather
-than reaching into the Sportradar-restricted Kaggle dataset for a few earlier seasons. Keep ESPN's
+already proven out in `CfbAdapter`. **Built 2026-07-12** (`backend/sports_passport/services/
+adapters/cbb.py`); see `SP3_plan.md` Phase 8 for the shipped floor year (1990, a scope choice,
+not the 2003 data limit originally assumed here) and final verification numbers. Keep ESPN's
 scoreboard endpoint in reserve as a backup ongoing-sync source, same role it plays for the other
-four leagues. Treat NCAA.com scrapers and the Kaggle BigQuery dataset as sources to avoid outright
-rather than sources to lean on cautiously.
+four leagues, if CBBD's free tier ever proves too thin. Treat NCAA.com scrapers and the Kaggle
+BigQuery dataset as sources to avoid outright rather than sources to lean on cautiously.
 
 ---
 

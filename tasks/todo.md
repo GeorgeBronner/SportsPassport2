@@ -123,7 +123,22 @@ college-football-only app was preserved at `../cfb-tracker`.
 - [ ] Nightly per-league sync (APScheduler); admin UI for status/last-sync
 - [ ] Docker deploy; update docs/deployment.md
 
-## Review
+## Phase 8 — CBB adapter (added beyond original scope) ✅
+- [x] `CbbAdapter` (`adapters/cbb.py`, source `cbbd`) built on CollegeBasketballData.com,
+      reusing the existing `CFB_API_KEY` (live-confirmed to work unmodified as a CBBD token)
+- [x] Corrected two research findings via live testing: real floor is ~1950+, not 2003
+      (1990 chosen anyway, matching CFB's floor); `/games` caps at exactly 3000 rows
+      regardless of season/seasonType filters — real pagination is via
+      `startDateRange`/`endDateRange`, chunked monthly
+- [x] Classification (`d1`/`non-d1`) read from each game's own conference field, no extra
+      per-season roster calls needed; non-D-I buy-game opponents get full team rows
+      (school/mascot/abbreviation) from CBBD's all-time `/teams` registry, no manual seed
+      lookup needed (verified against a real IU Indianapolis vs. Spalding/NAIA game)
+- [x] `test_cbb_adapter.py` (6 tests) + `cbb_league` fixture; 140 tests green
+- [x] Live verification: 2023 season alone = 6,243 games, 0 errors, 365 D-I teams (exact
+      match to the research's team-count estimate); full 1990-2024 backfill (35 seasons) =
+      179,107 games, zero unmatched-team errors, 1,386 teams, 749 venues, ~179s
+- Full details in **SP3_plan.md's Phase 8 section**
 _(fill in as phases complete)_
 - Phase 0+1 (2026-07-11): Scaffold + multi-league core complete. 110 tests green.
   Smoke-tested: health, register, login, leagues endpoints all working. Old app untouched
@@ -186,3 +201,15 @@ _(fill in as phases complete)_
   134 backend tests green, clean typecheck and production build. Deferred:
   per-league "passport completion" stat (no backend support yet, ambiguous
   semantics). Next: Phase 6 (sync scheduling + deploy).
+- Phase 8 CBB adapter (2026-07-12): built on CollegeBasketballData.com, reusing the
+  existing CFBD key (live-confirmed to work unmodified). Live testing while building
+  the adapter corrected two things the earlier research got wrong without live API
+  access: the real data floor is ~1950+, not 2003 (app ships with 1990 anyway, matching
+  CFB, as a scope choice not a data limit); and `/games` caps at exactly 3,000 rows
+  regardless of season/seasonType filters, requiring date-range chunking instead.
+  Classification (d1/non-d1) reads off each game's own conference field rather than
+  needing extra per-season roster calls, and non-D-I buy-game opponents get full team
+  identity from CBBD's all-time /teams registry with no manual seed lookup needed —
+  both simpler than the original research assumed. 140 tests green. Full 1990-2024
+  backfill: 179,107 games, zero unmatched-team errors, 1,386 teams, 749 venues, ~179s.
+  SP3_data_sources.md's CBB section corrected to match. Phase 8 fully closed.

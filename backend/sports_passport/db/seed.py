@@ -8,6 +8,7 @@ LEAGUES = [
     {"code": "NFL", "name": "National Football League", "sport": "football"},
     {"code": "NBA", "name": "National Basketball Association", "sport": "basketball"},
     {"code": "NHL", "name": "National Hockey League", "sport": "hockey"},
+    {"code": "CBB", "name": "College Basketball", "sport": "basketball"},
 ]
 
 

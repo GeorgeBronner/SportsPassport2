@@ -110,10 +110,11 @@ def get_attendance_stats(
     states = set()
 
     def _counts_for_stats(team) -> bool:
-        # CFB stats track FBS programs only; every pro team counts.
+        # College sports track their top division only (CFB: FBS, CBB: D-I);
+        # every pro team counts (classification is null for those leagues).
         if team is None:
             return False
-        return team.classification is None or team.classification == "fbs"
+        return team.classification is None or team.classification in ("fbs", "d1")
 
     for attendance in attendances:
         game = attendance.game

@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     cfb_api_key: Optional[str] = None
     cfb_api_url: str = "https://api.collegefootballdata.com"
 
+    # CollegeBasketballData.com API (CBB league adapter) — same maintainer/auth
+    # model as CFBD, confirmed live to accept the same API key, so no separate
+    # cbb_api_key setting exists; CbbAdapter reuses cfb_api_key directly.
+    cbb_api_url: str = "https://api.collegebasketballdata.com"
+
     # League adapter data sources (free APIs used by sync_recent)
     mlb_api_url: str = "https://statsapi.mlb.com/api/v1"
     nhl_api_url: str = "https://api-web.nhle.com/v1"

@@ -1,6 +1,7 @@
 # SportsPassport2 — Multi-League Game Tracker
 
-App for tracking games attended across **CFB, MLB, NFL, NBA, and NHL** (extensible to MLS etc.).
+App for tracking games attended across **CFB, MLB, NFL, NBA, NHL, and CBB** (D-I men's college
+basketball; extensible to MLS etc.).
 Evolution of the original college football tracker (preserved at `../cfb-tracker`). Personal/family
 use, Docker-deployed.
 

@@ -18,7 +18,7 @@ class Team(Base):
     state = Column(String)
     conference = Column(String, index=True)
     division = Column(String)
-    classification = Column(String, index=True)  # CFB: fbs/fcs; NULL for pro leagues
+    classification = Column(String, index=True)  # CFB: fbs/fcs; CBB: d1/non-d1; NULL for pro leagues
     first_season = Column(Integer)
     last_season = Column(Integer)  # NULL = still active
     # Groups relocated/renamed identities of one franchise (e.g. Expos + Nationals)

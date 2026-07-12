@@ -102,7 +102,7 @@ class TestMultiLeagueFilters:
         response = client.get("/api/leagues/", headers=auth_headers)
         assert response.status_code == 200
         codes = [row["code"] for row in response.json()]
-        assert codes == ["CFB", "MLB", "NBA", "NFL", "NHL"]
+        assert codes == ["CBB", "CFB", "MLB", "NBA", "NFL", "NHL"]
 
     def test_teams_filtered_by_league(self, client, sample_teams, sample_nhl_teams, auth_headers):
         response = client.get("/api/teams/?league=NHL", headers=auth_headers)

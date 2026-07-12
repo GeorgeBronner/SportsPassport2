@@ -21,6 +21,11 @@ Companion doc: [SP3_data_sources.md](SP3_data_sources.md) — full data source r
 - Admin: per-league data import + refresh
 - Docker Compose deployment, single container, same as SP2
 
+**Added beyond the original first-draft scope:** CBB (D-I men's college basketball, 1990+) —
+see §5 Phase 8. Not part of the original 5-league plan; added once the CFB/pro-league adapters
+and multi-league frontend were done and a clean data source (CBBD, CFBD's sister project) turned
+up during MLS-expansion research.
+
 **Out of scope for first draft** (design for, don't build):
 - MLS or other additional leagues
 - Box scores / player stats (we only store teams, date, location, score + a few extras)
@@ -390,6 +395,42 @@ generalization) and added the league dimension:
       (~120 rows, one-time Wikipedia research) to backfill historical venues; deferred
       from Phase 4 (see §5 Phase 4) since `Games.csv` only carries venue data for the
       current season (~2% coverage otherwise)
+
+### Phase 8 — CBB adapter (added beyond original scope) ✅ DONE 2026-07-12
+Not part of the original 5-league plan (see §1). Added after Phase 5 once CBB data-source
+research (`SP3_data_sources.md`) turned up CollegeBasketballData.com (CBBD) — CFBD's sister
+project, same maintainer, and (live-confirmed) the same API key.
+- [x] `CbbAdapter` (`backend/sports_passport/services/adapters/cbb.py`, source `cbbd`) — reuses
+      `settings.cfb_api_key` directly rather than a separate CBB key setting.
+- [x] **Two research findings corrected via live testing during the build** (see
+      `SP3_data_sources.md`'s CBB section for the full correction):
+  - The research's "2003 floor" was wrong — real, clean game data exists back to at least 1950
+    (1,240 games that season, real teams/scores, verified live). The app ships with a **1990
+    floor anyway**, matching CFB's — a scope decision (bounds decades of conference-realignment
+    bookkeeping), not a data-availability limit. `start_season` is a parameter like every other
+    adapter, so deepening later is cheap.
+  - `GET /games` caps at **exactly 3,000 rows** regardless of `season`/`seasonType` filters
+    (three different season queries each returned exactly 3,000, one cutting off mid-season).
+    The real pagination mechanism is `startDateRange`/`endDateRange`; the adapter chunks every
+    season into 6 monthly windows (Nov–Apr), verified safely under the cap in both the
+    highest-volume month (November, 1,403 games) and the tournament month (March, 848 games).
+- [x] Classification (`d1`/`non-d1`) read from each game's own `homeConference`/`awayConference`
+      field at team-creation time — no extra per-season roster calls needed, unlike the
+      research's proposed approach. Non-D-I "buy game" opponents get full team rows
+      (school/mascot/abbreviation, no location) from CBBD's all-time `/teams` registry — no
+      manual seed lookup needed, contrary to what the research assumed. `_counts_for_stats` in
+      `routers/attendance.py` extended to treat `d1` like CFB's `fbs` (non-D-I opponents don't
+      personally count in team-based stats, but the game itself is fully loggable either way).
+- [x] `test_cbb_adapter.py` (6 tests, mocked `_get`) + `cbb_league` fixture in `conftest.py`;
+      140 tests green.
+- **Verified (live API, 2026-07-12):** single-season sanity check (2023) = **6,243 games, 0
+      errors, 365 D-I teams** (exact match to the research's ~365-team estimate) + 355 non-D-I
+      buy-game opponents captured incidentally, 454 venues. Full `import_historical(1990, 2024)`
+      backfill (35 seasons): **179,107 games, zero unmatched-team errors**, 1,386 teams total
+      (D-I rosters across 35 years of realignment + non-D-I buy-game opponents), 749 venues —
+      ~179s end to end. Average ~5,117 games/season across the full range is consistent with the
+      2023-only figure (6,243) once you account for game counts growing over three-plus decades
+      as D-I expanded.
 
 **Total estimate: ~7–10 working days** for the first draft (Phases 0–6).
 

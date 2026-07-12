@@ -85,6 +85,11 @@ def nba_league(db_session):
 
 
 @pytest.fixture
+def cbb_league(db_session):
+    return db_session.query(League).filter(League.code == "CBB").first()
+
+
+@pytest.fixture
 def test_user(db_session):
     """Create a test user."""
     user = User(
