@@ -237,14 +237,21 @@ Python (`cbbd` on [PyPI](https://pypi.org/project/cbbd/), generated from an Open
 2003+, betting lines from 2013+ (per Patreon/blog and third-party wrapper docs — see sources). It
 currently does **not** offer NCAA women's data, which is fine since scope here is men's D-I.
 
-**Open item before committing:** I could not fully verify from docs alone whether CBBD's `/games`
-payload includes a venue field (the Swagger UI and GitHub client READMEs didn't expose full model
-schemas without live calls, which I avoided per the scraping-avoidance instruction). Recommend a
-one-time live smoke-test of `/games?season=2024` with a free key before building the adapter — if
-venue is present, great; if not, follow the NBA adapter's precedent (build a one-time
-arena-by-team-by-season lookup table) since CBB venues are less critical to attendance-tracking
-value than for pro leagues anyway (most home games are on-campus, name is often just "$School
-Arena").
+**Live-verified 2026-07-12:** the existing `CFB_API_KEY` (from CFBD) works unmodified as a CBBD
+Bearer token — confirmed with real `GET /teams` (1,518 rows) and `GET /games?season=2024` (full
+season, ~2.4MB) calls against `api.collegebasketballdata.com`. No separate CBBD signup needed.
+This also resolves both open items flagged below:
+- **Venue**: `/games` rows carry `venueId`/`venue`/`city`/`state` directly (plus `attendance`) —
+  no separate arena lookup table needed, unlike NBA.
+- **Non-D-I opponents**: better than expected. A real buy-game in the sample (IU Indianapolis vs.
+  Spalding, an NAIA school) showed the non-D-I opponent *does* get a full team row in `/teams`
+  (id, `sourceId`, `school`, `mascot`, `abbreviation`) — just with `currentVenue`/`currentCity`/
+  `currentState`/`conference` all null, since CBBD doesn't track those for non-D-I programs.
+  `/teams` returned 1,518 rows total, far more than the ~365 D-I teams, confirming it's "any team
+  that's played a tracked game," not a D-I-only registry. So the no-full-non-D-I-data assumption
+  behind the classification design question below still holds (no conference/venue for those
+  teams), but the manual seed-lookup fallback for opponent identity is unnecessary — a plain
+  `/teams` fetch already covers it, same as CFBD's FBS/FCS handling.
 
 ### Suggested Free (Historical): CollegeBasketballData.com (CBBD)
 [CollegeBasketballData.com](https://collegebasketballdata.com/) — see rationale above. Coverage:
@@ -319,22 +326,16 @@ opponents, and a user could plausibly have attended one of those. The app doesn'
 non-D-I rosters/standings/historical bulk data — just enough identity (name, ideally location) to
 represent the opponent as a team row on a D-I team's game.
 
-CBBD's `GameInfo` model exposes `home_team`/`away_team` as plain name strings (confirmed via the
-`cbbd-python` client's model docs) independent of `home_team_id`/`away_team_id`/
-`home_conference`/`away_conference`, which are presumably only populated for teams in CBBD's own
-registry. CBBD's product is scoped to Division I, so **the safe assumption is a non-D-I opponent
-will come through as a name only** — no confirmed ID, conference, or location — unlike CFBD, which
-solves the equivalent FBS/FCS problem by also exposing a queryable `/teams?classification=fcs`
-endpoint that the CFB adapter imports best-effort (see `cfb.py`'s `import_teams`). It's unconfirmed
-whether CBBD offers any equivalent lower-division team lookup; this should be verified with a live
-test call before the adapter is built, since public docs don't settle it either way.
-
-Practical implication: budget for a **manual/small seed-data lookup** (name → city/state, similar
-in spirit to the NBA adapter's arena-by-team-by-season table already noted above) to backfill
-location for whatever non-D-I opponent names turn up in D-I teams' game logs, rather than expecting
-the primary API to supply it. Given how infrequently buy games happen (a handful per D-I team per
-season, mostly in November), this is a small, occasional-maintenance list, not an ongoing bulk
-import.
+**Live-verified 2026-07-12** (see confirmation above) — this turned out better than the docs-only
+research below assumed. A real `/games?season=2024` row shows a buy-game between IU Indianapolis
+(D-I, Horizon League) and Spalding (NAIA): `homeTeamId`/`awayTeamId` are both populated numeric
+IDs (camelCase in the raw JSON, not the snake_case the Python client docs implied), and Spalding
+has a full row in `/teams` — `id`, `sourceId`, `school`, `mascot`, `abbreviation` — just with
+`currentVenue`/`currentCity`/`currentState`/`conference` all `null`. So **no manual seed lookup is
+needed**: a plain `/teams` fetch already gives every opponent a usable team identity, D-I or not,
+the same way CFBD's `/teams` returns all-time rosters regardless of classification. What's genuinely
+missing for non-D-I teams is location and conference, not identity — city/state has to stay null
+for those rows, which is fine (matches this doc's general "nullable venue" pattern elsewhere).
 
 **Design question for implementation (not resolved here):** CBB teams will need a `classification`
 value on the `Team` row, following the existing precedent (`Team.classification`, and
