@@ -213,3 +213,28 @@ _(fill in as phases complete)_
   both simpler than the original research assumed. 140 tests green. Full 1990-2024
   backfill: 179,107 games, zero unmatched-team errors, 1,386 teams, 749 venues, ~179s.
   SP3_data_sources.md's CBB section corrected to match. Phase 8 fully closed.
+- Full production-DB historical backfill, 5 leagues (2026-07-12): the dev database had
+  only single-recent-season sample data from Phase 5's browser walkthrough (not full
+  history). Ran the real `import_historical` backfill for CFB/MLB/NFL/NBA/NHL into the
+  actual persistent `backend/sports_passport.db` via 5 parallel background subagents
+  (CBB skipped per user request). Final counts, all zero unmatched-team errors unless
+  noted: **CFB 52,415** (1990-2025, 1,911 teams), **MLB 123,371** (1970-2025, 54 teams),
+  **NBA 73,272** (1946-2025, 63 teams, matches the exact Phase 4 verification number),
+  **NFL 7,276** (1999-2025, 35 teams), **NHL 57,395** (1970-2025, 62 teams, 3 benign
+  errors — the known 2004-05 lockout gap plus two other seasons, 1990 and 2019, that
+  came back with "no standings" from the API; worth a closer look later but games still
+  imported in bulk for those years via the schedule endpoint, so likely just a standings
+  *endpoint* miss on a couple of season-label edge cases, not a real backfill gap — not
+  investigated further here). **313,729 games total** across the 5 leagues.
+  - **Real gap found and fixed**: `backend/sports_passport/db/database.py` never had
+    SQLite concurrency settings configured (WAL mode / busy_timeout), despite
+    SP3_plan.md's risk table already claiming "WAL mode on (as in SP2)" — an apparent
+    Phase 0 porting gap. Added an SQLAlchemy connect-event listener setting
+    `PRAGMA journal_mode=WAL` and `PRAGMA busy_timeout=30000`, which the live FastAPI
+    app now benefits from for concurrent request handling. Caveat found the hard way
+    during this backfill: that listener is bound to `database.py`'s specific `engine`
+    object, so any script (like these verification scripts, or any future one-off admin
+    script) that calls its own `create_engine(...)` instead of importing the real one
+    doesn't get it — CFB and MLB each needed a retry after hitting "database is locked"
+    under concurrent writes before an explicit `connect_args={'timeout': 30}` fixed it
+    for good. Both retries were safe since `import_historical` is idempotent.
