@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     mlb_api_url: str = "https://statsapi.mlb.com/api/v1"
     nhl_api_url: str = "https://api-web.nhle.com/v1"
     nflverse_games_url: str = "https://github.com/nflverse/nfldata/raw/master/data/games.csv"
+    nba_stats_api_url: str = "https://stats.nba.com/stats"
 
     # Directory holding bulk historical files (Retrosheet, Kaggle CSVs, seeds)
     data_dir: str = "data"

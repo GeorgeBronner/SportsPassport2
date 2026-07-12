@@ -55,10 +55,47 @@ college-football-only app was preserved at `../cfb-tracker`.
 - Note: MLB postseason isn't covered (Retrosheet's gamelogs are regular-season only; no
   simple CSV for postseason) — deferred, sync_recent will still catch future postseason games.
 
-## Phase 4 — NBA adapter
-- [ ] Build `backend/data/seed/nba_arenas.csv`
-- [ ] NBA adapter via nba_api (throttled) or Kaggle CSV fallback
-- [ ] Verify: NBA 2023-24 = 1,230 regular season games; >95% venue coverage
+## Phase 4 — NBA adapter ✅ (uncommitted)
+- [x] Confirmed `stats.nba.com` is unreachable from this dev sandbox (Akamai anti-bot
+      TLS challenge, not rate limiting — `curl` hangs on SSL renegotiation)
+- [x] User downloaded the Kaggle CSV manually: `eoinamoore/historical-nba-data-and-
+      player-box-scores` dataset, `Games.csv` file only. Now at
+      `backend/data/raw/nba/Games.csv` (73,279 rows, 1946-2026, gitignored)
+- [x] NBA adapter written (`adapters/nba.py`, source `nba-kaggle`) and registered in
+      `adapters/__init__.py`. `import_teams`/`import_historical` parse the local CSV;
+      franchise linking via NBA's stable numeric team id; season derived from the
+      `gameId` encoding (not date, because of the 2019-20 COVID-delayed playoffs)
+- [x] **NBA Cup miscount fixed (2026-07-12):** the championship final (a standalone
+      game, `gameId` type digit `"6"`) doesn't count toward any team's record, unlike
+      the 66 in-season-tournament group-stage games which do. Split it into its own
+      `season_type = "cup_final"`. 2023-24 now imports exactly 1,230 regular season
+      games.
+- [x] `test_nba_adapter.py` written (6 tests) + `nba_league` fixture added to
+      conftest.py. 130 tests green (up from 124).
+- [x] **Two real bugs found + fixed in `sync_recent` while writing its test**
+      (found via API-shape review, not live testing — still unreachable here):
+      `stats.nba.com`'s `GAME_ID` is 10 chars (2-char league prefix + the same
+      8-char form the Kaggle CSV uses), but the code was feeding the raw 10-char id
+      into season parsing (misreads the season by 2 digits) and storing it as
+      `source_game_id` (would never match the bulk import's 8-char ids — every
+      synced game would've landed as a duplicate instead of updating the historical
+      row). Fixed by stripping the league prefix before both uses.
+- [x] Full backfill run: `import_historical(1946, 2025)` against the real local file
+      = **73,272 games, zero errors.** Gap vs. 73,279 CSV rows is exactly the
+      intentionally-excluded All-Star Games (7). 63 teams, 47 venues.
+- [ ] `sync_recent` still needs a real end-to-end run against `stats.nba.com` from a
+      network that can reach it (post-deploy) — parsing is now correct against the
+      documented response shape, but that's an unofficial endpoint that can drift
+- [x] **Decision (2026-07-12):** `data/seed/nba_arenas.csv` deferred to Phase 7 —
+      user chose to ship NBA with sparse venue coverage (current-era games only,
+      1,393 of 73,272) for the first draft rather than block Phase 4 on manual
+      research. Phase 4 is otherwise closed.
+- Full details, exact next steps, and reasoning are in **SP3_plan.md's Phase 4 section**
+  — read that first before continuing this phase.
+- **Nothing from this phase is committed.** `git status` will show `nba.py`,
+  `adapters/__init__.py`, `core/config.py` (added `nba_stats_api_url`),
+  `test_nba_adapter.py`, `conftest.py`, and this file / SP3_plan.md as modified/new,
+  plus the untracked (gitignored) `Games.csv`.
 
 ## Phase 5 — Frontend multi-league
 - [ ] League switcher + all-leagues view; update Team type (`school`→`name` etc.)
@@ -94,3 +131,27 @@ _(fill in as phases complete)_
   separate id-mapping table. Live-verified: 1970 season = 1,944 games exact, 2024 = 2,429;
   opening day 1970 score exact match; Expos/Nationals franchise link correct; sync cross-check
   130/132 clean. 124 tests green. Phase 3 fully closed. Next: Phase 4 NBA adapter.
+- Phase 4 NBA (2026-07-11, PAUSED mid-phase at user's request): hit the same "official
+  source unreachable" problem as NFL's Kaggle blocker, but worse — `stats.nba.com` isn't
+  just gated, it's flat-out unreachable from this dev sandbox (Akamai TLS challenge).
+  User downloaded the Kaggle Games.csv fallback manually. Adapter written and
+  smoke-verified against the real local file for one season (1,383 games, 0 errors,
+  franchise linking confirmed) but the work is NOT finished: sync_recent is
+  unverified (can't reach stats.nba.com to test it), no unit tests exist, the arena
+  seed file for historical venues was never started, and only one season was
+  smoke-tested (not the full 1946-2025 backfill). CFB/NHL/NFL/MLB (Phases 2-3) are
+  fully done and committed (commit 3fdcb24); this NBA work is uncommitted on disk.
+  Pick up from SP3_plan.md's Phase 4 section, which has the full next-steps list.
+- Phase 4 NBA continued (2026-07-12): fixed the NBA Cup championship-final miscount
+  (it's a standalone game that doesn't count toward either team's record, unlike the
+  in-season-tournament group-stage games — gave it its own `season_type`). Wrote
+  `test_nba_adapter.py` (6 tests) + `nba_league` fixture; 130 tests green. Writing the
+  sync test surfaced two real bugs in `sync_recent`'s untested code path — a season-
+  parsing off-by-2 and a source_game_id mismatch that would've caused every synced
+  game to duplicate instead of updating the historical row — both fixed by correctly
+  stripping stats.nba.com's league-id prefix. Ran the full 1946-2025 backfill locally:
+  73,272 games, zero unmatched-team errors. Remaining before Phase 4 closes: a live
+  end-to-end test of `sync_recent` from a network that can reach stats.nba.com (not
+  this sandbox), and the `data/seed/nba_arenas.csv` venue research pass (~120 rows,
+  manual Wikipedia lookup — not a coding task, needs a scoping decision on when/how
+  to do it or whether to defer to Phase 5+).
