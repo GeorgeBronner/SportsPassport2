@@ -55,7 +55,7 @@ college-football-only app was preserved at `../cfb-tracker`.
 - Note: MLB postseason isn't covered (Retrosheet's gamelogs are regular-season only; no
   simple CSV for postseason) — deferred, sync_recent will still catch future postseason games.
 
-## Phase 4 — NBA adapter ✅ (uncommitted)
+## Phase 4 — NBA adapter ✅
 - [x] Confirmed `stats.nba.com` is unreachable from this dev sandbox (Akamai anti-bot
       TLS challenge, not rate limiting — `curl` hangs on SSL renegotiation)
 - [x] User downloaded the Kaggle CSV manually: `eoinamoore/historical-nba-data-and-
@@ -92,10 +92,9 @@ college-football-only app was preserved at `../cfb-tracker`.
       research. Phase 4 is otherwise closed.
 - Full details, exact next steps, and reasoning are in **SP3_plan.md's Phase 4 section**
   — read that first before continuing this phase.
-- **Nothing from this phase is committed.** `git status` will show `nba.py`,
-  `adapters/__init__.py`, `core/config.py` (added `nba_stats_api_url`),
-  `test_nba_adapter.py`, `conftest.py`, and this file / SP3_plan.md as modified/new,
-  plus the untracked (gitignored) `Games.csv`.
+- **Committed** in `4065c9a` (`nba.py`, `adapters/__init__.py`, `core/config.py`,
+  `test_nba_adapter.py`, `conftest.py`, `SP3_plan.md`/this file); `Games.csv` stays
+  untracked/gitignored as intended.
 
 ## Phase 5 — Frontend multi-league ✅
 - [x] Rewrote `types/api.ts` + all API clients to match the real backend schemas (was still

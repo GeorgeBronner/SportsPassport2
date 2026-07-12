@@ -19,8 +19,9 @@ Key docs: [SP3_plan.md](SP3_plan.md) (build plan + phase status), [SP3_data_sour
 - One `LeagueAdapter` per league in `backend/sports_passport/services/adapters/`
   (`import_teams` / `import_historical` / `sync_recent`). Registry in `adapters/__init__.py`.
   Adding a league = one adapter module + one seed row.
-- Bulk files for historical backfill live in `backend/data/raw/<league>/` (gitignored);
-  seed lookups (NBA arenas, team aliases) in `backend/data/seed/` (committed).
+- Bulk files for historical backfill live in `backend/data/raw/<league>/` (gitignored).
+  A hand-built `backend/data/seed/nba_arenas.csv` (historical venue lookup) is planned
+  but not yet built — deferred to Phase 7, see SP3_plan.md.
 - **Compliance rules** (from SP3_data_sources.md — do not violate): MLB Stats API is
   sync-only, never bulk backfill (Retrosheet for that); throttle stats.nba.com; never
   scrape Sports-Reference sites.

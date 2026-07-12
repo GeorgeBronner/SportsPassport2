@@ -44,7 +44,7 @@ goes back that far; pre-1999 needs a Kaggle-gated dataset, deferred to Phase 7.
 | Layer | Choice | Notes |
 |-------|--------|-------|
 | Backend | FastAPI + SQLAlchemy + Alembic + Pydantic | Identical to SP2 |
-| DB | SQLite | ~320k game rows total (MLB ~130k, NBA ~70k, NHL ~60k, CFB ~40k, NFL ~15k) — well within SQLite comfort zone |
+| DB | SQLite (WAL mode + busy_timeout, see §6) | ~314k game rows loaded as of 2026-07-12 (MLB 123k, NBA 73k, NHL 57k, CFB 52k, NFL 7k; CBB adapter built but not bulk-loaded into the dev DB yet) — well within SQLite comfort zone |
 | Auth | JWT + bcrypt | Port from SP2 unchanged |
 | Frontend | React 18 + TypeScript, Vite, Tailwind, React Router, Axios | Port SP2 frontend, add league dimension |
 | Deploy | Docker + Docker Compose, frontend built to `backend/static/`, port 8000 | Same pattern; new container name |
@@ -243,14 +243,15 @@ then CFB (port of known-working SP2 code = validates parity with SP2).
   by a simple CSV on their site (would need real scraping) and is deferred — sync_recent will
   pick up *future* postseason games automatically once they happen, just not historical ones.
 
-### Phase 4 — NBA adapter (1 day; the fiddly one) — IN PROGRESS, resumed 2026-07-12
-**Status for whoever picks this up next:** the historical-import path is written,
-tested, and verified against the real local data file for both a single season and
-the full 1946-2025 range. The live-sync path is written and its parsing logic fixed
-(two real bugs found via test-driven review) but still **unverified end-to-end**
-(network-blocked in this dev sandbox — see below). Only the venue seed file remains
-before this phase can close. Nothing written this phase has been committed yet;
-`git status` will show it all as pending.
+### Phase 4 — NBA adapter (1 day; the fiddly one) ✅ DONE 2026-07-12
+**Status:** the historical-import path is written, tested, and verified against the
+real local data file for both a single season and the full 1946-2025 range (and, as
+of the Phase 9 production backfill below, actually loaded into the live dev database
+too — 73,272 games, exact match). The live-sync path is written and its parsing logic
+fixed (two real bugs found via test-driven review) but still **unverified end-to-end**
+(network-blocked in this dev sandbox — see below); this is the one open item left in
+this phase. The venue seed file is deferred to Phase 7, not blocking. Everything else
+committed in `4065c9a`.
 
 - [x] **Blocker discovered and resolved:** `stats.nba.com` (both the API and the plain
       web page) is unreachable from this dev environment — it hangs on what looks like
@@ -432,6 +433,42 @@ project, same maintainer, and (live-confirmed) the same API key.
       2023-only figure (6,243) once you account for game counts growing over three-plus decades
       as D-I expanded.
 
+### Phase 9 — Full production historical backfill ✅ DONE 2026-07-12
+Every adapter's `import_historical` had been verified correct (Phases 2-4, 8) but only ever
+against scratch/in-memory databases or a single recent season — the actual persistent dev
+database (`backend/sports_passport.db`) only had Phase 5's single-season browser-test data.
+User asked for full backfills across all 5 original leagues (CBB skipped for now, per
+instruction) run via parallel background subagents, with rate-limit guidance from each
+adapter's existing built-in behavior (no new throttling code needed — NHL's 0.25s delay, MLB's
+Retrosheet-only-for-bulk rule, etc. were already correctly implemented).
+- [x] Fixed the SQLite WAL/busy_timeout gap (see §6) — required for safe concurrent writes,
+      discovered when the first parallel run hit immediate `database is locked` errors.
+- [x] **Final counts, real persistent database, zero unmatched-team errors unless noted:**
+
+  | League | Games | Seasons | Teams |
+  |--------|-------|---------|-------|
+  | CFB | 52,415 | 1990-2025 | 1,911 |
+  | MLB | 123,371 | 1970-2025 | 54 |
+  | NBA | 73,272 | 1946-2025 | 63 (matches Phase 4's exact figure) |
+  | NFL | 7,276 | 1999-2025 | 35 |
+  | NHL | 57,395 | 1970-2025 | 62 (3 benign errors, see below) |
+  | **Total** | **313,729** | | |
+
+- **NHL anomaly (not investigated further):** 3 errors during the backfill — the known 2004-05
+  lockout gap, plus seasons 1990 and 2019 each logging "no standings" from the adapter's
+  standings-lookup call. Games still appear to have imported in bulk via the schedule endpoint
+  for those years (the season range 1970-2025 has no visible holes), so this looks like a
+  standings-endpoint edge case on a couple of season-label boundaries, not a real backfill gap
+  — worth a closer look sometime, logged here rather than silently ignored.
+- **Process note:** CFB and MLB each needed one retry after hitting transient lock contention
+  from the concurrent writes (both idempotent, so safe) before an explicit
+  `connect_args={'timeout': 30}` on the ad-hoc verification scripts fully resolved it — the WAL
+  fix above only auto-applies to connections made through `sports_passport.db.database`'s own
+  `engine` object, not to a script's own separate `create_engine(...)` call. Worth remembering
+  for any future one-off script against this database.
+- Independently re-verified every final count via a direct SQL query against the database
+  (not just trusting each subagent's self-report) before considering this phase done.
+
 **Total estimate: ~7–10 working days** for the first draft (Phases 0–6).
 
 ---
@@ -445,7 +482,7 @@ project, same maintainer, and (live-confirmed) the same API key.
 | Kaggle files need manual download (auth) | Hit for NFL 1966–1998 backfill; resolved by dropping that range (1999 floor via nflverse) rather than requiring a Kaggle account. Revisit if a free 1970–1998 source turns up |
 | nflverse/Kaggle schema drift | Importers validate expected columns before ingesting; sync failures surface in admin UI, never corrupt data (upserts are transactional) |
 | ESPN-style unofficial APIs breaking | Not load-bearing in this plan — NBA (`stats.nba.com`) is the only unofficial dependency, with a bulk-CSV escape hatch |
-| SQLite write contention during big imports | Imports are admin-triggered and sequential; WAL mode on (as in SP2) |
+| SQLite write contention during big imports | **Actually wired up 2026-07-12** (this row was aspirational until then — WAL mode wasn't configured despite being listed here as already done, a Phase 0 porting gap). `backend/sports_passport/db/database.py` now enables `PRAGMA journal_mode=WAL` + `PRAGMA busy_timeout=30000` via a connect-time event listener, letting concurrent writers queue instead of failing immediately. Verified under real load: 5 parallel league backfills against the same file (Phase 9) — two needed one retry each before the fix fully took hold (see Phase 9 for the caveat about ad-hoc scripts needing their own `connect_args={'timeout': 30}`), the rest succeeded cleanly first try. |
 
 ## 7. Decisions Already Made (don't re-litigate during build)
 
