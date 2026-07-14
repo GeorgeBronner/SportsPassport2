@@ -44,7 +44,7 @@ goes back that far; pre-1999 needs a Kaggle-gated dataset, deferred to Phase 7.
 | Layer | Choice | Notes |
 |-------|--------|-------|
 | Backend | FastAPI + SQLAlchemy + Alembic + Pydantic | Identical to SP2 |
-| DB | SQLite (WAL mode + busy_timeout, see §6) | ~314k game rows loaded as of 2026-07-12 (MLB 123k, NBA 73k, NHL 57k, CFB 52k, NFL 7k; CBB adapter built but not bulk-loaded into the dev DB yet) — well within SQLite comfort zone |
+| DB | SQLite (WAL mode + busy_timeout, see §6) | ~493k game rows loaded as of 2026-07-14 (MLB 123k, NBA 73k, CBB 179k, NHL 57k, CFB 52k, NFL 7k) — well within SQLite comfort zone |
 | Auth | JWT + bcrypt | Port from SP2 unchanged |
 | Frontend | React 18 + TypeScript, Vite, Tailwind, React Router, Axios | Port SP2 frontend, add league dimension |
 | Deploy | Docker + Docker Compose, frontend built to `backend/static/`, port 8000 | Same pattern; new container name |
@@ -433,14 +433,18 @@ project, same maintainer, and (live-confirmed) the same API key.
       2023-only figure (6,243) once you account for game counts growing over three-plus decades
       as D-I expanded.
 
-### Phase 9 — Full production historical backfill ✅ DONE 2026-07-12
+### Phase 9 — Full production historical backfill ✅ DONE 2026-07-12 (CBB added 2026-07-14)
 Every adapter's `import_historical` had been verified correct (Phases 2-4, 8) but only ever
 against scratch/in-memory databases or a single recent season — the actual persistent dev
 database (`backend/sports_passport.db`) only had Phase 5's single-season browser-test data.
 User asked for full backfills across all 5 original leagues (CBB skipped for now, per
 instruction) run via parallel background subagents, with rate-limit guidance from each
 adapter's existing built-in behavior (no new throttling code needed — NHL's 0.25s delay, MLB's
-Retrosheet-only-for-bulk rule, etc. were already correctly implemented).
+Retrosheet-only-for-bulk rule, etc. were already correctly implemented). CBB's own full backfill
+(1990-2024) followed on 2026-07-14, run the same way against the persistent DB via the app's
+own engine (WAL + busy_timeout already wired up) — 179,107 games, 1,386 teams, 749 venues, zero
+errors, matching Phase 8's scratch-DB verification exactly. Independently re-confirmed via direct
+SQL query against the database.
 - [x] Fixed the SQLite WAL/busy_timeout gap (see §6) — required for safe concurrent writes,
       discovered when the first parallel run hit immediate `database is locked` errors.
 - [x] **Final counts, real persistent database, zero unmatched-team errors unless noted:**
@@ -452,7 +456,8 @@ Retrosheet-only-for-bulk rule, etc. were already correctly implemented).
   | NBA | 73,272 | 1946-2025 | 63 (matches Phase 4's exact figure) |
   | NFL | 7,276 | 1999-2025 | 35 |
   | NHL | 57,395 | 1970-2025 | 62 (3 benign errors, see below) |
-  | **Total** | **313,729** | | |
+  | CBB | 179,107 | 1990-2024 | 1,386 (added 2026-07-14, matches Phase 8's figure) |
+  | **Total** | **492,836** | | |
 
 - **NHL anomaly (not investigated further):** 3 errors during the backfill — the known 2004-05
   lockout gap, plus seasons 1990 and 2019 each logging "no standings" from the adapter's
