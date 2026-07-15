@@ -14,6 +14,7 @@ from sports_passport.schemas.attendance import (
     AttendanceUpdate,
     AttendanceResponse,
     AttendanceStats,
+    AttendanceVenueCount,
     BulkAttendanceRequest,
     BulkAttendanceResponse
 )
@@ -106,6 +107,10 @@ def get_attendance_stats(
     games_by_league = defaultdict(int)
     games_by_team = defaultdict(int)
     games_by_season = defaultdict(int)
+    games_by_state = defaultdict(int)
+    venue_counts = defaultdict(int)
+    venue_info = {}
+    first_date = last_date = None
     stadiums = set()
     states = set()
 
@@ -130,8 +135,26 @@ def get_attendance_stats(
         # Track stadiums and states
         if game.venue:
             stadiums.add(game.venue.name)
+            venue_counts[game.venue.id] += 1
+            venue_info[game.venue.id] = game.venue
             if game.venue.state:
                 states.add(game.venue.state)
+                games_by_state[game.venue.state] += 1
+
+        if first_date is None or game.start_date < first_date:
+            first_date = game.start_date
+        if last_date is None or game.start_date > last_date:
+            last_date = game.start_date
+
+    venues = [
+        AttendanceVenueCount(
+            name=venue_info[vid].name,
+            city=venue_info[vid].city,
+            state=venue_info[vid].state,
+            count=count,
+        )
+        for vid, count in sorted(venue_counts.items(), key=lambda x: -x[1])
+    ]
 
     return AttendanceStats(
         total_games=total_games,
@@ -141,7 +164,11 @@ def get_attendance_stats(
         games_by_team=dict(sorted(games_by_team.items(), key=lambda x: x[1], reverse=True)),
         games_by_season=dict(sorted(games_by_season.items())),
         stadiums_visited=sorted(list(stadiums)),
-        states_visited=sorted(list(states))
+        states_visited=sorted(list(states)),
+        games_by_state=dict(sorted(games_by_state.items())),
+        venues=venues,
+        first_game_date=first_date,
+        last_game_date=last_date,
     )
 
 

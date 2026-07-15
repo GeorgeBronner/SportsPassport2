@@ -68,16 +68,17 @@ Match results (2026-07-15 run):
 
 ## Phase 2 — Search & stats API
 
-- [ ] `GET /search?q=` — cross-league team search: matches name/nickname/city,
-      returns league, logo_url, and the current user's attended count per team;
-      ranked attended-count-first. (Current API requires picking a league first.)
-- [ ] `GET /teams/{id}/attendance-stats` — record when attended (W–L from the
-      attending user's perspective of that team), games-by-season counts,
-      most-visited venues for that team.
-- [ ] Extend `GET /games` responses with team logo_urls (or ship a teams-by-id
-      lookup the frontend caches).
-- [ ] `GET /attendance/stats` additions: per-state counts (for the tile map),
-      per-venue counts, first/last game dates, per-league season matrix.
+- [x] `GET /api/teams/search?q=` — cross-league team search: matches
+      name/nickname/city, returns league_code, logo_url, and the current user's
+      attended count per team; ranks attended > prefix match > active > name.
+- [x] `GET /api/teams/{id}/attendance-stats` — record when attended (W–L–T from
+      that team's perspective), games-by-season counts, most-visited venues,
+      first/last game dates.
+- [x] Game list responses carry logo_urls automatically (GameListResponse nests
+      TeamResponse, which gained logo_url in Phase 1).
+- [x] `GET /api/attendance/stats` additions (non-breaking): `games_by_state`,
+      `venues` (name/city/state/count, sorted), `first_game_date`, `last_game_date`.
+      (Per-league season matrix deferred until a view needs it.)
 
 ## Phase 3 — Press Box chassis (frontend rebuild)
 

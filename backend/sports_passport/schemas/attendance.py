@@ -37,6 +37,18 @@ class AttendanceStats(BaseModel):
     games_by_season: dict[int, int]
     stadiums_visited: list[str]
     states_visited: list[str]
+    games_by_state: dict[str, int] = {}
+    venues: list["AttendanceVenueCount"] = []
+    first_game_date: Optional[datetime] = None
+    last_game_date: Optional[datetime] = None
+
+
+class AttendanceVenueCount(BaseModel):
+    """Attended-game count for one venue, for maps and most-visited lists."""
+    name: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    count: int
 
 
 class BulkAttendanceItem(BaseModel):
