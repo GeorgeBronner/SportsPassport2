@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { attendanceApi } from '../api/attendance';
 import type { Attendance } from '../types/api';
 import Layout from '../components/layout/Layout';
-import Card from '../components/common/Card';
-import Button from '../components/common/Button';
 import Loading from '../components/common/Loading';
 import Alert from '../components/common/Alert';
-import { formatDateShort, formatScore, formatSeasonType } from '../utils/format';
+import StampCard from '../components/passport/StampCard';
+import TeamBadge from '../components/common/TeamBadge';
+import { leagueColor } from '../utils/leagues';
+import { formatDateShort } from '../utils/format';
 
+/** The attendance log: recent entry stamps up top, full ledger below. */
 const MyGames: React.FC = () => {
   const [attendedGames, setAttendedGames] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,34 +20,27 @@ const MyGames: React.FC = () => {
   const [editNotes, setEditNotes] = useState('');
 
   useEffect(() => {
-    loadAttendedGames();
+    attendanceApi
+      .getAttendedGames()
+      .then((data) =>
+        setAttendedGames(
+          data.sort(
+            (a, b) => new Date(b.game.start_date).getTime() - new Date(a.game.start_date).getTime()
+          )
+        )
+      )
+      .catch(() => setError('Failed to load attended games'))
+      .finally(() => setLoading(false));
   }, []);
 
-  const loadAttendedGames = async () => {
-    setLoading(true);
-    try {
-      const data = await attendanceApi.getAttendedGames();
-      setAttendedGames(data.sort((a, b) =>
-        new Date(b.game.start_date).getTime() - new Date(a.game.start_date).getTime()
-      ));
-    } catch (err) {
-      setError('Failed to load attended games');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to remove this game from your attended list?')) {
-      return;
-    }
-
+    if (!confirm('Remove this game from your passport?')) return;
     try {
       await attendanceApi.deleteAttendance(id);
       setAttendedGames(attendedGames.filter((a) => a.id !== id));
-      setSuccess('Game removed from attended list');
+      setSuccess('Game removed');
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
+    } catch {
       setError('Failed to remove game');
     }
   };
@@ -54,144 +49,164 @@ const MyGames: React.FC = () => {
     try {
       await attendanceApi.updateAttendance(id, { notes: editNotes || undefined });
       setAttendedGames(
-        attendedGames.map((a) =>
-          a.id === id ? { ...a, notes: editNotes || null } : a
-        )
+        attendedGames.map((a) => (a.id === id ? { ...a, notes: editNotes || null } : a))
       );
       setEditingId(null);
       setEditNotes('');
       setSuccess('Notes updated');
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
+    } catch {
       setError('Failed to update notes');
     }
   };
 
-  const startEdit = (attendance: Attendance) => {
-    setEditingId(attendance.id);
-    setEditNotes(attendance.notes || '');
-  };
-
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditNotes('');
-  };
-
-  if (loading) {
-    return <Loading message="Loading your games..." />;
-  }
+  if (loading) return <Loading message="Loading your games..." />;
 
   return (
     <Layout>
-      <div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">My Attended Games</h1>
+      <div className="flex items-baseline gap-4 flex-wrap mb-6">
+        <div>
+          <p className="kicker">My log</p>
+          <h1 className="text-2xl font-bold text-ink">
+            {attendedGames.length} game{attendedGames.length !== 1 ? 's' : ''} attended
+          </h1>
+        </div>
+      </div>
 
-        {error && <Alert type="error" message={error} onClose={() => setError('')} />}
-        {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
+      {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+      {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
-        {attendedGames.length === 0 ? (
-          <Card className="bg-gradient-to-br from-accent-50 to-white">
-            <div className="text-center py-12">
-              <p className="text-gray-700 mb-6 text-lg">
-                You haven't marked any games as attended yet.
-              </p>
-              <a href="/games" className="inline-block px-8 py-3 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-all shadow-md hover:shadow-lg font-semibold">
-                Browse games to get started
-              </a>
-            </div>
-          </Card>
-        ) : (
-          <div>
-            <p className="text-sm text-gray-700 mb-8 font-semibold uppercase tracking-wide">
-              {attendedGames.length} game{attendedGames.length !== 1 ? 's' : ''} attended
-            </p>
-            <div className="space-y-6">
-              {attendedGames.map((attendance) => (
-                <Card key={attendance.id} className="bg-gradient-to-r from-white to-gray-50 hover:border-accent-300">
-                  <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-6">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-xs font-bold text-accent-600 uppercase tracking-wider bg-accent-50 inline-block px-3 py-1 rounded-full">
-                          {formatDateShort(attendance.game.start_date)} • {formatSeasonType(attendance.game.week, attendance.game.season_type)}
-                        </span>
-                        <span className="text-xs font-bold text-gray-600 uppercase tracking-wider bg-gray-100 inline-block px-3 py-1 rounded-full">
-                          {attendance.game.league.code}
-                        </span>
-                      </div>
-                      <div className="text-2xl font-bold text-gray-900 mb-3">
-                        <Link to={`/teams/${attendance.game.away_team.id}`} className="hover:text-primary-600 transition-colors">
-                          {attendance.game.away_team.name}
-                        </Link>
-                        {' @ '}
-                        <Link to={`/teams/${attendance.game.home_team.id}`} className="hover:text-primary-600 transition-colors">
-                          {attendance.game.home_team.name}
-                        </Link>
-                      </div>
-                      <div className="text-lg text-gray-700 mb-3">
-                        <span className="font-semibold">Score:</span>{' '}
-                        <span className="text-primary-600 font-bold">{formatScore(attendance.game.away_score, attendance.game.home_score)}</span>
-                        {attendance.game.overtime_flag && (
-                          <span className="ml-2 text-xs font-bold text-accent-700 bg-accent-50 px-2 py-1 rounded-full align-middle">
-                            {attendance.game.overtime_flag}
-                          </span>
-                        )}
-                      </div>
-                      {attendance.game.venue && (
-                        <div className="text-sm text-gray-600 bg-sage-50 inline-block px-3 py-2 rounded-lg mb-4">
-                          <span className="inline-block mr-1">📍</span>
-                          <span className="font-medium">{attendance.game.venue.name}</span>
-                          {attendance.game.venue.city && attendance.game.venue.state && (
-                            <span> • {attendance.game.venue.city}, {attendance.game.venue.state}</span>
-                          )}
-                        </div>
-                      )}
-
-                      {editingId === attendance.id ? (
-                        <div className="mt-4">
-                          <textarea
-                            value={editNotes}
-                            onChange={(e) => setEditNotes(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            rows={3}
-                            placeholder="Add notes about this game..."
-                          />
-                          <div className="mt-3 flex space-x-2">
-                            <Button size="sm" onClick={() => handleUpdateNotes(attendance.id)}>
-                              Save
-                            </Button>
-                            <Button size="sm" variant="secondary" onClick={cancelEdit}>
-                              Cancel
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          {attendance.notes && (
-                            <div className="mt-3 p-4 bg-primary-50 rounded-xl border-l-4 border-primary-500">
-                              <p className="text-sm text-gray-800 font-medium">{attendance.notes}</p>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-
-                    {editingId !== attendance.id && (
-                      <div className="flex-shrink-0 md:ml-4 flex flex-col sm:flex-row gap-2">
-                        <Button size="sm" variant="secondary" onClick={() => startEdit(attendance)}>
-                          {attendance.notes ? 'Edit Notes' : 'Add Notes'}
-                        </Button>
-                        <Button size="sm" variant="danger" onClick={() => handleDelete(attendance.id)}>
-                          Remove
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </Card>
+      {attendedGames.length === 0 ? (
+        <div className="bg-panel border border-line rounded-xl py-14 text-center">
+          <p className="text-ink-2 mb-5">Your passport has no stamps yet.</p>
+          <Link
+            to="/"
+            className="inline-block px-6 py-2.5 rounded-lg bg-focus text-white font-semibold text-sm"
+          >
+            Find your first game
+          </Link>
+        </div>
+      ) : (
+        <>
+          <div className="bg-panel border border-line rounded-xl p-5 mb-4 overflow-x-auto">
+            <h2 className="kicker mb-4">Latest entry stamps</h2>
+            <div className="flex gap-7 items-center pb-1">
+              {attendedGames.slice(0, 6).map((attendance, i) => (
+                <StampCard key={attendance.id} attendance={attendance} index={i} />
               ))}
             </div>
           </div>
-        )}
-      </div>
+
+          <div className="bg-panel border border-line rounded-xl divide-y divide-[var(--line)]">
+            {attendedGames.map((attendance) => {
+              const game = attendance.game;
+              return (
+                <div key={attendance.id} className="px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <span className="font-mono text-xs text-ink-2 w-24 shrink-0">
+                    {formatDateShort(game.start_date)}
+                  </span>
+                  <span
+                    className="text-[9px] font-extrabold tracking-[0.12em] uppercase text-white rounded px-1.5 py-0.5 shrink-0"
+                    style={{ backgroundColor: leagueColor(game.league.code) }}
+                  >
+                    {game.league.code}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-sm text-ink min-w-0">
+                    <TeamBadge
+                      name={game.away_team.name}
+                      abbreviation={game.away_team.abbreviation}
+                      logoUrl={game.away_team.logo_url}
+                      leagueCode={game.league.code}
+                      size="sm"
+                    />
+                    <Link to={`/teams/${game.away_team.id}`} className="hover:underline truncate">
+                      {game.away_team.name}
+                    </Link>
+                    {game.away_score !== null && <b className="font-mono">{game.away_score}</b>}
+                    <span className="text-ink-3">at</span>
+                    <TeamBadge
+                      name={game.home_team.name}
+                      abbreviation={game.home_team.abbreviation}
+                      logoUrl={game.home_team.logo_url}
+                      leagueCode={game.league.code}
+                      size="sm"
+                    />
+                    <Link to={`/teams/${game.home_team.id}`} className="hover:underline truncate">
+                      {game.home_team.name}
+                    </Link>
+                    {game.home_score !== null && <b className="font-mono">{game.home_score}</b>}
+                    {game.overtime_flag && (
+                      <span className="text-[10px] font-mono text-ink-3">{game.overtime_flag}</span>
+                    )}
+                  </span>
+                  {game.venue && (
+                    <span className="text-xs text-ink-3 truncate">
+                      {game.venue.name}
+                      {game.venue.city ? ` · ${game.venue.city}` : ''}
+                    </span>
+                  )}
+                  <span className="ml-auto flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(attendance.id);
+                        setEditNotes(attendance.notes || '');
+                      }}
+                      className="text-xs text-ink-3 hover:text-ink border border-line hover:border-line-strong rounded px-2 py-1"
+                    >
+                      {attendance.notes ? 'Edit notes' : 'Add notes'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(attendance.id)}
+                      className="text-xs text-loss border border-line hover:border-line-strong rounded px-2 py-1"
+                    >
+                      Remove
+                    </button>
+                  </span>
+
+                  {editingId === attendance.id ? (
+                    <div className="w-full">
+                      <textarea
+                        value={editNotes}
+                        onChange={(e) => setEditNotes(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-panel-2 text-ink border border-line focus:outline-2 focus:outline-focus text-sm"
+                        rows={2}
+                        placeholder="Notes about this game — who you went with, what you'll remember…"
+                      />
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateNotes(attendance.id)}
+                          className="text-xs font-semibold bg-focus text-white rounded px-3 py-1.5"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingId(null);
+                            setEditNotes('');
+                          }}
+                          className="text-xs text-ink-2 border border-line rounded px-3 py-1.5"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    attendance.notes && (
+                      <p className="w-full text-[13px] italic font-serif text-ink-2 border-l-2 pl-3" style={{ borderColor: 'var(--stamp)' }}>
+                        {attendance.notes}
+                      </p>
+                    )
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </Layout>
   );
 };

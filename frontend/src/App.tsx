@@ -4,8 +4,8 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Games from './pages/Games';
+import Find from './pages/Find';
+import MapView from './pages/MapView';
 import MyGames from './pages/MyGames';
 import Statistics from './pages/Statistics';
 import Admin from './pages/Admin';
@@ -23,16 +23,16 @@ const App: React.FC = () => {
             path="/"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <Find />
               </ProtectedRoute>
             }
           />
 
           <Route
-            path="/games"
+            path="/map"
             element={
               <ProtectedRoute>
-                <Games />
+                <MapView />
               </ProtectedRoute>
             }
           />

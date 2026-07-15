@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Float, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sports_passport.db.database import Base
 
@@ -15,6 +15,8 @@ class Venue(Base):
     state = Column(String, index=True)
     country = Column(String, default="USA")
     capacity = Column(Integer)
+    latitude = Column(Float)   # city-level precision is fine for the map
+    longitude = Column(Float)
     source = Column(String, nullable=False, index=True)
     source_venue_id = Column(String, index=True)
 

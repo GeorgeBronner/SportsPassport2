@@ -14,6 +14,9 @@ from sports_passport.schemas.attendance import (
     AttendanceUpdate,
     AttendanceResponse,
     AttendanceStats,
+    AttendanceVenueCount,
+    AttendanceVenuePoint,
+    AttendanceVenuesResponse,
     BulkAttendanceRequest,
     BulkAttendanceResponse
 )
@@ -106,6 +109,10 @@ def get_attendance_stats(
     games_by_league = defaultdict(int)
     games_by_team = defaultdict(int)
     games_by_season = defaultdict(int)
+    games_by_state = defaultdict(int)
+    venue_counts = defaultdict(int)
+    venue_info = {}
+    first_date = last_date = None
     stadiums = set()
     states = set()
 
@@ -130,8 +137,26 @@ def get_attendance_stats(
         # Track stadiums and states
         if game.venue:
             stadiums.add(game.venue.name)
+            venue_counts[game.venue.id] += 1
+            venue_info[game.venue.id] = game.venue
             if game.venue.state:
                 states.add(game.venue.state)
+                games_by_state[game.venue.state] += 1
+
+        if first_date is None or game.start_date < first_date:
+            first_date = game.start_date
+        if last_date is None or game.start_date > last_date:
+            last_date = game.start_date
+
+    venues = [
+        AttendanceVenueCount(
+            name=venue_info[vid].name,
+            city=venue_info[vid].city,
+            state=venue_info[vid].state,
+            count=count,
+        )
+        for vid, count in sorted(venue_counts.items(), key=lambda x: -x[1])
+    ]
 
     return AttendanceStats(
         total_games=total_games,
@@ -141,8 +166,58 @@ def get_attendance_stats(
         games_by_team=dict(sorted(games_by_team.items(), key=lambda x: x[1], reverse=True)),
         games_by_season=dict(sorted(games_by_season.items())),
         stadiums_visited=sorted(list(stadiums)),
-        states_visited=sorted(list(states))
+        states_visited=sorted(list(states)),
+        games_by_state=dict(sorted(games_by_state.items())),
+        venues=venues,
+        first_game_date=first_date,
+        last_game_date=last_date,
     )
+
+
+@router.get("/venues", response_model=AttendanceVenuesResponse)
+def get_attendance_venues(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Venues the user has attended games at, with coordinates — feeds the map view."""
+    attendances = db.query(UserGameAttendance).filter(
+        UserGameAttendance.user_id == current_user.id
+    ).all()
+
+    counts = defaultdict(int)
+    league_counts = defaultdict(lambda: defaultdict(int))
+    venues_by_id = {}
+    without_venue = 0
+
+    for attendance in attendances:
+        game = attendance.game
+        if not game.venue:
+            without_venue += 1
+            continue
+        venue = game.venue
+        counts[venue.id] += 1
+        venues_by_id[venue.id] = venue
+        if game.league:
+            league_counts[venue.id][game.league.code] += 1
+
+    points = [
+        AttendanceVenuePoint(
+            venue_id=vid,
+            name=venues_by_id[vid].name,
+            city=venues_by_id[vid].city,
+            state=venues_by_id[vid].state,
+            latitude=venues_by_id[vid].latitude,
+            longitude=venues_by_id[vid].longitude,
+            count=count,
+            leagues=[
+                code for code, _ in
+                sorted(league_counts[vid].items(), key=lambda x: -x[1])
+            ],
+        )
+        for vid, count in sorted(counts.items(), key=lambda x: -x[1])
+    ]
+
+    return AttendanceVenuesResponse(venues=points, games_without_venue=without_venue)
 
 
 @router.patch("/{attendance_id}", response_model=AttendanceResponse)

@@ -23,6 +23,7 @@ class Team(Base):
     last_season = Column(Integer)  # NULL = still active
     # Groups relocated/renamed identities of one franchise (e.g. Expos + Nationals)
     franchise_id = Column(Integer, index=True)
+    logo_url = Column(String)  # served from /logos/<league>/<id>.png; NULL = monogram fallback
     source = Column(String, nullable=False, index=True)  # 'cfbd','retrosheet','nflverse','nba_stats','nhl'
     source_team_id = Column(String, index=True)
 

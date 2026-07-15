@@ -37,6 +37,35 @@ class AttendanceStats(BaseModel):
     games_by_season: dict[int, int]
     stadiums_visited: list[str]
     states_visited: list[str]
+    games_by_state: dict[str, int] = {}
+    venues: list["AttendanceVenueCount"] = []
+    first_game_date: Optional[datetime] = None
+    last_game_date: Optional[datetime] = None
+
+
+class AttendanceVenueCount(BaseModel):
+    """Attended-game count for one venue, for maps and most-visited lists."""
+    name: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    count: int
+
+
+class AttendanceVenuePoint(BaseModel):
+    """A venue the user has attended games at, with coordinates for the map."""
+    venue_id: int
+    name: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    count: int
+    leagues: list[str]  # league codes seen at this venue, most games first
+
+
+class AttendanceVenuesResponse(BaseModel):
+    venues: list[AttendanceVenuePoint]
+    games_without_venue: int  # attended games whose game row has no venue yet
 
 
 class BulkAttendanceItem(BaseModel):

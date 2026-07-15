@@ -19,6 +19,9 @@ __pycache__/
 # Bulk historical data files (downloaded, not committed)
 backend/data/raw/
 
+# Team logos (scraped from ESPN, not committed)
+backend/data/logos/
+
 # Frontend
 node_modules/
 frontend/dist/
@@ -31,3 +34,6 @@ data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Playwright CLI session artifacts
+.playwright-cli/

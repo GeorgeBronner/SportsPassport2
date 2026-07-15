@@ -63,6 +63,12 @@ def health_check():
     return {"status": "healthy"}
 
 
+# Team logos live under data/ (persistent volume in Docker; gitignored) because
+# the frontend build wipes static/ on every run (vite emptyOutDir).
+logos_dir = Path(__file__).parent.parent / "data" / "logos"
+if logos_dir.exists():
+    app.mount("/logos", StaticFiles(directory=str(logos_dir)), name="logos")
+
 # Mount static files and serve SPA
 static_dir = Path(__file__).parent.parent / "static"
 if static_dir.exists():
