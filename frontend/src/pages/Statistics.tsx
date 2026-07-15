@@ -2,197 +2,147 @@ import React, { useEffect, useState } from 'react';
 import { attendanceApi } from '../api/attendance';
 import type { AttendanceStats } from '../types/api';
 import Layout from '../components/layout/Layout';
-import Card from '../components/common/Card';
 import Loading from '../components/common/Loading';
+import TileMap from '../components/passport/TileMap';
+import SeasonChart from '../components/find/SeasonChart';
+import { LEAGUE_ORDER, leagueColor } from '../utils/leagues';
+import { useAuth } from '../hooks/useAuth';
 
+const mrzName = (name: string) =>
+  name.toUpperCase().replace(/[^A-Z]+/g, '<');
+
+/** The passport identity page: totals, league stamps, states map, most-seen teams. */
 const Statistics: React.FC = () => {
+  const { user } = useAuth();
   const [stats, setStats] = useState<AttendanceStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<'name' | 'count'>('count');
 
   useEffect(() => {
-    loadStats();
+    attendanceApi
+      .getStats()
+      .then(setStats)
+      .finally(() => setLoading(false));
   }, []);
 
-  const loadStats = async () => {
-    try {
-      const data = await attendanceApi.getStats();
-      setStats(data);
-    } catch (err) {
-      console.error('Failed to load stats:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return <Loading message="Loading statistics..." />;
-  }
-
+  if (loading) return <Loading message="Loading statistics..." />;
   if (!stats) {
     return (
       <Layout>
-        <Card>
-          <p className="text-gray-600">Failed to load statistics. Please try again later.</p>
-        </Card>
+        <p className="text-ink-2">Failed to load statistics. Please try again later.</p>
       </Layout>
     );
   }
 
-  const byLeague = Object.entries(stats.games_by_league).sort(([, a], [, b]) => b - a);
+  const firstYear = stats.first_game_date ? new Date(stats.first_game_date).getFullYear() : null;
+  const lastYear = stats.last_game_date ? new Date(stats.last_game_date).getFullYear() : null;
+  const topTeams = Object.entries(stats.games_by_team).slice(0, 8);
+  const maxTeam = topTeams[0]?.[1] ?? 1;
 
-  const sortedTeams = Object.entries(stats.games_by_team).sort((a, b) => {
-    if (sortBy === 'count') {
-      return b[1] - a[1];
-    }
-    return a[0].localeCompare(b[0]);
-  });
-
-  const sortedSeasons = Object.entries(stats.games_by_season).sort(
-    ([a], [b]) => Number(b) - Number(a)
-  );
+  const leagueSummary = LEAGUE_ORDER
+    .filter((code) => stats.games_by_league[code])
+    .map((code) => `${code}${stats.games_by_league[code]}`)
+    .join('');
+  const mrz =
+    `P<USASPORTSPASSPORT<<${mrzName(user?.full_name ?? 'BEARER')}` +
+    `<<<<${stats.total_games}GM${stats.unique_stadiums}VN${stats.unique_states}ST` +
+    `<<${leagueSummary}<<${firstYear ?? ''}${lastYear ? '<' + lastYear : ''}<<`;
 
   return (
     <Layout>
-      <div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Statistics</h1>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
-          <Card className="bg-gradient-to-br from-primary-50 to-white border-primary-200">
-            <div className="text-center">
-              <div className="text-5xl font-bold text-primary-600 mb-2">{stats.total_games}</div>
-              <div className="text-sm text-gray-700 font-medium uppercase tracking-wide">Total Games Attended</div>
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-sage-50 to-white border-sage-200">
-            <div className="text-center">
-              <div className="text-5xl font-bold text-sage-600 mb-2">{stats.unique_stadiums}</div>
-              <div className="text-sm text-gray-700 font-medium uppercase tracking-wide">Unique Stadiums</div>
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-accent-50 to-white border-accent-200">
-            <div className="text-center">
-              <div className="text-5xl font-bold text-accent-600 mb-2">{stats.unique_states}</div>
-              <div className="text-sm text-gray-700 font-medium uppercase tracking-wide">States Visited</div>
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200">
-            <div className="text-center">
-              <div className="text-5xl font-bold text-blue-600 mb-2">
-                {Object.keys(stats.games_by_team).length}
-              </div>
-              <div className="text-sm text-gray-700 font-medium uppercase tracking-wide">Different Teams</div>
-            </div>
-          </Card>
+      <div className="flex items-baseline gap-4 flex-wrap mb-6">
+        <div>
+          <p className="kicker">Record of travel</p>
+          <h1 className="text-2xl font-bold text-ink">Your passport</h1>
         </div>
+        {firstYear && (
+          <p className="text-sm text-ink-2 ml-auto">
+            First entry {firstYear} · latest {lastYear}
+          </p>
+        )}
+      </div>
 
-        <Card className="mb-8 bg-gradient-to-br from-blue-50 to-white border-blue-100">
-          <h2 className="text-2xl font-bold text-blue-700 mb-6">Games by League</h2>
-          {byLeague.length === 0 ? (
-            <p className="text-gray-600">No games attended yet</p>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-              {byLeague.map(([league, count]) => (
-                <div
-                  key={league}
-                  className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
-                >
-                  <span className="text-2xl font-bold text-blue-600">{count}</span>
-                  <span className="text-gray-700 font-medium text-sm">{league}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {[
+          [stats.total_games, 'Games attended'],
+          [stats.unique_stadiums, 'Venues stamped'],
+          [stats.unique_states, 'States entered'],
+          [firstYear && lastYear ? `${lastYear - firstYear + 1} yrs` : '—', 'On the road'],
+        ].map(([value, label]) => (
+          <div key={String(label)} className="bg-panel border border-line rounded-xl p-4">
+            <div className="text-3xl font-bold font-mono text-ink">{value}</div>
+            <div className="kicker mt-1">{label}</div>
+          </div>
+        ))}
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <Card className="bg-gradient-to-br from-primary-50 to-white border-primary-100">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-primary-700">Games by Team</h2>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'name' | 'count')}
-                className="text-sm px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium"
+      <div className="bg-panel border border-line rounded-xl p-4 mb-4">
+        <h2 className="kicker mb-3">Games by league</h2>
+        <div className="flex flex-wrap gap-2.5">
+          {LEAGUE_ORDER.map((code) => {
+            const count = stats.games_by_league[code] ?? 0;
+            return (
+              <div
+                key={code}
+                className={`flex items-center gap-2 rounded-full border px-3.5 py-2 ${
+                  count ? 'border-line-strong' : 'border-line opacity-55'
+                }`}
               >
-                <option value="count">Sort by Count</option>
-                <option value="name">Sort by Name</option>
-              </select>
-            </div>
-            {sortedTeams.length === 0 ? (
-              <p className="text-gray-600">No games attended yet</p>
+                <span
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: leagueColor(code) }}
+                />
+                <span className="text-sm font-semibold text-ink">{code}</span>
+                {count ? (
+                  <span className="text-sm font-mono font-bold text-ink">{count}</span>
+                ) : (
+                  <span className="text-[11px] italic text-ink-3">awaiting first stamp</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_340px] items-start mb-4">
+        <div className="bg-panel border border-line rounded-xl p-4">
+          <h2 className="kicker mb-3">Where you've been</h2>
+          <TileMap gamesByState={stats.games_by_state} />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div className="bg-panel border border-line rounded-xl p-4">
+            <h2 className="kicker mb-3">Teams seen most</h2>
+            {topTeams.length === 0 ? (
+              <p className="text-sm text-ink-3">No games attended yet.</p>
             ) : (
-              <div className="max-h-96 overflow-y-auto space-y-3">
-                {sortedTeams.map(([team, count]) => (
-                  <div
-                    key={team}
-                    className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    <span className="text-gray-800 font-medium">{team}</span>
-                    <span className="font-bold text-primary-600 text-lg">{count}</span>
+              <div className="flex flex-col gap-2">
+                {topTeams.map(([team, count]) => (
+                  <div key={team} className="flex items-center gap-2">
+                    <span className="text-xs text-ink-2 w-32 truncate" title={team}>
+                      {team}
+                    </span>
+                    <span className="block h-2.5 flex-1 rounded-[3px] bg-panel-2 overflow-hidden">
+                      <span
+                        className="block h-full rounded-r-[3px] bg-focus"
+                        style={{ width: `${Math.max((count / maxTeam) * 100, 3)}%` }}
+                      />
+                    </span>
+                    <span className="text-xs font-mono text-ink-2 w-7 text-right">{count}</span>
                   </div>
                 ))}
               </div>
             )}
-          </Card>
+          </div>
 
-          <Card className="bg-gradient-to-br from-sage-50 to-white border-sage-100">
-            <h2 className="text-2xl font-bold text-sage-700 mb-6">Games by Season</h2>
-            {sortedSeasons.length === 0 ? (
-              <p className="text-gray-600">No games attended yet</p>
-            ) : (
-              <div className="max-h-96 overflow-y-auto space-y-3">
-                {sortedSeasons.map(([season, count]) => (
-                  <div
-                    key={season}
-                    className="flex justify-between items-center p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow"
-                  >
-                    <span className="text-gray-800 font-medium">{season}</span>
-                    <span className="font-bold text-sage-600 text-lg">{count} games</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
+          <div className="bg-panel border border-line rounded-xl p-4">
+            <h2 className="kicker mb-3">Games per season</h2>
+            <SeasonChart data={stats.games_by_season} color="var(--focus)" />
+          </div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Card className="bg-gradient-to-br from-accent-50 to-white border-accent-100">
-            <h2 className="text-2xl font-bold text-accent-700 mb-6">Stadiums Visited</h2>
-            {stats.stadiums_visited.length === 0 ? (
-              <p className="text-gray-600">No stadiums visited yet</p>
-            ) : (
-              <div className="max-h-96 overflow-y-auto">
-                <ul className="space-y-2">
-                  {stats.stadiums_visited.sort().map((stadium) => (
-                    <li key={stadium} className="text-gray-800 p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow font-medium">
-                      {stadium}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </Card>
-
-          <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100">
-            <h2 className="text-2xl font-bold text-blue-700 mb-6">States Visited</h2>
-            {stats.states_visited.length === 0 ? (
-              <p className="text-gray-600">No states visited yet</p>
-            ) : (
-              <div className="max-h-96 overflow-y-auto">
-                <ul className="space-y-2">
-                  {stats.states_visited.sort().map((state) => (
-                    <li key={state} className="text-gray-800 p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow font-medium">
-                      {state}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </Card>
-        </div>
+      <div className="border-y border-line bg-panel-2 rounded-lg px-4 py-3 font-mono text-[13px] tracking-[0.12em] text-ink-2 whitespace-nowrap overflow-x-auto">
+        {mrz}
       </div>
     </Layout>
   );
