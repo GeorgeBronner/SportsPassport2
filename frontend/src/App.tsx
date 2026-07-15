@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Find from './pages/Find';
 import MapView from './pages/MapView';
-import Games from './pages/Games';
 import MyGames from './pages/MyGames';
 import Statistics from './pages/Statistics';
 import Admin from './pages/Admin';
@@ -34,15 +33,6 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <MapView />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/games"
-            element={
-              <ProtectedRoute>
-                <Games />
               </ProtectedRoute>
             }
           />

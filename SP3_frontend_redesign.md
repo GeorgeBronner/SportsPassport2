@@ -112,18 +112,27 @@ Match results (2026-07-15 run):
 
 ## Phase 5 — Passport flourishes
 
-- [ ] Stats page → passport identity page: hero totals (games / venues / states /
-      years), record-when-attended line, MRZ-style footer, tile-grid US states map
-      (pure CSS grid, counts per state)
-- [ ] My Games → entry-stamp styling for recent games (venue stamp cards)
-- [ ] Empty-league pages ("awaiting first stamp") to invite multi-league use
+- [x] Stats page → passport identity page: hero totals (games / venues / states /
+      years), MRZ-style footer, tile-grid US states map (pure CSS grid, ink depth
+      by games per state)
+- [x] My Games → entry-stamp cards for the six most recent games + compact ledger
+      rows with logos, inline notes editing, removal
+- [x] Empty leagues shown as "awaiting first stamp" chips on the Stats page
 
 ## Phase 6 — Cleanup & ship
 
-- [ ] Remove dead components (GameCard/GameFilters variants replaced by the new views)
-- [ ] Mobile pass (the map and log tables need real narrow-viewport treatment)
-- [ ] Docker build + deploy to staging (docker31), then production
-- [ ] Update CLAUDE.md / SP3_plan.md docs to reflect the new frontend
+- [x] Remove dead pages/components (Games, Dashboard, GameCard, GameFilters;
+      `/games` route dropped — Find + team workspace replace it)
+- [x] Type-check + build clean; backend suite 154 passing; all views smoke-tested
+      in the built app (search → workspace → attend/unattend, map dots + panel,
+      stamps, stats, theme toggle)
+- [ ] Mobile polish pass (tables scroll and the nav collapses, but the map and
+      omnibox deserve a real narrow-viewport review on a phone)
+- [ ] Docker build + deploy to staging (docker31), then production — remember to
+      run `scripts/fetch_team_logos.py` and `scripts/geocode_venues.py` against
+      the production DB (or copy `backend/data/logos/` into the `./data` volume)
+- [x] CLAUDE.md points at this plan; Login/Register kept their own light styling
+      (self-contained pages; token pass optional later)
 
 ## Compliance
 
