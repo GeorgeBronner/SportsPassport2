@@ -147,7 +147,15 @@ const TeamDetail: React.FC = () => {
   return (
     <Layout>
       <div className="max-w-xl mb-6">
-        <Omnibox onSelect={(t) => navigate(`/teams/${t.id}`)} placeholder="Switch team…" />
+        <Omnibox
+          onSelect={(t) => navigate(`/teams/${t.id}`)}
+          placeholder="Switch team…"
+          // With nothing typed the tabs aren't filtering a search, so treat
+          // the click as "show me my teams in that league" back on Find.
+          onLeagueChange={(code, queryEmpty) => {
+            if (queryEmpty) navigate(code ? `/?league=${code}` : '/');
+          }}
+        />
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}

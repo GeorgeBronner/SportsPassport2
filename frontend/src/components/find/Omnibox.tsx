@@ -8,12 +8,29 @@ interface OmniboxProps {
   onSelect: (team: TeamSearchResult) => void;
   autoFocus?: boolean;
   placeholder?: string;
+  /** Controlled league filter; omit to let the omnibox manage it internally. */
+  league?: string;
+  /** Fires on league-tab clicks. queryEmpty lets callers treat a click with
+   *  nothing typed as navigation instead of a search filter. */
+  onLeagueChange?: (code: string, queryEmpty: boolean) => void;
 }
 
 /** Cross-league team finder: debounced typeahead, league tabs, keyboard nav. */
-const Omnibox: React.FC<OmniboxProps> = ({ onSelect, autoFocus, placeholder }) => {
+const Omnibox: React.FC<OmniboxProps> = ({
+  onSelect,
+  autoFocus,
+  placeholder,
+  league: leagueProp,
+  onLeagueChange,
+}) => {
   const [q, setQ] = useState('');
-  const [league, setLeague] = useState('');
+  const [internalLeague, setInternalLeague] = useState('');
+  const league = leagueProp !== undefined ? leagueProp : internalLeague;
+
+  const selectLeague = (code: string) => {
+    if (leagueProp === undefined) setInternalLeague(code);
+    onLeagueChange?.(code, q.trim().length === 0);
+  };
   const [results, setResults] = useState<TeamSearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -122,7 +139,7 @@ const Omnibox: React.FC<OmniboxProps> = ({ onSelect, autoFocus, placeholder }) =
           <button
             key={code || 'all'}
             type="button"
-            onClick={() => setLeague(code)}
+            onClick={() => selectLeague(code)}
             className={`text-[11px] uppercase tracking-[0.14em] px-3 py-1.5 rounded-md border transition-colors ${
               league === code
                 ? 'border-line-strong bg-panel text-ink font-bold'
