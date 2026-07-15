@@ -12,7 +12,7 @@ import { leaguesApi } from '../api/leagues';
 import { attendanceApi } from '../api/attendance';
 import type { GameListItem, Team, TeamAttendanceStats } from '../types/api';
 import { leagueColor } from '../utils/leagues';
-import { formatDateShort } from '../utils/format';
+import { formatDateShort, yearUTC } from '../utils/format';
 
 const CURRENT_SEASON = new Date().getFullYear();
 
@@ -46,7 +46,9 @@ const TeamDetail: React.FC = () => {
       return;
     }
     setLoading(true);
+    // Fresh team, fresh log view: filters follow the season reset.
     setSeason('');
+    setAttendedOnly(false);
     let stale = false;
     Promise.all([
       teamsApi.getTeam(teamId),
@@ -188,9 +190,7 @@ const TeamDetail: React.FC = () => {
                 {' '}
                 · your log: {stats.games_attended} game{stats.games_attended !== 1 ? 's' : ''}
                 {stats.first_game_date &&
-                  ` · ${new Date(stats.first_game_date).getUTCFullYear()}–${new Date(
-                    stats.last_game_date!
-                  ).getUTCFullYear()}`}
+                  ` · ${yearUTC(stats.first_game_date)}–${yearUTC(stats.last_game_date!)}`}
               </>
             )}
           </p>

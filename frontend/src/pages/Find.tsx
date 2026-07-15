@@ -22,8 +22,10 @@ const Find: React.FC = () => {
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [showAllTeams, setShowAllTeams] = useState(false);
 
-  const setLeague = (code: string) =>
+  const setLeague = (code: string) => {
     setSearchParams(code ? { league: code } : {}, { replace: true });
+    setShowAllTeams(false);
+  };
 
   useEffect(() => {
     attendanceApi.getAttendedGames().then(setAttendances).catch(() => {});
@@ -43,7 +45,10 @@ const Find: React.FC = () => {
     );
   }, [attendances]);
 
-  const leagueTeams = league ? yourTeams.filter((t) => t.leagueCode === league) : yourTeams;
+  const leagueTeams = useMemo(
+    () => (league ? yourTeams.filter((t) => t.leagueCode === league) : yourTeams),
+    [yourTeams, league]
+  );
   const visibleTeams = showAllTeams ? leagueTeams : leagueTeams.slice(0, TOP_TEAMS);
 
   return (

@@ -89,6 +89,10 @@ const Omnibox: React.FC<OmniboxProps> = ({
 
   // Flat list in display order, for keyboard navigation
   const flat = useMemo(() => grouped.flatMap(([, teams]) => teams), [grouped]);
+  const indexById = useMemo(
+    () => new Map(flat.map((t, i) => [t.id, i] as [number, number])),
+    [flat]
+  );
 
   const pick = (team: TeamSearchResult) => {
     setOpen(false);
@@ -179,7 +183,7 @@ const Omnibox: React.FC<OmniboxProps> = ({
                   {code}
                 </div>
                 {teams.map((team) => {
-                  const idx = flat.indexOf(team);
+                  const idx = indexById.get(team.id) ?? -1;
                   return (
                     <button
                       key={team.id}

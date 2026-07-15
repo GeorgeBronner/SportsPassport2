@@ -305,6 +305,17 @@ class TestListTeamGames:
             f"/api/games/team/{team_id}?attended_only=true", headers=admin_headers
         ).json() == []
 
+        # With every game attended, a raised limit returns the full history
+        # (the frontend requests limit=1000 in attended-only mode)
+        db_session.add_all(
+            UserGameAttendance(user_id=test_user.id, game_id=g.id) for g in games[1:]
+        )
+        db_session.commit()
+        full = client.get(
+            f"/api/games/team/{team_id}?attended_only=true&limit=1000", headers=auth_headers
+        ).json()
+        assert len(full) == 101
+
     def test_list_team_games_nonexistent_team(self, client, auth_headers):
         """Test listing games for non-existent team returns 404."""
         response = client.get("/api/games/team/99999", headers=auth_headers)
