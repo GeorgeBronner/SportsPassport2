@@ -5,6 +5,7 @@ import ProtectedRoute from './components/layout/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Find from './pages/Find';
+import MapView from './pages/MapView';
 import Games from './pages/Games';
 import MyGames from './pages/MyGames';
 import Statistics from './pages/Statistics';
@@ -24,6 +25,15 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <Find />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/map"
+            element={
+              <ProtectedRoute>
+                <MapView />
               </ProtectedRoute>
             }
           />

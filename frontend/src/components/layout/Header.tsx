@@ -5,6 +5,7 @@ import { useTheme } from '../../hooks/useTheme';
 
 const NAV = [
   { to: '/', label: 'Find games' },
+  { to: '/map', label: 'Map' },
   { to: '/my-games', label: 'My log' },
   { to: '/statistics', label: 'Stats' },
 ];

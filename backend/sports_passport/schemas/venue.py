@@ -17,5 +17,7 @@ class VenueCreate(VenueBase):
 
 class VenueResponse(VenueBase):
     id: int
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)

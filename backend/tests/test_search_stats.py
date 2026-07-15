@@ -82,6 +82,27 @@ class TestTeamAttendanceStats:
         assert resp.json()["games_attended"] == 0
 
 
+class TestAttendanceVenues:
+    def test_empty(self, client, auth_headers):
+        data = client.get("/api/attendance/venues", headers=auth_headers).json()
+        assert data == {"venues": [], "games_without_venue": 0}
+
+    def test_venue_points(self, client, auth_headers, db_session, attended_games, sample_venues):
+        # Give one venue coordinates to confirm they flow through
+        sample_venues[0].latitude = 33.2
+        sample_venues[0].longitude = -87.5
+        db_session.commit()
+
+        data = client.get("/api/attendance/venues", headers=auth_headers).json()
+        assert data["games_without_venue"] == 0
+        by_name = {v["name"]: v for v in data["venues"]}
+        bryant = by_name["Bryant-Denny Stadium"]
+        assert bryant["count"] == 1
+        assert bryant["latitude"] == 33.2
+        assert bryant["leagues"] == ["CFB"]
+        assert by_name["Michigan Stadium"]["longitude"] is None
+
+
 class TestAttendanceStatsAdditions:
     def test_empty_stats_new_fields(self, client, auth_headers):
         data = client.get("/api/attendance/stats", headers=auth_headers).json()

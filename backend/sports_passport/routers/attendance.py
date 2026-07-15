@@ -15,6 +15,8 @@ from sports_passport.schemas.attendance import (
     AttendanceResponse,
     AttendanceStats,
     AttendanceVenueCount,
+    AttendanceVenuePoint,
+    AttendanceVenuesResponse,
     BulkAttendanceRequest,
     BulkAttendanceResponse
 )
@@ -170,6 +172,52 @@ def get_attendance_stats(
         first_game_date=first_date,
         last_game_date=last_date,
     )
+
+
+@router.get("/venues", response_model=AttendanceVenuesResponse)
+def get_attendance_venues(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Venues the user has attended games at, with coordinates — feeds the map view."""
+    attendances = db.query(UserGameAttendance).filter(
+        UserGameAttendance.user_id == current_user.id
+    ).all()
+
+    counts = defaultdict(int)
+    league_counts = defaultdict(lambda: defaultdict(int))
+    venues_by_id = {}
+    without_venue = 0
+
+    for attendance in attendances:
+        game = attendance.game
+        if not game.venue:
+            without_venue += 1
+            continue
+        venue = game.venue
+        counts[venue.id] += 1
+        venues_by_id[venue.id] = venue
+        if game.league:
+            league_counts[venue.id][game.league.code] += 1
+
+    points = [
+        AttendanceVenuePoint(
+            venue_id=vid,
+            name=venues_by_id[vid].name,
+            city=venues_by_id[vid].city,
+            state=venues_by_id[vid].state,
+            latitude=venues_by_id[vid].latitude,
+            longitude=venues_by_id[vid].longitude,
+            count=count,
+            leagues=[
+                code for code, _ in
+                sorted(league_counts[vid].items(), key=lambda x: -x[1])
+            ],
+        )
+        for vid, count in sorted(counts.items(), key=lambda x: -x[1])
+    ]
+
+    return AttendanceVenuesResponse(venues=points, games_without_venue=without_venue)
 
 
 @router.patch("/{attendance_id}", response_model=AttendanceResponse)

@@ -51,6 +51,23 @@ class AttendanceVenueCount(BaseModel):
     count: int
 
 
+class AttendanceVenuePoint(BaseModel):
+    """A venue the user has attended games at, with coordinates for the map."""
+    venue_id: int
+    name: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    count: int
+    leagues: list[str]  # league codes seen at this venue, most games first
+
+
+class AttendanceVenuesResponse(BaseModel):
+    venues: list[AttendanceVenuePoint]
+    games_without_venue: int  # attended games whose game row has no venue yet
+
+
 class BulkAttendanceItem(BaseModel):
     """Single game attendance item for bulk operations"""
     game_id: int

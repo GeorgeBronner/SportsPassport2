@@ -4,6 +4,7 @@ import type {
   AttendanceCreate,
   AttendanceUpdate,
   AttendanceStats,
+  AttendanceVenuesResponse,
   BulkAttendanceRequest,
   BulkAttendanceResponse,
 } from '../types/api';
@@ -30,6 +31,12 @@ export const attendanceApi = {
   // Get attendance statistics
   getStats: async (): Promise<AttendanceStats> => {
     const response = await apiClient.get<AttendanceStats>('/attendance/stats');
+    return response.data;
+  },
+
+  // Get attended venues with coordinates (map view)
+  getVenues: async (): Promise<AttendanceVenuesResponse> => {
+    const response = await apiClient.get<AttendanceVenuesResponse>('/attendance/venues');
     return response.data;
   },
 

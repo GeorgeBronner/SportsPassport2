@@ -162,6 +162,22 @@ export interface AttendanceStats {
   last_game_date: string | null;
 }
 
+export interface AttendanceVenuePoint {
+  venue_id: number;
+  name: string;
+  city: string | null;
+  state: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  count: number;
+  leagues: string[];
+}
+
+export interface AttendanceVenuesResponse {
+  venues: AttendanceVenuePoint[];
+  games_without_venue: number;
+}
+
 export interface BulkAttendanceItem {
   game_id: number;
   notes?: string;

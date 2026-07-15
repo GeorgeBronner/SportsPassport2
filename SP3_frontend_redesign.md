@@ -96,15 +96,18 @@ Match results (2026-07-15 run):
 
 ## Phase 4 — Atlas map view
 
-- [ ] `venues.latitude` / `venues.longitude` columns + migration
-- [ ] Geocode backfill script (venue coords from source APIs where available;
-      city/state geocoding for the rest; manual fixups file for oddballs)
+- [x] `venues.latitude` / `venues.longitude` columns + migration (`c8e2f4a6b1d9`)
+- [x] Geocode backfill script `backend/scripts/geocode_venues.py` — Nominatim
+      city/state lookup at 1 req/s with a persistent cache; attended venues by
+      default, `--all` for the full table. All 37 attended venues geocoded.
 - [ ] Backfill missing venue rows on sync-imported games (e.g. the NBA Finals game
-      has no venue) — venue is required for the map to tell the whole story
-- [ ] `GET /attendance/venues` — per-venue attended counts + coords + league mix
-- [ ] Map view: inline TopoJSON US map, dots sized by count / colored by league,
-      hover tooltip, click → venue panel (games at that venue), league chips,
-      games-per-season timeline strip
+      has no venue) — map shows a "N games missing venue data" note meanwhile
+- [x] `GET /api/attendance/venues` — per-venue attended counts + coords + league
+      mix + count of attended games lacking a venue row
+- [x] Map view (`/map`): inline SVG US map (shared lat/lon projection), dots sized
+      by count / colored by league, hover tooltip, click → venue panel with that
+      venue's games, league chips (empty leagues disabled), season timeline strip;
+      overlapping same-city venues fan out a few px
 - [ ] AK/HI inset (or graceful clamp) once a non-continental venue appears
 
 ## Phase 5 — Passport flourishes
