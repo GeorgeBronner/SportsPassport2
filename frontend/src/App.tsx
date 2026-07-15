@@ -4,7 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
+import Find from './pages/Find';
 import Games from './pages/Games';
 import MyGames from './pages/MyGames';
 import Statistics from './pages/Statistics';
@@ -23,7 +23,7 @@ const App: React.FC = () => {
             path="/"
             element={
               <ProtectedRoute>
-                <Dashboard />
+                <Find />
               </ProtectedRoute>
             }
           />

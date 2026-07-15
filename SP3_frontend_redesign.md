@@ -82,13 +82,17 @@ Match results (2026-07-15 run):
 
 ## Phase 3 — Press Box chassis (frontend rebuild)
 
-- [ ] Token-based theme system (light/dark) + league color constants
-- [ ] App shell: top bar (wordmark, nav: Find / Map / My Games / Stats / Admin)
-- [ ] Omnibox + grouped typeahead (league tabs pre-filter; keyboard navigation)
-- [ ] Team workspace: game log table (attended stamp / half-ink rows, "All games |
-      Attended" toggle), record tiles, games-by-season bar chart (SVG), top-venues bars
-- [ ] Attend/unattend actions inline in the log (replaces GameCard flow)
-- [ ] Monogram badge component with logo_url image + fallback
+- [x] Token-based theme system (light/dark via CSS vars + `data-theme` toggle,
+      Tailwind v4 `@theme inline` semantic utilities) + league color constants
+- [x] App shell: top bar (wordmark, nav: Find / My log / Stats / Admin, theme toggle)
+- [x] Omnibox + grouped typeahead (league tabs pre-filter; arrow/enter/escape keys)
+- [x] Team workspace (`/teams/:id` rewrite): game log table (attended stamp,
+      half-ink unattended rows, attended-only toggle, season select), record tiles,
+      games-by-season SVG chart, top-venues bars
+- [x] Attend/unattend inline in the log (stamp click removes; verified end-to-end)
+- [x] TeamBadge component: logo image with colored-monogram fallback
+- [x] Find home page: omnibox hero + "Your teams" shortcut chips
+      (Games/Dashboard pages retired in Phase 6)
 
 ## Phase 4 — Atlas map view
 

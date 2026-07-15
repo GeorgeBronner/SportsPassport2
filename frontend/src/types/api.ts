@@ -47,6 +47,31 @@ export interface Team {
   first_season: number | null;
   last_season: number | null;
   franchise_id: number | null;
+  logo_url: string | null;
+}
+
+export interface TeamSearchResult extends Team {
+  league_code: string;
+  attended_count: number;
+}
+
+export interface TeamVenueCount {
+  name: string;
+  city: string | null;
+  state: string | null;
+  count: number;
+}
+
+export interface TeamAttendanceStats {
+  team_id: number;
+  games_attended: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  games_by_season: Record<number, number>;
+  venues: TeamVenueCount[];
+  first_game_date: string | null;
+  last_game_date: string | null;
 }
 
 // Venue types
@@ -131,6 +156,10 @@ export interface AttendanceStats {
   games_by_season: Record<number, number>;
   stadiums_visited: string[];
   states_visited: string[];
+  games_by_state: Record<string, number>;
+  venues: TeamVenueCount[];
+  first_game_date: string | null;
+  last_game_date: string | null;
 }
 
 export interface BulkAttendanceItem {

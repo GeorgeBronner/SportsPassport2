@@ -1,6 +1,100 @@
 @import "tailwindcss";
 
+/* ============================================================
+   Press Box design tokens — semantic vars swap for light/dark.
+   The viewer's explicit choice (data-theme) beats the OS setting.
+   ============================================================ */
+:root {
+  color-scheme: light;
+  --page: #f1f1ee;
+  --panel: #fcfcfb;
+  --panel-2: #f2f2ef;
+  --line: rgba(11, 11, 11, 0.10);
+  --line-strong: rgba(11, 11, 11, 0.25);
+  --ink: #16171a;
+  --ink-2: #52514e;
+  --ink-3: #898781;
+  --grid: #e1e0d9;
+  --win: #006300;
+  --loss: #c22a2a;
+  --stamp: #a63d2f;
+  --focus: #2a78d6;
+  --lg-cfb: #2a78d6;
+  --lg-mlb: #008300;
+  --lg-nfl: #c2436f;
+  --lg-nba: #a86e00;
+  --lg-nhl: #0e8a5f;
+  --lg-cbb: #cf4d1d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #131417;
+    --panel: #1b1e24;
+    --panel-2: #22262e;
+    --line: rgba(255, 255, 255, 0.09);
+    --line-strong: rgba(255, 255, 255, 0.18);
+    --ink: #f2f1ec;
+    --ink-2: #b9b8b0;
+    --ink-3: #82817a;
+    --grid: #262a31;
+    --win: #0ca30c;
+    --loss: #e66767;
+    --stamp: #d0685a;
+    --focus: #3987e5;
+    --lg-cfb: #3987e5;
+    --lg-mlb: #35a035;
+    --lg-nfl: #d55181;
+    --lg-nba: #c98500;
+    --lg-nhl: #199e70;
+    --lg-cbb: #d95926;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #131417;
+  --panel: #1b1e24;
+  --panel-2: #22262e;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  --ink: #f2f1ec;
+  --ink-2: #b9b8b0;
+  --ink-3: #82817a;
+  --grid: #262a31;
+  --win: #0ca30c;
+  --loss: #e66767;
+  --stamp: #d0685a;
+  --focus: #3987e5;
+  --lg-cfb: #3987e5;
+  --lg-mlb: #35a035;
+  --lg-nfl: #d55181;
+  --lg-nba: #c98500;
+  --lg-nhl: #199e70;
+  --lg-cbb: #d95926;
+}
+
+/* Semantic utilities: bg-page, bg-panel, text-ink, border-line, text-win, ... */
+@theme inline {
+  --color-page: var(--page);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-grid: var(--grid);
+  --color-win: var(--win);
+  --color-loss: var(--loss);
+  --color-stamp: var(--stamp);
+  --color-focus: var(--focus);
+}
+
 @theme {
+  /* Legacy palette — still referenced by Admin/Login/Register/MyGames until
+     those pages move to the token system. Remove with them. */
   --color-primary-50: #f0fdf4;
   --color-primary-100: #dcfce7;
   --color-primary-200: #bbf7d0;
@@ -40,6 +134,8 @@
 
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;
+
+  --font-mono: Consolas, "SF Mono", "Cascadia Mono", ui-monospace, monospace;
 }
 
 body {
@@ -48,12 +144,39 @@ body {
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #F8F9FA;
+  background-color: var(--page);
+  color: var(--ink);
 }
 
-/* Custom component styles */
+/* Kicker label: small tracked uppercase used across panels */
+.kicker {
+  font-size: 0.6875rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 700;
+}
+
+/* Passport "ATTENDED" stamp mark */
+.stamp-mark {
+  font-family: Consolas, ui-monospace, monospace;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--stamp);
+  border: 1.5px solid var(--stamp);
+  border-radius: 3px;
+  padding: 1px 7px;
+  display: inline-block;
+  transform: rotate(-4deg);
+  white-space: nowrap;
+  opacity: 0.9;
+}
+
+/* Legacy component styles — used by pages not yet rebuilt */
 .card-elevated {
-  background-color: white;
+  background-color: var(--panel);
   border-radius: 1.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease-in-out;
