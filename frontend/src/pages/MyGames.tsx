@@ -48,7 +48,9 @@ const MyGames: React.FC = () => {
   const handleUpdateNotes = async (id: number) => {
     try {
       // Explicit null so blanking the input clears the saved note server-side.
-      const updated = await attendanceApi.updateAttendance(id, { notes: editNotes || null });
+      const updated = await attendanceApi.updateAttendance(id, {
+        notes: editNotes.trim() || null,
+      });
       setAttendedGames((current) =>
         current.map((a) => (a.id === id ? { ...a, notes: updated.notes } : a))
       );

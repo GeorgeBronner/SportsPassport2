@@ -109,7 +109,7 @@ const Admin: React.FC = () => {
   return (
     <Layout>
       <div>
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Admin Dashboard</h1>
+        <h1 className="text-4xl font-bold text-ink mb-8">Admin Dashboard</h1>
 
         {error && <Alert type="error" message={error} onClose={() => setError('')} />}
         {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}

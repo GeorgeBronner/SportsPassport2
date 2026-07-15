@@ -47,6 +47,7 @@ const TeamDetail: React.FC = () => {
     }
     setLoading(true);
     setSeason('');
+    let stale = false;
     Promise.all([
       teamsApi.getTeam(teamId),
       teamsApi.getAttendanceStats(teamId),
@@ -54,21 +55,37 @@ const TeamDetail: React.FC = () => {
       loadAttendance(),
     ])
       .then(([teamData, statsData, leagues]) => {
+        if (stale) return;
         setTeam(teamData);
         setStats(statsData);
         setLeagueCode(leagues.find((l) => l.id === teamData.league_id)?.code ?? '');
         setError('');
       })
-      .catch(() => setError('Failed to load team'))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!stale) setError('Failed to load team');
+      })
+      .finally(() => {
+        if (!stale) setLoading(false);
+      });
+    return () => {
+      stale = true;
+    };
   }, [teamId, loadAttendance]);
 
   useEffect(() => {
     if (!teamId) return;
+    let stale = false;
     gamesApi
       .getTeamGames(teamId, season === '' ? undefined : season)
-      .then(setGames)
-      .catch(() => setError('Failed to load games'));
+      .then((data) => {
+        if (!stale) setGames(data);
+      })
+      .catch(() => {
+        if (!stale) setError('Failed to load games');
+      });
+    return () => {
+      stale = true;
+    };
   }, [teamId, season]);
 
   const refreshStats = useCallback(() => {
