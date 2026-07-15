@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: ./backend/Dockerfile
-    container_name: sports-passport-backend
+    container_name: sportspassport2-backend
     env_file:
       - ./backend/.env
     environment:
