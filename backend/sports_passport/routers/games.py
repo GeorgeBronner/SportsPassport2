@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, func
+from sqlalchemy import or_, and_, func
 from typing import List, Optional
 from sports_passport.db.database import get_db
 from sports_passport.models.game import Game
+from sports_passport.models.attendance import UserGameAttendance
 from sports_passport.models.team import Team
 from sports_passport.models.league import League
 from sports_passport.schemas.game import GameResponse, GameListResponse, SeasonInfo
@@ -143,12 +144,17 @@ def count_games(
 def list_team_games(
     team_id: int,
     season: Optional[int] = None,
+    attended_only: bool = False,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all games for a specific team by ID"""
+    """Get all games for a specific team by ID.
+
+    attended_only restricts to games the caller attended — filtered in SQL,
+    so the full attendance history surfaces regardless of the recency window.
+    """
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(
@@ -162,6 +168,12 @@ def list_team_games(
             Game.away_team_id == team_id
         )
     )
+
+    if attended_only:
+        query = query.join(UserGameAttendance, and_(
+            UserGameAttendance.game_id == Game.id,
+            UserGameAttendance.user_id == current_user.id,
+        ))
 
     if season:
         query = query.filter(Game.season == season)

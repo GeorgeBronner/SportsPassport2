@@ -76,7 +76,7 @@ const TeamDetail: React.FC = () => {
     if (!teamId) return;
     let stale = false;
     gamesApi
-      .getTeamGames(teamId, season === '' ? undefined : season)
+      .getTeamGames(teamId, season === '' ? undefined : season, attendedOnly)
       .then((data) => {
         if (!stale) setGames(data);
       })
@@ -86,7 +86,7 @@ const TeamDetail: React.FC = () => {
     return () => {
       stale = true;
     };
-  }, [teamId, season]);
+  }, [teamId, season, attendedOnly]);
 
   const refreshStats = useCallback(() => {
     teamsApi.getAttendanceStats(teamId).then(setStats).catch(() => {});
