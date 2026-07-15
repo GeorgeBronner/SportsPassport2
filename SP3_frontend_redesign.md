@@ -1,0 +1,125 @@
+# SP3 Frontend Redesign — "Press Box" Hybrid
+
+Full rebuild of the frontend around the **Press Box** concept (search-first stat terminal),
+with the **Atlas** map folded in as a view and **Passport** stamp/keepsake elements as
+flourishes. Replaces the current filter-dropdown + card-list UI.
+
+Concept mockups (Claude artifacts, built from the real 160-game attendance log):
+
+- Concept 1 · The Passport — https://claude.ai/code/artifact/8b81202f-5eb6-455b-8ed3-842d54038eee
+- Concept 2 · Press Box (chassis) — https://claude.ai/code/artifact/caac7918-fd41-4d24-8991-39a1d5bb5e18
+- Concept 3 · The Atlas (map view) — https://claude.ai/code/artifact/3fc73045-fbe5-4b52-9398-c8be17cca444
+
+## Design decisions (locked)
+
+- **Information architecture**: top-level views = **Find** (omnibox + team workspace),
+  **Map** (Atlas), **My Games** (attendance log with stamp marks), **Stats** (passport
+  identity page + tile-grid states map), **Admin** (unchanged).
+- **Search-first**: a single omnibox finds teams across all leagues (grouped results,
+  league filter tabs, per-team attended counts). Selecting a team opens the workspace:
+  game log + record-when-attended tiles + games-by-season chart + most-visited venues.
+- **League color code** (fixed slots, colorblind-validated palette; same order everywhere):
+  CFB `#2a78d6` blue · MLB `#008300` green · NFL `#e87ba4` magenta · NBA `#eda100` yellow ·
+  NHL `#1baf7a` aqua · CBB `#eb6834` orange (dark-mode variants in the mockups' CSS tokens).
+- **Themes**: light + dark via CSS custom-property tokens (`prefers-color-scheme` +
+  `data-theme` override), dark-first styling like the Press Box mockup.
+- **Logos**: real team logos everywhere a team appears; colored monogram badge
+  (league color + abbreviation) as the fallback for teams without one.
+- **Passport flourishes**: red "ATTENDED" stamp marks in game rows; unattended games at
+  half-ink one tap from a stamp; Stats page becomes the passport identity page
+  (totals, record-when-attended, MRZ-style footer line, tile-grid US map of states).
+- **Map**: inline TopoJSON US map rendered client-side (no tile server, works offline,
+  matches Docker single-container deploy). Venue dots sized by games attended, colored
+  by league, click → venue panel with that venue's games.
+
+## Phase 1 — Team logos (backend) ✦ prerequisite for everything
+
+ESPN's hidden API (already an accepted source in `docs/SP3_data_sources.md`) provides
+team lists with logo URLs for all six leagues. One-time scrape, stored locally — no
+hotlinking at runtime.
+
+- [x] `teams.logo_url` column (nullable String) + Alembic migration (`b4c9e1f7a2d3`)
+- [x] Fix `alembic/env.py` to honor `DATABASE_URL` (was hardcoded to the ini URL,
+      so the Docker `alembic upgrade head` would have migrated the wrong file)
+- [x] Scrape script `backend/scripts/fetch_team_logos.py`:
+      pulls ESPN team lists per league (`site.api.espn.com/.../teams`), matches to DB
+      teams by normalized name (active teams only — historical/relocated identities keep
+      the monogram fallback), downloads PNGs to `backend/data/logos/<league>/<team_id>.png`,
+      sets `logo_url = /logos/<league>/<team_id>.png`. Idempotent; throttled.
+- [x] Serve logos: FastAPI `StaticFiles` mount at `/logos` (from `data/logos`, which is
+      the mounted `./data` volume in Docker — survives rebuilds, unlike `backend/static/`
+      which Vite wipes on every build)
+- [x] `logo_url` in `TeamResponse` schema
+- [x] Exclude logos from version control (`backend/data/logos/` in `.gitignore`)
+- [x] Run scrape locally (2026-07-15): **1,081 logos**, 62 MB. Verified `/logos/cfb/217.png`
+      serves 200. Note: prod/staging must run the scrape once inside the container
+      (or copy `backend/data/logos/` into the host `./data` volume).
+
+Match results (2026-07-15 run):
+
+| League | DB active teams | Matched | Notes |
+|---|---|---|---|
+| CFB | 1,911 | 597 | all FBS/FCS + some others; rest are historical schools |
+| CBB | 1,386 | 362 | effectively all current D-I |
+| MLB | 30 | 27 | misses are stale "active" rows (Indians, Quakers, Browns) |
+| NFL | 32 | 32 | complete |
+| NBA | 34 | 30 | all real NBA; misses are international exhibition teams |
+| NHL | 62 | 33 | all 32 current + Utah alias; rest defunct identities |
+
+## Phase 2 — Search & stats API
+
+- [ ] `GET /search?q=` — cross-league team search: matches name/nickname/city,
+      returns league, logo_url, and the current user's attended count per team;
+      ranked attended-count-first. (Current API requires picking a league first.)
+- [ ] `GET /teams/{id}/attendance-stats` — record when attended (W–L from the
+      attending user's perspective of that team), games-by-season counts,
+      most-visited venues for that team.
+- [ ] Extend `GET /games` responses with team logo_urls (or ship a teams-by-id
+      lookup the frontend caches).
+- [ ] `GET /attendance/stats` additions: per-state counts (for the tile map),
+      per-venue counts, first/last game dates, per-league season matrix.
+
+## Phase 3 — Press Box chassis (frontend rebuild)
+
+- [ ] Token-based theme system (light/dark) + league color constants
+- [ ] App shell: top bar (wordmark, nav: Find / Map / My Games / Stats / Admin)
+- [ ] Omnibox + grouped typeahead (league tabs pre-filter; keyboard navigation)
+- [ ] Team workspace: game log table (attended stamp / half-ink rows, "All games |
+      Attended" toggle), record tiles, games-by-season bar chart (SVG), top-venues bars
+- [ ] Attend/unattend actions inline in the log (replaces GameCard flow)
+- [ ] Monogram badge component with logo_url image + fallback
+
+## Phase 4 — Atlas map view
+
+- [ ] `venues.latitude` / `venues.longitude` columns + migration
+- [ ] Geocode backfill script (venue coords from source APIs where available;
+      city/state geocoding for the rest; manual fixups file for oddballs)
+- [ ] Backfill missing venue rows on sync-imported games (e.g. the NBA Finals game
+      has no venue) — venue is required for the map to tell the whole story
+- [ ] `GET /attendance/venues` — per-venue attended counts + coords + league mix
+- [ ] Map view: inline TopoJSON US map, dots sized by count / colored by league,
+      hover tooltip, click → venue panel (games at that venue), league chips,
+      games-per-season timeline strip
+- [ ] AK/HI inset (or graceful clamp) once a non-continental venue appears
+
+## Phase 5 — Passport flourishes
+
+- [ ] Stats page → passport identity page: hero totals (games / venues / states /
+      years), record-when-attended line, MRZ-style footer, tile-grid US states map
+      (pure CSS grid, counts per state)
+- [ ] My Games → entry-stamp styling for recent games (venue stamp cards)
+- [ ] Empty-league pages ("awaiting first stamp") to invite multi-league use
+
+## Phase 6 — Cleanup & ship
+
+- [ ] Remove dead components (GameCard/GameFilters variants replaced by the new views)
+- [ ] Mobile pass (the map and log tables need real narrow-viewport treatment)
+- [ ] Docker build + deploy to staging (docker31), then production
+- [ ] Update CLAUDE.md / SP3_plan.md docs to reflect the new frontend
+
+## Compliance
+
+- ESPN hidden API: unofficial — one-time/occasional scrapes only, throttled, with a
+  descriptive User-Agent; logos cached locally so the app never hotlinks ESPN.
+- Existing rules unchanged: MLB Stats API sync-only; throttle stats.nba.com; never
+  scrape Sports-Reference.

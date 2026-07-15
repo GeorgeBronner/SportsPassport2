@@ -6,7 +6,8 @@ Evolution of the original college football tracker (preserved at `../cfb-tracker
 use, Docker-deployed.
 
 Key docs: [SP3_plan.md](SP3_plan.md) (build plan + phase status), [SP3_data_sources.md](SP3_data_sources.md)
-(data source research), [tasks/todo.md](tasks/todo.md) (current work).
+(data source research), [SP3_frontend_redesign.md](SP3_frontend_redesign.md) (frontend rebuild plan + phase status),
+[tasks/todo.md](tasks/todo.md) (current work).
 
 ## Tech Stack
 - **Backend**: FastAPI, SQLAlchemy, Alembic, SQLite, Pydantic; JWT auth + bcrypt; package `sports_passport`

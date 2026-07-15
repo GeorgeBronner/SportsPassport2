@@ -25,5 +25,6 @@ class TeamResponse(TeamBase):
     id: int
     league_id: int
     franchise_id: Optional[int] = None
+    logo_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

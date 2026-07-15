@@ -8,10 +8,15 @@ from alembic import context
 # Import your models
 from sports_passport.db.database import Base
 from sports_passport.models import User, League, Team, Venue, Game, UserGameAttendance
+from sports_passport.core.config import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+# Migrate the same database the app uses (DATABASE_URL / .env), not the
+# hardcoded ini fallback — in Docker the app DB lives on the /app/data volume.
+config.set_main_option("sqlalchemy.url", settings.database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
