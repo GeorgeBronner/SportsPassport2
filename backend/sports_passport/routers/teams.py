@@ -87,7 +87,7 @@ def list_teams(
 def search_teams(
     q: str = Query(..., min_length=2),
     league: Optional[str] = None,
-    limit: int = 20,
+    limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -110,7 +110,26 @@ def search_teams(
         query = query.filter(League.code == league.upper())
 
     # Pull a generous candidate pool, rank with attendance counts, then cut.
-    candidates = query.order_by(Team.last_season.isnot(None), Team.name).limit(300).all()
+    pool_cap = 300
+    candidates = query.order_by(Team.last_season.isnot(None), Team.name).limit(pool_cap).all()
+    if len(candidates) == pool_cap:
+        # The pool hit the cap, so a matching attended team may have been
+        # truncated — merge them in; attendance-first ranking must never
+        # lose a team to the cap.
+        candidate_ids = {t.id for t, _ in candidates}
+        attended_matches = (
+            query.join(Game, or_(
+                Game.home_team_id == Team.id,
+                Game.away_team_id == Team.id,
+            ))
+            .join(UserGameAttendance, and_(
+                UserGameAttendance.game_id == Game.id,
+                UserGameAttendance.user_id == current_user.id,
+            ))
+            .distinct()
+            .all()
+        )
+        candidates += [row for row in attended_matches if row[0].id not in candidate_ids]
     counts = _attended_counts(db, current_user.id, [t.id for t, _ in candidates])
 
     q_lower = q.lower()

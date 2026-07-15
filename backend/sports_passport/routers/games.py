@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import or_, func
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_, and_, func
 from typing import List, Optional
 from sports_passport.db.database import get_db
 from sports_passport.models.game import Game
+from sports_passport.models.attendance import UserGameAttendance
 from sports_passport.models.team import Team
 from sports_passport.models.league import League
 from sports_passport.schemas.game import GameResponse, GameListResponse, SeasonInfo
@@ -11,6 +12,16 @@ from sports_passport.core.dependencies import get_current_user
 from sports_passport.models.user import User
 
 router = APIRouter(prefix="/api/games", tags=["games"])
+
+
+def _with_relations(query):
+    """Eager-load what GameListResponse serializes, avoiding per-row lazy loads."""
+    return query.options(
+        joinedload(Game.league),
+        joinedload(Game.home_team),
+        joinedload(Game.away_team),
+        joinedload(Game.venue),
+    )
 
 
 def _apply_league_filter(query, db: Session, league: Optional[str]):
@@ -61,7 +72,7 @@ def list_games(
             )
         )
 
-    query = query.order_by(Game.start_date.desc())
+    query = _with_relations(query).order_by(Game.start_date.desc())
     games = query.offset(skip).limit(limit).all()
 
     return games
@@ -87,7 +98,7 @@ def search_games(
     )
     query = _apply_league_filter(query, db, league)
 
-    games = query.order_by(Game.start_date.desc()).offset(skip).limit(limit).all()
+    games = _with_relations(query).order_by(Game.start_date.desc()).offset(skip).limit(limit).all()
     return games
 
 
@@ -143,12 +154,17 @@ def count_games(
 def list_team_games(
     team_id: int,
     season: Optional[int] = None,
+    attended_only: bool = False,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get all games for a specific team by ID"""
+    """Get all games for a specific team by ID.
+
+    attended_only restricts to games the caller attended — filtered in SQL,
+    so the full attendance history surfaces regardless of the recency window.
+    """
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(
@@ -163,10 +179,16 @@ def list_team_games(
         )
     )
 
+    if attended_only:
+        query = query.join(UserGameAttendance, and_(
+            UserGameAttendance.game_id == Game.id,
+            UserGameAttendance.user_id == current_user.id,
+        ))
+
     if season:
         query = query.filter(Game.season == season)
 
-    games = query.order_by(Game.start_date.desc()).offset(skip).limit(limit).all()
+    games = _with_relations(query).order_by(Game.start_date.desc()).offset(skip).limit(limit).all()
     return games
 
 

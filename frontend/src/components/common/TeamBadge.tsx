@@ -17,9 +17,11 @@ const SIZES = {
 
 /** Team logo with a colored-monogram fallback when no logo exists (or fails to load). */
 const TeamBadge: React.FC<TeamBadgeProps> = ({ name, abbreviation, logoUrl, leagueCode, size = 'md' }) => {
-  const [broken, setBroken] = useState(false);
+  // Track which URL failed, not a boolean — the component instance survives
+  // client-side navigation between teams, and a new logo deserves a fresh try.
+  const [brokenUrl, setBrokenUrl] = useState<string | null>(null);
 
-  if (logoUrl && !broken) {
+  if (logoUrl && brokenUrl !== logoUrl) {
     return (
       <img
         src={logoUrl}
@@ -27,7 +29,7 @@ const TeamBadge: React.FC<TeamBadgeProps> = ({ name, abbreviation, logoUrl, leag
         aria-hidden="true"
         loading="lazy"
         className={`${SIZES[size]} object-contain shrink-0`}
-        onError={() => setBroken(true)}
+        onError={() => setBrokenUrl(logoUrl)}
       />
     );
   }

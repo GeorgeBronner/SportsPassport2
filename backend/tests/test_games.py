@@ -254,6 +254,68 @@ class TestListTeamGames:
         assert len(data) == 2
         assert all(game["season"] == 2023 for game in data)
 
+    def test_attended_only_reaches_past_recency_window(
+        self, client, auth_headers, admin_headers, db_session, cfb_league, sample_teams, test_user
+    ):
+        """attended_only surfaces old attended games the 100-recent window drops."""
+        from datetime import datetime, timedelta
+        from sports_passport.models.game import Game
+        from sports_passport.models.attendance import UserGameAttendance
+
+        team_id = sample_teams[0].id
+        opponent_id = sample_teams[1].id
+        # One season for all fixture games in this test, distinct from the 2023
+        # sample_games fixtures, so the season query below counts only these.
+        fixture_season = 2025
+        base = datetime(fixture_season, 1, 1)
+        games = [
+            Game(
+                league_id=cfb_league.id,
+                source="cfbd",
+                source_game_id=f"window-{i}",
+                home_team_id=team_id,
+                away_team_id=opponent_id,
+                start_date=base + timedelta(days=i),
+                season=fixture_season,
+                season_type="regular",
+            )
+            for i in range(101)
+        ]
+        db_session.add_all(games)
+        db_session.commit()
+        oldest = games[0]
+        db_session.add(UserGameAttendance(user_id=test_user.id, game_id=oldest.id))
+        db_session.commit()
+
+        # The default recency window drops the attended (oldest) game
+        recent = client.get(
+            f"/api/games/team/{team_id}?season={fixture_season}", headers=auth_headers
+        ).json()
+        assert len(recent) == 100
+        assert all(g["id"] != oldest.id for g in recent)
+
+        # attended_only returns it regardless of how far back it is
+        attended = client.get(
+            f"/api/games/team/{team_id}?attended_only=true", headers=auth_headers
+        ).json()
+        assert [g["id"] for g in attended] == [oldest.id]
+
+        # Scoped to the caller: another user has attended nothing
+        assert client.get(
+            f"/api/games/team/{team_id}?attended_only=true", headers=admin_headers
+        ).json() == []
+
+        # With every game attended, a raised limit returns the full history
+        # (the frontend requests limit=1000 in attended-only mode)
+        db_session.add_all(
+            UserGameAttendance(user_id=test_user.id, game_id=g.id) for g in games[1:]
+        )
+        db_session.commit()
+        full = client.get(
+            f"/api/games/team/{team_id}?attended_only=true&limit=1000", headers=auth_headers
+        ).json()
+        assert len(full) == 101
+
     def test_list_team_games_nonexistent_team(self, client, auth_headers):
         """Test listing games for non-existent team returns 404."""
         response = client.get("/api/games/team/99999", headers=auth_headers)

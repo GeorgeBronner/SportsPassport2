@@ -37,7 +37,7 @@ const MyGames: React.FC = () => {
     if (!confirm('Remove this game from your passport?')) return;
     try {
       await attendanceApi.deleteAttendance(id);
-      setAttendedGames(attendedGames.filter((a) => a.id !== id));
+      setAttendedGames((current) => current.filter((a) => a.id !== id));
       setSuccess('Game removed');
       setTimeout(() => setSuccess(''), 3000);
     } catch {
@@ -47,9 +47,12 @@ const MyGames: React.FC = () => {
 
   const handleUpdateNotes = async (id: number) => {
     try {
-      await attendanceApi.updateAttendance(id, { notes: editNotes || undefined });
-      setAttendedGames(
-        attendedGames.map((a) => (a.id === id ? { ...a, notes: editNotes || null } : a))
+      // Explicit null so blanking the input clears the saved note server-side.
+      const updated = await attendanceApi.updateAttendance(id, {
+        notes: editNotes.trim() || null,
+      });
+      setAttendedGames((current) =>
+        current.map((a) => (a.id === id ? { ...a, notes: updated.notes } : a))
       );
       setEditingId(null);
       setEditNotes('');

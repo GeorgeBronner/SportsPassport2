@@ -12,7 +12,7 @@ import { leaguesApi } from '../api/leagues';
 import { attendanceApi } from '../api/attendance';
 import type { GameListItem, Team, TeamAttendanceStats } from '../types/api';
 import { leagueColor } from '../utils/leagues';
-import { formatDateShort } from '../utils/format';
+import { formatDateShort, yearUTC } from '../utils/format';
 
 const CURRENT_SEASON = new Date().getFullYear();
 
@@ -38,9 +38,18 @@ const TeamDetail: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!teamId) return;
+    if (!teamId) {
+      // Non-numeric :id — nothing will load, so don't sit on the spinner.
+      setTeam(null);
+      setLoading(false);
+      setError('Team not found');
+      return;
+    }
     setLoading(true);
+    // Fresh team, fresh log view: filters follow the season reset.
     setSeason('');
+    setAttendedOnly(false);
+    let stale = false;
     Promise.all([
       teamsApi.getTeam(teamId),
       teamsApi.getAttendanceStats(teamId),
@@ -48,22 +57,38 @@ const TeamDetail: React.FC = () => {
       loadAttendance(),
     ])
       .then(([teamData, statsData, leagues]) => {
+        if (stale) return;
         setTeam(teamData);
         setStats(statsData);
         setLeagueCode(leagues.find((l) => l.id === teamData.league_id)?.code ?? '');
         setError('');
       })
-      .catch(() => setError('Failed to load team'))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!stale) setError('Failed to load team');
+      })
+      .finally(() => {
+        if (!stale) setLoading(false);
+      });
+    return () => {
+      stale = true;
+    };
   }, [teamId, loadAttendance]);
 
   useEffect(() => {
     if (!teamId) return;
+    let stale = false;
     gamesApi
-      .getTeamGames(teamId, season === '' ? undefined : season)
-      .then(setGames)
-      .catch(() => setError('Failed to load games'));
-  }, [teamId, season]);
+      .getTeamGames(teamId, season === '' ? undefined : season, attendedOnly)
+      .then((data) => {
+        if (!stale) setGames(data);
+      })
+      .catch(() => {
+        if (!stale) setError('Failed to load games');
+      });
+    return () => {
+      stale = true;
+    };
+  }, [teamId, season, attendedOnly]);
 
   const refreshStats = useCallback(() => {
     teamsApi.getAttendanceStats(teamId).then(setStats).catch(() => {});
@@ -124,7 +149,15 @@ const TeamDetail: React.FC = () => {
   return (
     <Layout>
       <div className="max-w-xl mb-6">
-        <Omnibox onSelect={(t) => navigate(`/teams/${t.id}`)} placeholder="Switch team…" />
+        <Omnibox
+          onSelect={(t) => navigate(`/teams/${t.id}`)}
+          placeholder="Switch team…"
+          // With nothing typed the tabs aren't filtering a search, so treat
+          // the click as "show me my teams in that league" back on Find.
+          onLeagueChange={(code, queryEmpty) => {
+            if (queryEmpty) navigate(code ? `/?league=${code}` : '/');
+          }}
+        />
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
@@ -157,9 +190,7 @@ const TeamDetail: React.FC = () => {
                 {' '}
                 · your log: {stats.games_attended} game{stats.games_attended !== 1 ? 's' : ''}
                 {stats.first_game_date &&
-                  ` · ${new Date(stats.first_game_date).getFullYear()}–${new Date(
-                    stats.last_game_date!
-                  ).getFullYear()}`}
+                  ` · ${yearUTC(stats.first_game_date)}–${yearUTC(stats.last_game_date!)}`}
               </>
             )}
           </p>
@@ -221,6 +252,7 @@ const TeamDetail: React.FC = () => {
                   const opp = isHome ? game.away_score : game.home_score;
                   const played = my !== null && opp !== null;
                   const won = played && my! > opp!;
+                  const tied = played && my === opp;
                   const attended = attendanceByGame.has(game.id);
                   return (
                     <tr
@@ -256,10 +288,10 @@ const TeamDetail: React.FC = () => {
                           <>
                             <span
                               className={`inline-block w-[18px] h-[18px] rounded text-center leading-[18px] text-[10px] font-extrabold text-white mr-1.5 ${
-                                won ? 'bg-win' : 'bg-loss'
+                                won ? 'bg-win' : tied ? 'bg-ink-3' : 'bg-loss'
                               }`}
                             >
-                              {won ? 'W' : 'L'}
+                              {won ? 'W' : tied ? 'T' : 'L'}
                             </span>
                             <span className="text-ink">
                               {my}–{opp}

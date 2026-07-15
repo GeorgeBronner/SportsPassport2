@@ -1,5 +1,11 @@
 """Tests for cross-league team search and attendance-stats endpoints (Phase 2)."""
+from datetime import datetime
+
 import pytest
+
+from sports_passport.models.team import Team
+from sports_passport.models.game import Game
+from sports_passport.models.attendance import UserGameAttendance
 
 
 @pytest.fixture
@@ -49,6 +55,63 @@ class TestTeamSearch:
 
     def test_min_query_length(self, client, auth_headers):
         assert client.get("/api/teams/search?q=a", headers=auth_headers).status_code == 422
+
+    def test_limit_bounds(self, client, auth_headers):
+        assert client.get("/api/teams/search?q=bo&limit=0", headers=auth_headers).status_code == 422
+        assert client.get("/api/teams/search?q=bo&limit=-3", headers=auth_headers).status_code == 422
+        assert client.get("/api/teams/search?q=bo&limit=101", headers=auth_headers).status_code == 422
+
+    def test_attended_team_beyond_candidate_pool(
+        self, client, auth_headers, db_session, cfb_league, test_user
+    ):
+        """Attendance-first ranking must survive the 300-row candidate pool cap."""
+        teams = [
+            Team(
+                league_id=cfb_league.id,
+                source="cfbd",
+                source_team_id=f"pool-{i}",
+                name=f"Zebra College {i:03d}",
+                classification="fbs",
+            )
+            for i in range(1, 322)
+        ]
+        db_session.add_all(teams)
+        db_session.commit()
+
+        # Attend a game involving the alphabetically last match — the
+        # name-ordered 300-team pool would otherwise never include it.
+        # The opponent doesn't match the query, so the attended credit it
+        # also earns can't win on the name tiebreak instead.
+        attended_team = teams[-1]
+        opponent = Team(
+            league_id=cfb_league.id,
+            source="cfbd",
+            source_team_id="pool-opp",
+            name="Aardvark State",
+            classification="fbs",
+        )
+        db_session.add(opponent)
+        db_session.commit()
+        game = Game(
+            league_id=cfb_league.id,
+            source="cfbd",
+            source_game_id="pool-game",
+            home_team_id=attended_team.id,
+            away_team_id=opponent.id,
+            start_date=datetime(2023, 10, 1),
+            season=2023,
+            season_type="regular",
+        )
+        db_session.add(game)
+        db_session.commit()
+        db_session.add(UserGameAttendance(user_id=test_user.id, game_id=game.id))
+        db_session.commit()
+
+        resp = client.get("/api/teams/search?q=zebra", headers=auth_headers)
+        assert resp.status_code == 200
+        results = resp.json()
+        assert results[0]["name"] == attended_team.name
+        assert results[0]["attended_count"] == 1
 
 
 class TestTeamAttendanceStats:

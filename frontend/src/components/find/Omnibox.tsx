@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { teamsApi } from '../../api/teams';
 import type { TeamSearchResult } from '../../types/api';
 import { LEAGUE_ORDER, leagueColor, sortByLeagueOrder } from '../../utils/leagues';
@@ -8,37 +8,62 @@ interface OmniboxProps {
   onSelect: (team: TeamSearchResult) => void;
   autoFocus?: boolean;
   placeholder?: string;
+  /** Controlled league filter; omit to let the omnibox manage it internally. */
+  league?: string;
+  /** Fires on league-tab clicks. queryEmpty lets callers treat a click with
+   *  nothing typed as navigation instead of a search filter. */
+  onLeagueChange?: (code: string, queryEmpty: boolean) => void;
 }
 
 /** Cross-league team finder: debounced typeahead, league tabs, keyboard nav. */
-const Omnibox: React.FC<OmniboxProps> = ({ onSelect, autoFocus, placeholder }) => {
+const Omnibox: React.FC<OmniboxProps> = ({
+  onSelect,
+  autoFocus,
+  placeholder,
+  league: leagueProp,
+  onLeagueChange,
+}) => {
   const [q, setQ] = useState('');
-  const [league, setLeague] = useState('');
+  const [internalLeague, setInternalLeague] = useState('');
+  const league = leagueProp !== undefined ? leagueProp : internalLeague;
+
+  const selectLeague = (code: string) => {
+    if (leagueProp === undefined) setInternalLeague(code);
+    onLeagueChange?.(code, q.trim().length === 0);
+  };
   const [results, setResults] = useState<TeamSearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const [loading, setLoading] = useState(false);
+  const listboxId = useId();
   const boxRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<number | undefined>(undefined);
+  // Generation counter so a slow response for an old query/league can't
+  // overwrite the results of a newer one.
+  const requestRef = useRef(0);
 
   useEffect(() => {
+    const requestId = ++requestRef.current;
     window.clearTimeout(debounceRef.current);
     if (q.trim().length < 2) {
       setResults([]);
       setOpen(false);
+      setLoading(false);
       return;
     }
     debounceRef.current = window.setTimeout(async () => {
       setLoading(true);
       try {
         const data = await teamsApi.searchTeams(q.trim(), league || undefined);
+        if (requestId !== requestRef.current) return;
         setResults(data);
         setOpen(true);
         setActive(-1);
       } catch {
+        if (requestId !== requestRef.current) return;
         setResults([]);
       } finally {
-        setLoading(false);
+        if (requestId === requestRef.current) setLoading(false);
       }
     }, 200);
     return () => window.clearTimeout(debounceRef.current);
@@ -64,6 +89,10 @@ const Omnibox: React.FC<OmniboxProps> = ({ onSelect, autoFocus, placeholder }) =
 
   // Flat list in display order, for keyboard navigation
   const flat = useMemo(() => grouped.flatMap(([, teams]) => teams), [grouped]);
+  const indexById = useMemo(
+    () => new Map(flat.map((t, i) => [t.id, i] as [number, number])),
+    [flat]
+  );
 
   const pick = (team: TeamSearchResult) => {
     setOpen(false);
@@ -93,6 +122,11 @@ const Omnibox: React.FC<OmniboxProps> = ({ onSelect, autoFocus, placeholder }) =
         type="search"
         role="combobox"
         aria-expanded={open}
+        aria-controls={listboxId}
+        aria-autocomplete="list"
+        aria-activedescendant={
+          open && active >= 0 && flat[active] ? `${listboxId}-${flat[active].id}` : undefined
+        }
         aria-label="Find a team"
         autoFocus={autoFocus}
         value={q}
@@ -109,7 +143,7 @@ const Omnibox: React.FC<OmniboxProps> = ({ onSelect, autoFocus, placeholder }) =
           <button
             key={code || 'all'}
             type="button"
-            onClick={() => setLeague(code)}
+            onClick={() => selectLeague(code)}
             className={`text-[11px] uppercase tracking-[0.14em] px-3 py-1.5 rounded-md border transition-colors ${
               league === code
                 ? 'border-line-strong bg-panel text-ink font-bold'
@@ -132,7 +166,12 @@ const Omnibox: React.FC<OmniboxProps> = ({ onSelect, autoFocus, placeholder }) =
       </div>
 
       {open && (
-        <div className="absolute z-20 left-0 right-0 top-[calc(3.5rem+2px)] max-h-96 overflow-y-auto rounded-xl bg-panel border border-line-strong shadow-elevated">
+        <div
+          role="listbox"
+          id={listboxId}
+          aria-label="Team results"
+          className="absolute z-20 left-0 right-0 top-full mt-1.5 max-h-96 overflow-y-auto rounded-xl bg-panel border border-line-strong shadow-elevated"
+        >
           {flat.length === 0 ? (
             <div className="p-4 text-ink-3 text-sm">
               {loading ? 'Searching…' : `No teams match “${q}”${league ? ` in ${league}` : ''}.`}
@@ -144,11 +183,14 @@ const Omnibox: React.FC<OmniboxProps> = ({ onSelect, autoFocus, placeholder }) =
                   {code}
                 </div>
                 {teams.map((team) => {
-                  const idx = flat.indexOf(team);
+                  const idx = indexById.get(team.id) ?? -1;
                   return (
                     <button
                       key={team.id}
                       type="button"
+                      role="option"
+                      id={`${listboxId}-${team.id}`}
+                      aria-selected={idx === active}
                       onClick={() => pick(team)}
                       onMouseEnter={() => setActive(idx)}
                       className={`flex items-center gap-3 w-full text-left px-4 py-2.5 ${

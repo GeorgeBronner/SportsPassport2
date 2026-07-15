@@ -292,6 +292,31 @@ class TestUpdateAttendance:
         assert data["notes"] == "Updated notes!"
         assert data["id"] == attendance_id
 
+    def test_clear_attendance_notes(self, client, sample_attendance, auth_headers):
+        """An explicit null clears the saved note; omitting the field leaves it alone."""
+        attendance_id = sample_attendance[0].id
+        response = client.patch(
+            f"/api/attendance/{attendance_id}",
+            json={"notes": None},
+            headers=auth_headers
+        )
+        assert response.status_code == 200
+        assert response.json()["notes"] is None
+
+        # A PATCH without the notes field must not touch the stored value
+        client.patch(
+            f"/api/attendance/{attendance_id}",
+            json={"notes": "Back again"},
+            headers=auth_headers
+        )
+        response = client.patch(
+            f"/api/attendance/{attendance_id}",
+            json={},
+            headers=auth_headers
+        )
+        assert response.status_code == 200
+        assert response.json()["notes"] == "Back again"
+
     def test_update_nonexistent_attendance(self, client, auth_headers):
         """Test updating non-existent attendance returns 404."""
         response = client.patch(

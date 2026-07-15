@@ -14,6 +14,10 @@ export const formatDate = (isoDateString: string): string => {
   });
 };
 
+// Calendar year of a game date, read in UTC like every other date here.
+export const yearUTC = (isoDateString: string): number =>
+  new Date(isoDateString).getUTCFullYear();
+
 // Short form of formatDate (e.g. "Jul 12, 2026")
 export const formatDateShort = (isoDateString: string): string => {
   const date = new Date(isoDateString);

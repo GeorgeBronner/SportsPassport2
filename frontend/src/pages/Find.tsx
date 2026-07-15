@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Omnibox from '../components/find/Omnibox';
 import TeamBadge from '../components/common/TeamBadge';
@@ -13,9 +13,19 @@ interface TeamTally {
 }
 
 /** Home: the omnibox front and center, with the user's most-seen teams as shortcuts. */
+const TOP_TEAMS = 8;
+
 const Find: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const league = searchParams.get('league') ?? '';
   const [attendances, setAttendances] = useState<Attendance[]>([]);
+  const [showAllTeams, setShowAllTeams] = useState(false);
+
+  const setLeague = (code: string) => {
+    setSearchParams(code ? { league: code } : {}, { replace: true });
+    setShowAllTeams(false);
+  };
 
   useEffect(() => {
     attendanceApi.getAttendedGames().then(setAttendances).catch(() => {});
@@ -30,8 +40,16 @@ const Find: React.FC = () => {
         tally.set(team.id, entry);
       }
     }
-    return [...tally.values()].sort((a, b) => b.count - a.count).slice(0, 8);
+    return [...tally.values()].sort(
+      (a, b) => b.count - a.count || a.team.name.localeCompare(b.team.name)
+    );
   }, [attendances]);
+
+  const leagueTeams = useMemo(
+    () => (league ? yourTeams.filter((t) => t.leagueCode === league) : yourTeams),
+    [yourTeams, league]
+  );
+  const visibleTeams = showAllTeams ? leagueTeams : leagueTeams.slice(0, TOP_TEAMS);
 
   return (
     <Layout>
@@ -45,13 +63,18 @@ const Find: React.FC = () => {
           autoFocus
           placeholder='Try "Alabama", "Celtics", "Michigan"…'
           onSelect={(team) => navigate(`/teams/${team.id}`)}
+          league={league}
+          onLeagueChange={setLeague}
         />
 
         {yourTeams.length > 0 && (
           <div className="mt-10">
-            <p className="kicker mb-3">Your teams</p>
+            <p className="kicker mb-3">Your teams{league ? ` · ${league}` : ''}</p>
+            {leagueTeams.length === 0 && (
+              <p className="text-sm text-ink-3">No {league} teams in your log yet.</p>
+            )}
             <div className="flex flex-wrap gap-2.5">
-              {yourTeams.map(({ team, leagueCode, count }) => (
+              {visibleTeams.map(({ team, leagueCode, count }) => (
                 <button
                   key={team.id}
                   type="button"
@@ -69,6 +92,15 @@ const Find: React.FC = () => {
                   <span className="text-xs text-ink-3 font-mono">{count}</span>
                 </button>
               ))}
+              {leagueTeams.length > TOP_TEAMS && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllTeams((v) => !v)}
+                  className="px-3.5 py-1.5 rounded-full border border-dashed border-line text-sm text-ink-2 hover:text-ink hover:border-line-strong transition-colors"
+                >
+                  {showAllTeams ? 'Show fewer' : `Show all ${leagueTeams.length} teams`}
+                </button>
+              )}
             </div>
           </div>
         )}

@@ -237,3 +237,32 @@ _(fill in as phases complete)_
     doesn't get it — CFB and MLB each needed a retry after hitting "database is locked"
     under concurrent writes before an explicit `connect_args={'timeout': 30}` fixed it
     for good. Both retries were safe since `import_historical` is idempotent.
+
+## FE-v2-fixes — post-merge CodeRabbit review of PR #1 (2026-07-15)
+
+Verify all 22 CodeRabbit findings (17 inline + 5 review-body), fix the valid ones on
+branch `FE-v2-fixes`, then an own review of the new frontend; PR back to main.
+
+- [x] teams.py search: validate `limit` (Query ge/le)
+- [x] teams.py search: don't truncate candidates to 300 before attendance ranking; regression test
+- [x] Omnibox: stale-response guard (request generation ref)
+- [x] Omnibox: combobox a11y contract (listbox/option, aria-controls/-activedescendant/-autocomplete)
+- [x] Omnibox: dropdown below league chips (top-full, not fixed 3.5rem)
+- [x] useTheme: pre-paint theme stamp inline in index.html (no flash)
+- [x] MapView: fan-out collision for 4+ venues at same coords (spiral)
+- [x] MyGames: functional state updates for delete/notes
+- [x] MyGames + attendance PATCH: allow clearing notes (exclude_unset; send null; use response)
+- [x] Statistics: catch rejected stats request
+- [x] Statistics: UTC years (getUTCFullYear)
+- [x] Statistics: sort games_by_team client-side before top-8 slice
+- [x] TeamDetail: invalid :id no longer stuck on loading
+- [x] TeamDetail: render ties as T, not L
+- [x] attendance.py: eager-load game relationships (N+1) on list/stats/venues
+- [x] main.py: mount /logos with check_dir=False (no restart needed after logo fetch)
+- [x] attendance.py: deterministic secondary sort keys (venues, leagues)
+- [x] schemas/attendance.py: reorder venue schemas above AttendanceStats, drop forward ref
+- [x] Skipped: index.css "Consolas" casing (no stylelint in project; font matching case-insensitive)
+- [x] Skipped: SP3_frontend_redesign.md Claude mentions ×2 (rule is scoped to commit messages)
+- [x] Own frontend review pass
+- [x] Verify: backend pytest, frontend typecheck + build
+- [x] PR

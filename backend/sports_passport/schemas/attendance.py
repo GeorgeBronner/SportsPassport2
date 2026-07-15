@@ -28,6 +28,14 @@ class AttendanceResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class AttendanceVenueCount(BaseModel):
+    """Attended-game count for one venue, for maps and most-visited lists."""
+    name: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    count: int
+
+
 class AttendanceStats(BaseModel):
     total_games: int
     unique_stadiums: int
@@ -38,17 +46,9 @@ class AttendanceStats(BaseModel):
     stadiums_visited: list[str]
     states_visited: list[str]
     games_by_state: dict[str, int] = {}
-    venues: list["AttendanceVenueCount"] = []
+    venues: list[AttendanceVenueCount] = []
     first_game_date: Optional[datetime] = None
     last_game_date: Optional[datetime] = None
-
-
-class AttendanceVenueCount(BaseModel):
-    """Attended-game count for one venue, for maps and most-visited lists."""
-    name: str
-    city: Optional[str] = None
-    state: Optional[str] = None
-    count: int
 
 
 class AttendanceVenuePoint(BaseModel):
