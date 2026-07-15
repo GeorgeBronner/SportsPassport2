@@ -38,7 +38,13 @@ const TeamDetail: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!teamId) return;
+    if (!teamId) {
+      // Non-numeric :id — nothing will load, so don't sit on the spinner.
+      setTeam(null);
+      setLoading(false);
+      setError('Team not found');
+      return;
+    }
     setLoading(true);
     setSeason('');
     Promise.all([
@@ -157,9 +163,9 @@ const TeamDetail: React.FC = () => {
                 {' '}
                 · your log: {stats.games_attended} game{stats.games_attended !== 1 ? 's' : ''}
                 {stats.first_game_date &&
-                  ` · ${new Date(stats.first_game_date).getFullYear()}–${new Date(
+                  ` · ${new Date(stats.first_game_date).getUTCFullYear()}–${new Date(
                     stats.last_game_date!
-                  ).getFullYear()}`}
+                  ).getUTCFullYear()}`}
               </>
             )}
           </p>
@@ -221,6 +227,7 @@ const TeamDetail: React.FC = () => {
                   const opp = isHome ? game.away_score : game.home_score;
                   const played = my !== null && opp !== null;
                   const won = played && my! > opp!;
+                  const tied = played && my === opp;
                   const attended = attendanceByGame.has(game.id);
                   return (
                     <tr
@@ -256,10 +263,10 @@ const TeamDetail: React.FC = () => {
                           <>
                             <span
                               className={`inline-block w-[18px] h-[18px] rounded text-center leading-[18px] text-[10px] font-extrabold text-white mr-1.5 ${
-                                won ? 'bg-win' : 'bg-loss'
+                                won ? 'bg-win' : tied ? 'bg-ink-3' : 'bg-loss'
                               }`}
                             >
-                              {won ? 'W' : 'L'}
+                              {won ? 'W' : tied ? 'T' : 'L'}
                             </span>
                             <span className="text-ink">
                               {my}–{opp}

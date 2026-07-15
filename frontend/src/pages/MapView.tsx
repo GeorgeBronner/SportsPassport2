@@ -18,8 +18,10 @@ const spreadOverlaps = (venues: AttendanceVenuePoint[]) => {
     const key = `${v.latitude.toFixed(3)},${v.longitude.toFixed(3)}`;
     const n = seen.get(key) ?? 0;
     seen.set(key, n + 1);
-    const angle = (n * 2 * Math.PI) / 3;
-    const nudge = n === 0 ? 0 : 7;
+    // Golden-angle spiral: every duplicate gets a distinct angle and a slowly
+    // growing radius, so a 4th+ venue never lands back on an earlier dot.
+    const angle = n * 2.39996;
+    const nudge = n === 0 ? 0 : 5 + 2 * Math.sqrt(n);
     return {
       ...v,
       x: projectX(v.longitude) + Math.cos(angle) * nudge,

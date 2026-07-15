@@ -65,9 +65,10 @@ def health_check():
 
 # Team logos live under data/ (persistent volume in Docker; gitignored) because
 # the frontend build wipes static/ on every run (vite emptyOutDir).
+# check_dir=False lets the mount exist before fetch_team_logos.py first runs,
+# so no restart is needed once the directory appears.
 logos_dir = Path(__file__).parent.parent / "data" / "logos"
-if logos_dir.exists():
-    app.mount("/logos", StaticFiles(directory=str(logos_dir)), name="logos")
+app.mount("/logos", StaticFiles(directory=str(logos_dir), check_dir=False), name="logos")
 
 # Mount static files and serve SPA
 static_dir = Path(__file__).parent.parent / "static"

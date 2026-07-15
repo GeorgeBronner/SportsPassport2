@@ -21,6 +21,7 @@ const Statistics: React.FC = () => {
     attendanceApi
       .getStats()
       .then(setStats)
+      .catch(() => setStats(null))
       .finally(() => setLoading(false));
   }, []);
 
@@ -33,9 +34,14 @@ const Statistics: React.FC = () => {
     );
   }
 
-  const firstYear = stats.first_game_date ? new Date(stats.first_game_date).getFullYear() : null;
-  const lastYear = stats.last_game_date ? new Date(stats.last_game_date).getFullYear() : null;
-  const topTeams = Object.entries(stats.games_by_team).slice(0, 8);
+  // UTC, matching how game dates render everywhere else (see utils/format.ts).
+  const firstYear = stats.first_game_date
+    ? new Date(stats.first_game_date).getUTCFullYear()
+    : null;
+  const lastYear = stats.last_game_date ? new Date(stats.last_game_date).getUTCFullYear() : null;
+  const topTeams = Object.entries(stats.games_by_team)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 8);
   const maxTeam = topTeams[0]?.[1] ?? 1;
 
   const leagueSummary = LEAGUE_ORDER

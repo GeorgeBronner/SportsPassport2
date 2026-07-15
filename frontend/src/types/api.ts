@@ -144,7 +144,7 @@ export interface AttendanceCreate {
 }
 
 export interface AttendanceUpdate {
-  notes?: string;
+  notes?: string | null; // explicit null clears the saved note
 }
 
 export interface AttendanceStats {

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List
 from collections import defaultdict
@@ -23,6 +23,17 @@ from sports_passport.schemas.attendance import (
 from sports_passport.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
+
+
+def _with_game_relations(query):
+    """Eager-load everything the serializers and aggregation loops touch,
+    so listing/stats don't lazy-load per row (N+1)."""
+    return query.options(
+        joinedload(UserGameAttendance.game).joinedload(Game.league),
+        joinedload(UserGameAttendance.game).joinedload(Game.home_team),
+        joinedload(UserGameAttendance.game).joinedload(Game.away_team),
+        joinedload(UserGameAttendance.game).joinedload(Game.venue),
+    )
 
 
 @router.post("/", response_model=AttendanceResponse, status_code=status.HTTP_201_CREATED)
@@ -74,8 +85,10 @@ def list_attended_games(
     current_user: User = Depends(get_current_user)
 ):
     """List all games attended by the current user"""
-    attendances = db.query(UserGameAttendance).filter(
-        UserGameAttendance.user_id == current_user.id
+    attendances = _with_game_relations(
+        db.query(UserGameAttendance).filter(
+            UserGameAttendance.user_id == current_user.id
+        )
     ).order_by(UserGameAttendance.created_at.desc()).offset(skip).limit(limit).all()
 
     return attendances
@@ -88,8 +101,10 @@ def get_attendance_stats(
 ):
     """Get attendance statistics for the current user"""
     # Get all attended games with related data
-    attendances = db.query(UserGameAttendance).filter(
-        UserGameAttendance.user_id == current_user.id
+    attendances = _with_game_relations(
+        db.query(UserGameAttendance).filter(
+            UserGameAttendance.user_id == current_user.id
+        )
     ).all()
 
     if not attendances:
@@ -155,7 +170,9 @@ def get_attendance_stats(
             state=venue_info[vid].state,
             count=count,
         )
-        for vid, count in sorted(venue_counts.items(), key=lambda x: -x[1])
+        for vid, count in sorted(
+            venue_counts.items(), key=lambda x: (-x[1], venue_info[x[0]].name)
+        )
     ]
 
     return AttendanceStats(
@@ -180,8 +197,10 @@ def get_attendance_venues(
     current_user: User = Depends(get_current_user)
 ):
     """Venues the user has attended games at, with coordinates — feeds the map view."""
-    attendances = db.query(UserGameAttendance).filter(
-        UserGameAttendance.user_id == current_user.id
+    attendances = _with_game_relations(
+        db.query(UserGameAttendance).filter(
+            UserGameAttendance.user_id == current_user.id
+        )
     ).all()
 
     counts = defaultdict(int)
@@ -211,10 +230,12 @@ def get_attendance_venues(
             count=count,
             leagues=[
                 code for code, _ in
-                sorted(league_counts[vid].items(), key=lambda x: -x[1])
+                sorted(league_counts[vid].items(), key=lambda x: (-x[1], x[0]))
             ],
         )
-        for vid, count in sorted(counts.items(), key=lambda x: -x[1])
+        for vid, count in sorted(
+            counts.items(), key=lambda x: (-x[1], venues_by_id[x[0]].name)
+        )
     ]
 
     return AttendanceVenuesResponse(venues=points, games_without_venue=without_venue)
@@ -239,8 +260,11 @@ def update_attendance(
             detail="Attendance record not found"
         )
 
-    if attendance_data.notes is not None:
-        attendance.notes = attendance_data.notes
+    # exclude_unset distinguishes "notes omitted" from an explicit null,
+    # so clients can clear a note by sending notes: null.
+    update = attendance_data.model_dump(exclude_unset=True)
+    if "notes" in update:
+        attendance.notes = update["notes"]
 
     db.commit()
     db.refresh(attendance)

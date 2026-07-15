@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { teamsApi } from '../../api/teams';
 import type { TeamSearchResult } from '../../types/api';
 import { LEAGUE_ORDER, leagueColor, sortByLeagueOrder } from '../../utils/leagues';
@@ -18,27 +18,35 @@ const Omnibox: React.FC<OmniboxProps> = ({ onSelect, autoFocus, placeholder }) =
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const [loading, setLoading] = useState(false);
+  const listboxId = useId();
   const boxRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<number | undefined>(undefined);
+  // Generation counter so a slow response for an old query/league can't
+  // overwrite the results of a newer one.
+  const requestRef = useRef(0);
 
   useEffect(() => {
+    const requestId = ++requestRef.current;
     window.clearTimeout(debounceRef.current);
     if (q.trim().length < 2) {
       setResults([]);
       setOpen(false);
+      setLoading(false);
       return;
     }
     debounceRef.current = window.setTimeout(async () => {
       setLoading(true);
       try {
         const data = await teamsApi.searchTeams(q.trim(), league || undefined);
+        if (requestId !== requestRef.current) return;
         setResults(data);
         setOpen(true);
         setActive(-1);
       } catch {
+        if (requestId !== requestRef.current) return;
         setResults([]);
       } finally {
-        setLoading(false);
+        if (requestId === requestRef.current) setLoading(false);
       }
     }, 200);
     return () => window.clearTimeout(debounceRef.current);
@@ -93,6 +101,11 @@ const Omnibox: React.FC<OmniboxProps> = ({ onSelect, autoFocus, placeholder }) =
         type="search"
         role="combobox"
         aria-expanded={open}
+        aria-controls={listboxId}
+        aria-autocomplete="list"
+        aria-activedescendant={
+          open && active >= 0 && flat[active] ? `${listboxId}-${flat[active].id}` : undefined
+        }
         aria-label="Find a team"
         autoFocus={autoFocus}
         value={q}
@@ -132,7 +145,12 @@ const Omnibox: React.FC<OmniboxProps> = ({ onSelect, autoFocus, placeholder }) =
       </div>
 
       {open && (
-        <div className="absolute z-20 left-0 right-0 top-[calc(3.5rem+2px)] max-h-96 overflow-y-auto rounded-xl bg-panel border border-line-strong shadow-elevated">
+        <div
+          role="listbox"
+          id={listboxId}
+          aria-label="Team results"
+          className="absolute z-20 left-0 right-0 top-full mt-1.5 max-h-96 overflow-y-auto rounded-xl bg-panel border border-line-strong shadow-elevated"
+        >
           {flat.length === 0 ? (
             <div className="p-4 text-ink-3 text-sm">
               {loading ? 'Searching…' : `No teams match “${q}”${league ? ` in ${league}` : ''}.`}
@@ -149,6 +167,9 @@ const Omnibox: React.FC<OmniboxProps> = ({ onSelect, autoFocus, placeholder }) =
                     <button
                       key={team.id}
                       type="button"
+                      role="option"
+                      id={`${listboxId}-${team.id}`}
+                      aria-selected={idx === active}
                       onClick={() => pick(team)}
                       onMouseEnter={() => setActive(idx)}
                       className={`flex items-center gap-3 w-full text-left px-4 py-2.5 ${
