@@ -32,6 +32,8 @@ COPY backend/sports_passport ./sports_passport
 COPY backend/alembic ./alembic
 COPY backend/alembic.ini ./
 COPY backend/tests ./tests
+# One-off data scripts (logo scrape, venue geocoding) — run via docker exec
+COPY backend/scripts ./scripts
 
 # Copy built frontend from previous stage
 COPY --from=frontend-builder /frontend/../backend/static ./static
