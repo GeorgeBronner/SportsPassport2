@@ -57,7 +57,11 @@ export const gamesApi = {
   ): Promise<GameListItem[]> => {
     const params = new URLSearchParams();
     if (season) params.append('season', season.toString());
-    if (attendedOnly) params.append('attended_only', 'true');
+    if (attendedOnly) {
+      params.append('attended_only', 'true');
+      // Override the recency default — attended history must never truncate.
+      params.append('limit', '1000');
+    }
 
     const response = await apiClient.get<GameListItem[]>(`/games/team/${teamId}`, { params });
     return response.data;

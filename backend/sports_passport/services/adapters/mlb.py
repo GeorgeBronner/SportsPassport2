@@ -65,13 +65,18 @@ def _franchise_id(code: str) -> int:
     return int.from_bytes(code.encode("ascii"), "big")
 
 
-def _parse_mdy_year(raw: str) -> Optional[int]:
+def _parse_mdy(raw: str) -> Optional[date]:
     if not raw:
         return None
     try:
-        return datetime.strptime(raw, "%m/%d/%Y").year
+        return datetime.strptime(raw, "%m/%d/%Y").date()
     except ValueError:
         return None
+
+
+def _parse_mdy_year(raw: str) -> Optional[int]:
+    parsed = _parse_mdy(raw)
+    return parsed.year if parsed else None
 
 
 class MlbAdapter(LeagueAdapter):
@@ -106,7 +111,9 @@ class MlbAdapter(LeagueAdapter):
             by_code.setdefault(row[1], []).append(row)
 
         for code, code_rows in by_code.items():
-            code_rows.sort(key=lambda r: r[7])  # ascending by start date
+            # Sort on parsed dates — lexicographic M/D/YYYY ordering would rank
+            # "5/2/1882" after "4/19/1900" and pick a 19th-century era as latest.
+            code_rows.sort(key=lambda r: _parse_mdy(r[7]) or date.min)
             latest = code_rows[-1]
             franchise, _, lg, division, city_era, nickname = latest[:6]
             start_years = [_parse_mdy_year(r[7]) for r in code_rows]

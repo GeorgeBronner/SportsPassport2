@@ -119,7 +119,8 @@ def get_attendance_stats(
             states_visited=[]
         )
 
-    # Calculate statistics
+    # Calculate statistics. Venue uniqueness is by id, not name — distinct
+    # venues sharing a name (two "Memorial Stadium"s) must count separately.
     total_games = len(attendances)
     games_by_league = defaultdict(int)
     games_by_team = defaultdict(int)
@@ -177,7 +178,7 @@ def get_attendance_stats(
 
     return AttendanceStats(
         total_games=total_games,
-        unique_stadiums=len(stadiums),
+        unique_stadiums=len(venue_counts),
         unique_states=len(states),
         games_by_league=dict(sorted(games_by_league.items())),
         games_by_team=dict(sorted(games_by_team.items(), key=lambda x: x[1], reverse=True)),

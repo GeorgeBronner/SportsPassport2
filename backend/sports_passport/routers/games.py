@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, func
 from typing import List, Optional
 from sports_passport.db.database import get_db
@@ -12,6 +12,16 @@ from sports_passport.core.dependencies import get_current_user
 from sports_passport.models.user import User
 
 router = APIRouter(prefix="/api/games", tags=["games"])
+
+
+def _with_relations(query):
+    """Eager-load what GameListResponse serializes, avoiding per-row lazy loads."""
+    return query.options(
+        joinedload(Game.league),
+        joinedload(Game.home_team),
+        joinedload(Game.away_team),
+        joinedload(Game.venue),
+    )
 
 
 def _apply_league_filter(query, db: Session, league: Optional[str]):
@@ -62,7 +72,7 @@ def list_games(
             )
         )
 
-    query = query.order_by(Game.start_date.desc())
+    query = _with_relations(query).order_by(Game.start_date.desc())
     games = query.offset(skip).limit(limit).all()
 
     return games
@@ -88,7 +98,7 @@ def search_games(
     )
     query = _apply_league_filter(query, db, league)
 
-    games = query.order_by(Game.start_date.desc()).offset(skip).limit(limit).all()
+    games = _with_relations(query).order_by(Game.start_date.desc()).offset(skip).limit(limit).all()
     return games
 
 
@@ -178,7 +188,7 @@ def list_team_games(
     if season:
         query = query.filter(Game.season == season)
 
-    games = query.order_by(Game.start_date.desc()).offset(skip).limit(limit).all()
+    games = _with_relations(query).order_by(Game.start_date.desc()).offset(skip).limit(limit).all()
     return games
 
 
