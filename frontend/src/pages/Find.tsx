@@ -13,9 +13,12 @@ interface TeamTally {
 }
 
 /** Home: the omnibox front and center, with the user's most-seen teams as shortcuts. */
+const TOP_TEAMS = 8;
+
 const Find: React.FC = () => {
   const navigate = useNavigate();
   const [attendances, setAttendances] = useState<Attendance[]>([]);
+  const [showAllTeams, setShowAllTeams] = useState(false);
 
   useEffect(() => {
     attendanceApi.getAttendedGames().then(setAttendances).catch(() => {});
@@ -30,8 +33,12 @@ const Find: React.FC = () => {
         tally.set(team.id, entry);
       }
     }
-    return [...tally.values()].sort((a, b) => b.count - a.count).slice(0, 8);
+    return [...tally.values()].sort(
+      (a, b) => b.count - a.count || a.team.name.localeCompare(b.team.name)
+    );
   }, [attendances]);
+
+  const visibleTeams = showAllTeams ? yourTeams : yourTeams.slice(0, TOP_TEAMS);
 
   return (
     <Layout>
@@ -51,7 +58,7 @@ const Find: React.FC = () => {
           <div className="mt-10">
             <p className="kicker mb-3">Your teams</p>
             <div className="flex flex-wrap gap-2.5">
-              {yourTeams.map(({ team, leagueCode, count }) => (
+              {visibleTeams.map(({ team, leagueCode, count }) => (
                 <button
                   key={team.id}
                   type="button"
@@ -69,6 +76,15 @@ const Find: React.FC = () => {
                   <span className="text-xs text-ink-3 font-mono">{count}</span>
                 </button>
               ))}
+              {yourTeams.length > TOP_TEAMS && (
+                <button
+                  type="button"
+                  onClick={() => setShowAllTeams((v) => !v)}
+                  className="px-3.5 py-1.5 rounded-full border border-dashed border-line text-sm text-ink-2 hover:text-ink hover:border-line-strong transition-colors"
+                >
+                  {showAllTeams ? 'Show fewer' : `Show all ${yourTeams.length} teams`}
+                </button>
+              )}
             </div>
           </div>
         )}
