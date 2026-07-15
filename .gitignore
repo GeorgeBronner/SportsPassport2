@@ -34,3 +34,6 @@ data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Playwright CLI session artifacts
+.playwright-cli/
