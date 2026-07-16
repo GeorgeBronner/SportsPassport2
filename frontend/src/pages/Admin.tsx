@@ -87,14 +87,13 @@ const Admin: React.FC = () => {
     setBusy(true);
     setError('');
     try {
-      const results = await adminApi.syncAll();
-      const games = results.reduce((n, r) => n + r.games_imported, 0);
-      const updated = results.reduce((n, r) => n + r.games_updated, 0);
-      const errs = results.reduce((n, r) => n + r.errors.length, 0);
-      setSuccess(`Nightly sync complete: ${results.length} leagues, ${games} games imported, ${updated} updated${errs ? ` (${errs} errors)` : ''}`);
+      // Runs in the background on the server; check the status table below
+      // (or refresh) for per-league progress and results as they land.
+      await adminApi.syncAll();
+      setSuccess('Nightly sync started in the background — refresh status below to see progress.');
       await refreshStatus();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Nightly sync failed');
+      setError(err.response?.data?.detail || 'Nightly sync failed to start');
     } finally {
       setBusy(false);
     }
@@ -113,7 +112,10 @@ const Admin: React.FC = () => {
 
   const formatLastSync = (row: AdminStatusRow): string => {
     if (!row.last_sync_at) return 'Never';
-    const when = new Date(row.last_sync_at).toLocaleString();
+    // Backend returns a naive UTC timestamp (no trailing Z); without one, Date
+    // parses it as local time and the displayed time drifts by the UTC offset.
+    const utcDateStr = row.last_sync_at.endsWith('Z') ? row.last_sync_at : `${row.last_sync_at}Z`;
+    const when = new Date(utcDateStr).toLocaleString();
     if (row.last_sync_status === 'success') {
       return `${when} (+${row.last_sync_games_imported ?? 0} new)`;
     }

@@ -30,9 +30,10 @@ export const adminApi = {
     return response.data;
   },
 
-  // Run the nightly sync on demand across every enabled league
-  syncAll: async (): Promise<ImportResult[]> => {
-    const response = await apiClient.post<ImportResult[]>('/admin/sync-all');
+  // Kick off the nightly sync on demand across every enabled league. Runs in
+  // the background on the server; poll getStatus() for per-league progress.
+  syncAll: async (): Promise<{ status: string; detail: string }> => {
+    const response = await apiClient.post<{ status: string; detail: string }>('/admin/sync-all');
     return response.data;
   },
 

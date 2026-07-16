@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -13,7 +13,12 @@ from sports_passport.models.sync_state import SyncState
 from sports_passport.schemas.user import UserResponse
 from sports_passport.core.dependencies import get_current_admin_user
 from sports_passport.services.adapters import get_adapter, ADAPTERS
-from sports_passport.services.scheduler import run_sync_for_league, sync_all_enabled
+from sports_passport.services.scheduler import (
+    get_or_create_sync_state,
+    run_sync_all_background,
+    run_sync_for_league,
+    start_sync_all,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -88,13 +93,21 @@ async def sync_league(
     return await run_sync_for_league(db, league_code, since=date.today() - timedelta(days=days))
 
 
-@router.post("/sync-all")
-async def sync_all_now(
-    db: Session = Depends(get_db),
+@router.post("/sync-all", status_code=status.HTTP_202_ACCEPTED)
+def sync_all_now(
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_admin_user)
 ):
-    """Run the nightly sync on demand across every enabled league (Admin only)."""
-    return await sync_all_enabled(db)
+    """Kick off the nightly sync on demand across every enabled league (Admin only).
+
+    Runs in the background rather than inside this request — six leagues at up
+    to 600s each could otherwise hold the connection open for close to an hour.
+    Returns immediately; poll GET /status for per-league progress and results.
+    """
+    if not start_sync_all():
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Sync already running")
+    background_tasks.add_task(run_sync_all_background)
+    return {"status": "accepted", "detail": "Sync started; poll /status for progress"}
 
 
 class SyncStateUpdate(BaseModel):
@@ -112,10 +125,7 @@ def set_sync_enabled(
     league = db.query(League).filter(League.code == league_code.upper()).first()
     if league is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown league: {league_code}")
-    state = db.query(SyncState).filter(SyncState.league_id == league.id).first()
-    if state is None:
-        state = SyncState(league_id=league.id)
-        db.add(state)
+    state = get_or_create_sync_state(db, league)
     state.enabled = body.enabled
     db.commit()
     return {"league": league.code, "enabled": state.enabled}

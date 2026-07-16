@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 from unittest.mock import Mock, AsyncMock, patch
 
 from sports_passport.models.sync_state import SyncState
+from sports_passport.services import scheduler
 from sports_passport.services.adapters.base import ImportResult
 from sports_passport.services.scheduler import compute_since, run_sync_for_league, sync_all_enabled
 
@@ -22,29 +23,38 @@ def _mock_adapter(**overrides):
 
 
 class TestComputeSince:
-    """Adaptive lookback window."""
+    """Adaptive lookback window, keyed off the last *successful* run."""
 
     def test_first_run_uses_lookback(self):
-        state = SyncState(last_run_at=None)
+        state = SyncState(last_success_at=None)
         today = date(2026, 7, 16)
         assert compute_since(state, today, lookback_days=3) == today - timedelta(days=3)
 
     def test_ran_yesterday_uses_lookback(self):
-        state = SyncState(last_run_at=datetime(2026, 7, 15, 6, 0))
+        state = SyncState(last_success_at=datetime(2026, 7, 15, 6, 0))
         today = date(2026, 7, 16)
         assert compute_since(state, today, lookback_days=3) == today - timedelta(days=3)
 
     def test_ran_today_uses_lookback(self):
-        state = SyncState(last_run_at=datetime(2026, 7, 16, 6, 0))
+        state = SyncState(last_success_at=datetime(2026, 7, 16, 6, 0))
         today = date(2026, 7, 16)
         assert compute_since(state, today, lookback_days=3) == today - timedelta(days=3)
 
     def test_missed_runs_covers_gap_plus_two_days(self):
-        # Last ran 10 days ago -> go back to that date minus a 2-day cushion.
+        # Last succeeded 10 days ago -> go back to that date minus a 2-day cushion.
         last = datetime(2026, 7, 6, 6, 0)
-        state = SyncState(last_run_at=last)
+        state = SyncState(last_success_at=last)
         today = date(2026, 7, 16)
         assert compute_since(state, today, lookback_days=3) == last.date() - timedelta(days=2)
+
+    def test_failed_recovery_run_does_not_advance_checkpoint(self):
+        # A run attempted today that failed must not look like a fresh success:
+        # last_success_at (not last_run_at) drives the window, so the next
+        # attempt still covers the whole gap back to the last real success.
+        last_success = datetime(2026, 7, 6, 6, 0)
+        state = SyncState(last_success_at=last_success, last_run_at=datetime(2026, 7, 16, 6, 0))
+        today = date(2026, 7, 16)
+        assert compute_since(state, today, lookback_days=3) == last_success.date() - timedelta(days=2)
 
 
 class TestRunSyncForLeague:
@@ -66,6 +76,7 @@ class TestRunSyncForLeague:
         assert state.last_games_imported == 5
         assert state.last_games_updated == 2
         assert state.last_run_at is not None
+        assert state.last_success_at is not None
         assert state.last_error is None
 
     @patch('sports_passport.services.scheduler.get_adapter')
@@ -83,6 +94,32 @@ class TestRunSyncForLeague:
         state = db_session.query(SyncState).filter(SyncState.league_id == league.id).first()
         assert state.last_status == "error"
         assert "network down" in state.last_error
+        # A failed attempt is not a success — the adaptive-lookback checkpoint
+        # must not advance, or a later outage recovery would skip the gap.
+        assert state.last_success_at is None
+
+    @patch('sports_passport.services.scheduler.get_adapter')
+    def test_recovers_from_failed_flush(self, mock_get_adapter, db_session):
+        """A DB error inside sync_recent must not leave the session unable to
+        commit the outcome (regression: finally-block db.commit() would raise
+        PendingRollbackError without a rollback() in the except branch first)."""
+        async def _boom(since):
+            db_session.add(SyncState(league_id=None))  # violates NOT NULL
+            db_session.flush()
+
+        adapter = Mock()
+        adapter.sync_recent = AsyncMock(side_effect=_boom)
+        mock_get_adapter.return_value = adapter
+
+        import asyncio
+        result = asyncio.run(run_sync_for_league(db_session, "CFB"))
+
+        assert result.errors  # captured, not raised
+        from sports_passport.models.league import League
+        league = db_session.query(League).filter(League.code == "CFB").first()
+        state = db_session.query(SyncState).filter(SyncState.league_id == league.id).first()
+        assert state.last_status == "error"
+        assert state.last_run_at is not None
 
     @patch('sports_passport.services.scheduler.get_adapter')
     def test_uses_explicit_since(self, mock_get_adapter, db_session):
@@ -158,11 +195,23 @@ class TestSyncStateEndpoints:
     def test_sync_all_endpoint(self, mock_get_adapter, client, admin_headers):
         mock_get_adapter.return_value = _mock_adapter()
         response = client.post("/api/admin/sync-all", headers=admin_headers)
-        assert response.status_code == 200
-        results = response.json()
-        # All 6 adapter-backed leagues run by default (all enabled).
-        assert len(results) == 6
-        assert all(r["games_imported"] == 5 for r in results)
+        assert response.status_code == 202
+        assert response.json()["status"] == "accepted"
+        # BackgroundTasks run synchronously within the TestClient's ASGI call,
+        # so by the time post() returns, every enabled league has been synced.
+        status_rows = client.get("/api/admin/status", headers=admin_headers).json()
+        adapter_backed = [r for r in status_rows if r["adapter_available"]]
+        assert len(adapter_backed) == 6
+        assert all(r["last_sync_status"] == "success" for r in adapter_backed)
+        assert all(r["last_sync_games_imported"] == 5 for r in adapter_backed)
+
+    def test_sync_all_rejects_concurrent_run(self):
+        assert scheduler.start_sync_all() is True
+        try:
+            assert scheduler.sync_all_running() is True
+            assert scheduler.start_sync_all() is False
+        finally:
+            scheduler._sync_all_in_progress = False
 
     @patch('sports_passport.services.scheduler.get_adapter')
     def test_manual_sync_records_state(self, mock_get_adapter, client, admin_headers):

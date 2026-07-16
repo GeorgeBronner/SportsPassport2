@@ -16,7 +16,8 @@ class SyncState(Base):
     league_id = Column(Integer, ForeignKey("leagues.id"), unique=True, nullable=False, index=True)
     enabled = Column(Boolean, default=True, nullable=False)
 
-    last_run_at = Column(DateTime, nullable=True)          # naive UTC, like game start_date
+    last_run_at = Column(DateTime, nullable=True)          # naive UTC, like game start_date — most recent attempt
+    last_success_at = Column(DateTime, nullable=True)      # most recent successful run; drives the adaptive lookback
     last_status = Column(String, nullable=True)            # 'success' | 'error' | 'running'
     last_games_imported = Column(Integer, nullable=True)
     last_games_updated = Column(Integer, nullable=True)

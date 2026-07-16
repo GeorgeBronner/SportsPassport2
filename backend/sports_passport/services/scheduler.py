@@ -18,6 +18,7 @@ from typing import Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from sports_passport.core.config import settings
@@ -35,14 +36,28 @@ PER_LEAGUE_TIMEOUT_SECONDS = 600
 
 _scheduler: Optional[AsyncIOScheduler] = None
 
+# Single-owner guard for the admin "run now" background job (see trigger_sync_all).
+_sync_all_in_progress = False
+
 
 def get_or_create_sync_state(db: Session, league: League) -> SyncState:
-    """Return the league's SyncState row, creating a default (enabled) one if absent."""
+    """Return the league's SyncState row, creating a default (enabled) one if absent.
+
+    Concurrency-safe: the scheduler and admin endpoints can both race to create
+    the first row for a league. If a concurrent insert wins first, recover from
+    the unique-constraint violation instead of raising.
+    """
     state = db.query(SyncState).filter(SyncState.league_id == league.id).first()
-    if state is None:
-        state = SyncState(league_id=league.id, enabled=True)
-        db.add(state)
+    if state is not None:
+        return state
+    state = SyncState(league_id=league.id, enabled=True)
+    db.add(state)
+    try:
         db.commit()
+    except IntegrityError:
+        db.rollback()
+        state = db.query(SyncState).filter(SyncState.league_id == league.id).first()
+    else:
         db.refresh(state)
     return state
 
@@ -50,16 +65,18 @@ def get_or_create_sync_state(db: Session, league: League) -> SyncState:
 def compute_since(state: SyncState, today: date, lookback_days: int) -> date:
     """Adaptive lookback window.
 
-    - Never synced, or last run was today/yesterday → go back ``lookback_days``.
-    - Otherwise (a run was missed) → cover the whole gap plus a two-day cushion,
-      so a long outage still backfills everything since the last successful run.
+    - Never successfully synced, or last success was today/yesterday → go back
+      ``lookback_days``.
+    - Otherwise (a run was missed, or the last attempt failed) → cover the whole
+      gap plus a two-day cushion, so a long outage — or a failed recovery run —
+      still backfills everything since the last *successful* run.
     """
-    if state.last_run_at is None:
+    if state.last_success_at is None:
         return today - timedelta(days=lookback_days)
-    days_since = (today - state.last_run_at.date()).days
+    days_since = (today - state.last_success_at.date()).days
     if days_since <= 1:
         return today - timedelta(days=lookback_days)
-    return state.last_run_at.date() - timedelta(days=2)
+    return state.last_success_at.date() - timedelta(days=2)
 
 
 async def run_sync_for_league(
@@ -94,9 +111,14 @@ async def run_sync_for_league(
             timeout=PER_LEAGUE_TIMEOUT_SECONDS,
         )
     except asyncio.TimeoutError:
+        db.rollback()  # discard any partial work left by the cancelled coroutine
         result.errors.append(f"timed out after {PER_LEAGUE_TIMEOUT_SECONDS}s")
         logger.warning("Sync for %s timed out", league_code)
     except Exception as e:  # noqa: BLE001 — record any adapter failure, don't crash the job
+        # A failed flush/commit inside the adapter can leave the session in a
+        # state that must be rolled back before it can be used again — without
+        # this, the finally block's db.commit() below would itself raise.
+        db.rollback()
         result.errors.append(str(e))
         logger.exception("Sync for %s failed", league_code)
     finally:
@@ -106,6 +128,8 @@ async def run_sync_for_league(
         state.last_games_updated = result.games_updated
         state.last_error = result.errors[0] if result.errors else None
         state.last_status = "error" if result.errors else "success"
+        if not result.errors:
+            state.last_success_at = started
         db.commit()
 
     return result
@@ -128,6 +152,41 @@ async def sync_all_enabled(db: Session) -> list[ImportResult]:
             continue
         results.append(await run_sync_for_league(db, league.code))
     return results
+
+
+def sync_all_running() -> bool:
+    """True if the admin "run now" background job is currently in flight."""
+    return _sync_all_in_progress
+
+
+def start_sync_all() -> bool:
+    """Reserve the single-owner slot for a background sync-all run.
+
+    Returns False (and reserves nothing) if one is already running, so callers
+    can't kick off two overlapping full syncs.
+    """
+    global _sync_all_in_progress
+    if _sync_all_in_progress:
+        return False
+    _sync_all_in_progress = True
+    return True
+
+
+async def run_sync_all_background() -> None:
+    """Background entry point for the admin "run now" endpoint.
+
+    Runs after the HTTP response is already sent (via FastAPI BackgroundTasks),
+    so the request can't be held open for the ~hour a full multi-league sync
+    may take. Uses its own DB session — the request's session is closed once
+    the response is sent — and releases the slot reserved by start_sync_all().
+    """
+    global _sync_all_in_progress
+    db = SessionLocal()
+    try:
+        await sync_all_enabled(db)
+    finally:
+        db.close()
+        _sync_all_in_progress = False
 
 
 async def run_nightly_sync() -> None:

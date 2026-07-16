@@ -6,7 +6,7 @@ specifics needed to fix it without re-deriving the investigation.
 
 ## 1. Attended games that cannot be logged (2)
 
-The attendance-history imports (user_id 2, george.bronner@gmail.com) from
+The attendance-history imports (user_id 2) from
 `Bronner Sporting Venues - Raw Sportspassport.csv` (161 rows) and
 `Bronner Sporting Venues - Unlogged Events.csv` (69 rows) matched every row to a
 game in the DB except these 2, which have no `games` row to attach attendance to:
@@ -69,7 +69,8 @@ Fixed in `MLBAdapter.import_teams` (parse era start dates before sorting instead
 lexicographic string sort) and `import_teams` re-run against the live DB. All four
 rows below now carry their current-era names (SLN → Cardinals, PHI → Phillies,
 CLE → Guardians); the SLA row (the real 1902–1953 Browns) was untouched, and the
-full test suite passes (158/158). "Sacramento Athletics" turned out to be exactly
+full test suite passed (158/158 at the time of this fix; see the PR description
+for the current count). "Sacramento Athletics" turned out to be exactly
 what Retrosheet's CurrentNames.csv provides for the ATH era — source data, not a bug.
 
 Known nuance of the one-row-per-Retrosheet-code design: a code's games from *all*
@@ -124,4 +125,14 @@ they may have an additional wrinkle (e.g. import ran against older source data).
 2. Re-run `import_teams` for MLB — `upsert_team` is keyed on `(source, source_team_id)`
    so the existing rows update in place; no game rows change.
 3. Verify the four rows above, and confirm era-scoped rows with `last_season` set
+   render correctly (they should, since they don't participate in the "latest era" sort).
+
+## 4. Ruff B008: `Depends()` in argument defaults (admin router) — deferred
+
+CodeRabbit's PR #3 review flagged `Depends(get_db)` / `Depends(get_current_admin_user)`
+as function-call-in-default-argument (Ruff B008) on the `sync-all` endpoint. Left as-is:
+it's the existing pattern across every endpoint in `admin.py` (and the other routers),
+not something newly introduced by that PR, so fixing it there alone would be
+inconsistent without a codebase-wide pass. Worth a dedicated cleanup pass across all
+routers if it's ever enforced in CI.
    (e.g. Florida Marlins `FLO`, St. Louis Browns `SLA`) are untouched.
