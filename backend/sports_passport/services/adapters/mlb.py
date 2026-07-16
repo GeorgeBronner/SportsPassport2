@@ -14,16 +14,19 @@ local copy buys nothing over re-fetching per import.
     https://www.retrosheet.org/parkcode.txt
 - Season game logs (fixed-field CSV, no header, one row per game):
     https://www.retrosheet.org/gamelogs/gl{season}.zip
+- Postseason game logs (same fixed-field format; each file spans ALL years
+  of its series type — ws=World Series 1903-, lc=LCS 1969-, dv=Division
+  Series 1981/1995-, wc=Wild Card 2012-):
+    https://www.retrosheet.org/gamelogs/gl{ws,lc,dv,wc}.zip
 
 Compliance guardrail: Retrosheet is the bulk-backfill source. The MLB
 Stats API (`sync_recent`) must never be used for bulk backfill per its
 terms (SP3_data_sources.md) — only for small "since date" queries.
 
-Scope note: Retrosheet's gamelogs cover **regular season only**; postseason
-lives in a separate, non-CSV structure on their site. Unlike the other
-three adapters (where postseason came free with the same endpoint),
-MLB postseason would need real scraping work — deferred, see SP3_plan.md
-Phase 3 notes.
+Scope note: the per-season gamelogs cover regular season only; postseason
+comes from the four companion files above via `import_postseason` (all-time
+files filtered to the requested season range). Spring training exists in
+neither source and is skipped by `sync_recent` (see SP3_open_issues.md).
 """
 import csv
 import io
@@ -47,6 +50,8 @@ logger = logging.getLogger(__name__)
 TEAMS_URL = "https://www.retrosheet.org/CurrentNames.csv"
 PARKS_URL = "https://www.retrosheet.org/parkcode.txt"
 GAMELOG_URL = "https://www.retrosheet.org/gamelogs/gl{season}.zip"
+POSTSEASON_GAMELOG_URL = "https://www.retrosheet.org/gamelogs/gl{code}.zip"
+POSTSEASON_FILE_CODES = ("ws", "lc", "dv", "wc")
 
 # Fixed field positions in a gamelog row (0-indexed); see
 # https://www.retrosheet.org/gamelogs/glfields.txt
@@ -89,9 +94,9 @@ class MlbAdapter(LeagueAdapter):
             response.raise_for_status()
             return response.text
 
-    async def _get_gamelog_rows(self, season: int) -> list[list[str]]:
+    async def _get_zipped_rows(self, url: str) -> list[list[str]]:
         async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(GAMELOG_URL.format(season=season), timeout=60.0)
+            response = await client.get(url, timeout=60.0)
             if response.status_code == 404:
                 return []
             response.raise_for_status()
@@ -99,6 +104,12 @@ class MlbAdapter(LeagueAdapter):
             name = zf.namelist()[0]
             text = zf.read(name).decode("utf-8")
         return list(csv.reader(io.StringIO(text)))
+
+    async def _get_gamelog_rows(self, season: int) -> list[list[str]]:
+        return await self._get_zipped_rows(GAMELOG_URL.format(season=season))
+
+    async def _get_postseason_rows(self, code: str) -> list[list[str]]:
+        return await self._get_zipped_rows(POSTSEASON_GAMELOG_URL.format(code=code))
 
     async def import_teams(self) -> ImportResult:
         result = ImportResult(league=self.league_code)
@@ -153,6 +164,7 @@ class MlbAdapter(LeagueAdapter):
     def _upsert_row(
         self, league_id: int, row: list[str], season: int,
         by_code: dict, parks: dict, venue_cache: dict, result: ImportResult,
+        season_type: str = "regular",
     ) -> None:
         vis_code, home_code = row[F_VIS_TEAM], row[F_HOME_TEAM]
         away_id = by_code.get(vis_code)
@@ -212,7 +224,7 @@ class MlbAdapter(LeagueAdapter):
             start_date=start_date,
             has_time=False,
             season=season,
-            season_type="regular",
+            season_type=season_type,
             venue_id=venue_id,
             neutral_site=False,
             attendance=attendance,
@@ -239,11 +251,41 @@ class MlbAdapter(LeagueAdapter):
                     season, result.games_imported, result.games_updated)
         return result
 
+    async def import_postseason(self, start_season: int, end_season: int) -> ImportResult:
+        """Import postseason games for a season range.
+
+        The four postseason gamelog files each span every year of their
+        series type, so this fetches four files total regardless of range
+        size and filters rows by year. A game's season is the calendar year
+        of its date — the MLB postseason never crosses New Year.
+        """
+        result = ImportResult(league=self.league_code)
+        league = get_league(self.db, self.league_code)
+        by_code = self._team_lookup(league.id)
+        parks = await self._park_lookup()
+        venue_cache: dict[str, int] = {}
+
+        for code in POSTSEASON_FILE_CODES:
+            for row in await self._get_postseason_rows(code):
+                if not row or not row[F_DATE][:4].isdigit():
+                    continue
+                season = int(row[F_DATE][:4])
+                if not start_season <= season <= end_season:
+                    continue
+                self._upsert_row(league.id, row, season, by_code, parks, venue_cache,
+                                 result, season_type="postseason")
+
+        self.db.commit()
+        logger.info("MLB postseason %s-%s: %s games imported, %s updated",
+                    start_season, end_season, result.games_imported, result.games_updated)
+        return result
+
     async def import_historical(self, start_season: int, end_season: int) -> ImportResult:
         result = ImportResult(league=self.league_code)
         result.merge(await self.import_teams())
         for season in range(start_season, end_season + 1):
             result.merge(await self.import_season(season))
+        result.merge(await self.import_postseason(start_season, end_season))
         return result
 
     def _upsert_statsapi_game(

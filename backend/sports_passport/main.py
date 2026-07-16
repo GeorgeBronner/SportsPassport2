@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 import sentry_sdk
 from fastapi import FastAPI
@@ -9,6 +10,7 @@ from sports_passport.core.config import settings
 from sports_passport.db.database import engine, Base, SessionLocal
 from sports_passport.db.seed import seed_leagues
 from sports_passport.routers import auth, games, attendance, admin, teams, leagues
+from sports_passport.services.scheduler import start_scheduler, shutdown_scheduler
 import os
 from pathlib import Path
 
@@ -32,11 +34,22 @@ Base.metadata.create_all(bind=engine)
 with SessionLocal() as _db:
     seed_leagues(_db)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start the nightly sync scheduler on the running event loop, stop it on shutdown."""
+    start_scheduler()
+    try:
+        yield
+    finally:
+        shutdown_scheduler()
+
+
 # Create FastAPI app
 app = FastAPI(
     title=settings.app_name,
     description="API for tracking game attendance across CFB, MLB, NFL, NBA, and NHL",
-    version="0.2.0"
+    version="0.2.0",
+    lifespan=lifespan,
 )
 
 # Configure CORS

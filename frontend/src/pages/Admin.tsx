@@ -9,6 +9,8 @@ import Loading from '../components/common/Loading';
 import Alert from '../components/common/Alert';
 
 const currentYear = new Date().getFullYear();
+// Mirrors the backend default (settings.sync_hour); display-only.
+const SYNC_HOUR = 6;
 
 const Admin: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -79,6 +81,44 @@ const Admin: React.FC = () => {
   };
 
   const handleSync = () => runImport(() => adminApi.syncLeague(selectedLeague, syncDays), `${selectedLeague} sync`);
+
+  const handleSyncAll = async () => {
+    if (!confirm('Run the nightly sync now for every auto-sync-enabled league?')) return;
+    setBusy(true);
+    setError('');
+    try {
+      const results = await adminApi.syncAll();
+      const games = results.reduce((n, r) => n + r.games_imported, 0);
+      const updated = results.reduce((n, r) => n + r.games_updated, 0);
+      const errs = results.reduce((n, r) => n + r.errors.length, 0);
+      setSuccess(`Nightly sync complete: ${results.length} leagues, ${games} games imported, ${updated} updated${errs ? ` (${errs} errors)` : ''}`);
+      await refreshStatus();
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Nightly sync failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleToggleSync = async (league: string, enabled: boolean) => {
+    // Optimistic update; revert on failure.
+    setStatus((prev) => prev.map((r) => (r.league === league ? { ...r, sync_enabled: enabled } : r)));
+    try {
+      await adminApi.setSyncEnabled(league, enabled);
+    } catch (err) {
+      setError(`Failed to update auto-sync for ${league}`);
+      setStatus((prev) => prev.map((r) => (r.league === league ? { ...r, sync_enabled: !enabled } : r)));
+    }
+  };
+
+  const formatLastSync = (row: AdminStatusRow): string => {
+    if (!row.last_sync_at) return 'Never';
+    const when = new Date(row.last_sync_at).toLocaleString();
+    if (row.last_sync_status === 'success') {
+      return `${when} (+${row.last_sync_games_imported ?? 0} new)`;
+    }
+    return when;
+  };
 
   const handlePromote = async (userId: number) => {
     try {
@@ -182,10 +222,18 @@ const Admin: React.FC = () => {
         </Card>
 
         <Card className="mb-8 bg-gradient-to-br from-sage-50 to-white border-sage-100">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-2">
             <h2 className="text-2xl font-bold text-sage-700">League Status</h2>
-            <Button variant="secondary" size="sm" onClick={refreshStatus}>Refresh</Button>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSyncAll} disabled={busy}>
+                {busy ? 'Working...' : 'Run nightly sync now'}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={refreshStatus}>Refresh</Button>
+            </div>
           </div>
+          <p className="text-sm text-gray-500 mb-6">
+            Auto-sync runs nightly at {String(SYNC_HOUR).padStart(2, '0')}:00 for each enabled league. Out-of-season leagues no-op automatically.
+          </p>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead>
@@ -195,6 +243,8 @@ const Admin: React.FC = () => {
                   <th className="px-4 py-2 text-left text-xs font-bold text-gray-700 uppercase">Teams</th>
                   <th className="px-4 py-2 text-left text-xs font-bold text-gray-700 uppercase">Games</th>
                   <th className="px-4 py-2 text-left text-xs font-bold text-gray-700 uppercase">Seasons</th>
+                  <th className="px-4 py-2 text-left text-xs font-bold text-gray-700 uppercase">Auto-sync</th>
+                  <th className="px-4 py-2 text-left text-xs font-bold text-gray-700 uppercase">Last sync</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -212,6 +262,34 @@ const Admin: React.FC = () => {
                     <td className="px-4 py-3 text-sm text-gray-700">{row.games}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">
                       {row.first_season && row.last_season ? `${row.first_season}–${row.last_season}` : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <label className="inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-sage-600 focus:ring-sage-500 disabled:opacity-40"
+                          checked={row.sync_enabled}
+                          disabled={!row.adapter_available}
+                          onChange={(e) => handleToggleSync(row.league, e.target.checked)}
+                          aria-label={`Auto-sync ${row.league}`}
+                        />
+                      </label>
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        {row.last_sync_status === 'error' && (
+                          <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">Error</span>
+                        )}
+                        {row.last_sync_status === 'success' && (
+                          <span className="px-2 py-0.5 rounded-full bg-sage-100 text-sage-700 text-xs font-medium">OK</span>
+                        )}
+                        <span
+                          className="text-gray-600"
+                          title={row.last_sync_error || undefined}
+                        >
+                          {formatLastSync(row)}
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ))}

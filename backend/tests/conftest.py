@@ -1,6 +1,11 @@
 """
 Pytest configuration and fixtures for testing.
 """
+import os
+
+# Keep the nightly-sync scheduler from starting during TestClient lifespan.
+os.environ.setdefault("SCHEDULER_ENABLED", "false")
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

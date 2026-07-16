@@ -30,6 +30,17 @@ GAMELOG_ROW_1970 = [
     "3", "2", "54", "D", "", "", "", "MON01", "12345", "150",
 ]
 
+# Postseason gamelog rows use the same fixed-field format; each file spans
+# all years of its series type, so import_postseason must filter by season.
+POSTSEASON_ROW_1973 = [
+    "19731013", "0", "Sat", "MON", "NL", "1", "OAK", "AL", "1",
+    "2", "3", "66", "D", "", "", "", "OAK01", "46021", "195",
+]
+POSTSEASON_ROW_2004 = [
+    "20041023", "0", "Sat", "MON", "NL", "1", "OAK", "AL", "1",
+    "9", "11", "54", "N", "", "", "", "OAK01", "35035", "240",
+]
+
 STATSAPI_PAYLOAD = {
     "dates": [
         {
@@ -103,6 +114,44 @@ class TestMlbImportSeason:
         assert game.venue.name == "Parc Jarry"
         assert game.venue.city == "Montreal"
         assert db_session.query(Venue).count() == 1
+
+
+class TestMlbImportPostseason:
+    @pytest.mark.asyncio
+    async def test_import_postseason_filters_by_season(self, adapter, db_session):
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=TEAMS_CSV)):
+            await adapter.import_teams()
+
+        # Every series-type file returns both rows; only the 1973 one is in range.
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)), \
+             patch.object(adapter, "_get_postseason_rows",
+                          AsyncMock(return_value=[POSTSEASON_ROW_1973, POSTSEASON_ROW_2004])):
+            result = await adapter.import_postseason(1970, 1990)
+
+        assert result.games_imported == 1
+        assert not result.errors
+        game = db_session.query(Game).one()
+        assert game.season == 1973
+        assert game.season_type == "postseason"
+        assert game.source_game_id == "19731013_MON_OAK_0"
+        assert (game.away_score, game.home_score) == (2, 3)
+        assert game.overtime_flag == "11"  # 66 outs -> extra innings
+        assert game.venue.name == "Oakland Coliseum"
+
+    @pytest.mark.asyncio
+    async def test_import_postseason_idempotent(self, adapter, db_session):
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=TEAMS_CSV)):
+            await adapter.import_teams()
+
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)), \
+             patch.object(adapter, "_get_postseason_rows",
+                          AsyncMock(return_value=[POSTSEASON_ROW_1973])):
+            await adapter.import_postseason(1970, 1990)
+            result = await adapter.import_postseason(1970, 1990)
+
+        assert result.games_imported == 0
+        assert result.games_updated == 4  # same game seen once per series-type file
+        assert db_session.query(Game).count() == 1
 
 
 class TestMlbSync:
