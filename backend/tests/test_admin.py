@@ -38,14 +38,17 @@ class TestImportEndpoints:
         )
         assert response.status_code == 200
 
-    @patch('sports_passport.routers.admin.get_adapter')
+    @patch('sports_passport.services.scheduler.get_adapter')
     def test_sync_as_admin(self, mock_get_adapter, client, admin_headers):
+        # /sync now routes through the shared scheduler helper, which resolves
+        # the adapter via sports_passport.services.scheduler.get_adapter.
         mock_get_adapter.return_value = _mock_adapter()
         response = client.post(
             "/api/admin/sync/CFB",
             headers=admin_headers
         )
         assert response.status_code == 200
+        assert response.json()["games_imported"] == 100
         mock_get_adapter.return_value.sync_recent.assert_awaited_once()
 
     def test_import_unknown_league_404(self, client, admin_headers):

@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     app_name: str = "SportsPassport2"
     debug: bool = False
 
+    # Nightly sync scheduler (APScheduler, in-process)
+    scheduler_enabled: bool = True   # set false in tests / one-off scripts
+    sync_hour: int = 6               # server-local hour (0-23) for the nightly run
+    sync_lookback_days: int = 3      # window when the last run was recent / on first run
+
     # Sentry
     sentry_dsn: Optional[str] = None
     sentry_environment: str = "production"

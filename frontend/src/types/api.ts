@@ -210,6 +210,13 @@ export interface AdminStatusRow {
   games: number;
   first_season: number | null;
   last_season: number | null;
+  // Nightly-sync status
+  sync_enabled: boolean;
+  last_sync_at: string | null;
+  last_sync_status: 'success' | 'error' | 'running' | null;
+  last_sync_games_imported: number | null;
+  last_sync_games_updated: number | null;
+  last_sync_error: string | null;
 }
 
 // Filter types

@@ -30,6 +30,22 @@ export const adminApi = {
     return response.data;
   },
 
+  // Kick off the nightly sync on demand across every enabled league. Runs in
+  // the background on the server; poll getStatus() for per-league progress.
+  syncAll: async (): Promise<{ status: string; detail: string }> => {
+    const response = await apiClient.post<{ status: string; detail: string }>('/admin/sync-all');
+    return response.data;
+  },
+
+  // Enable/disable a league in the nightly auto-sync
+  setSyncEnabled: async (league: string, enabled: boolean): Promise<{ league: string; enabled: boolean }> => {
+    const response = await apiClient.patch<{ league: string; enabled: boolean }>(
+      `/admin/sync-state/${league}`,
+      { enabled }
+    );
+    return response.data;
+  },
+
   // Per-league row counts and season coverage
   getStatus: async (): Promise<AdminStatusRow[]> => {
     const response = await apiClient.get<AdminStatusRow[]>('/admin/status');

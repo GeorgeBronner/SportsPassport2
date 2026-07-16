@@ -239,9 +239,12 @@ then CFB (port of known-working SP2 code = validates parity with SP2).
   in the 2024 season, 130/132 games matched cleanly (2 edge-case mismatches, likely
   rescheduled games — acceptable for a hobby tracker). 4 MLB adapter unit tests green
   (124 total).
-- **Scope note:** Retrosheet's gamelogs are regular-season only; MLB postseason isn't backed
-  by a simple CSV on their site (would need real scraping) and is deferred — sync_recent will
-  pick up *future* postseason games automatically once they happen, just not historical ones.
+- **Scope note (resolved 2026-07-15):** MLB postseason was originally deferred on the
+  belief Retrosheet had no CSV for it — wrong. Retrosheet publishes four postseason gamelog
+  files in the same fixed-field format (glws/gllc/gldv/glwc.zip, each spanning all years of
+  its series type). `import_postseason(start, end)` fetches them and filters by season;
+  wired into `import_historical`. Backfilled 1970-2025 into the live DB = **1,483 games,
+  0 errors** (WS/LCS/DS/WC). sync_recent still picks up future postseason games live.
 
 ### Phase 4 — NBA adapter (1 day; the fiddly one) ✅ DONE 2026-07-12
 **Status:** the historical-import path is written, tested, and verified against the
@@ -382,12 +385,33 @@ generalization) and added the league dimension:
   134 tests green; `tsc -b` and `vite build` both clean.
 
 ### Phase 6 — Sync scheduling + deploy (½–1 day)
-- [ ] Nightly sync job (APScheduler in-process, matching SP2's simplicity; per-league
-      enable/disable in admin). In-season leagues only — sync no-ops out of season
-- [ ] Admin UI: per-league import status, last-sync timestamp, row counts
-- [ ] Deploy via Docker Compose; document in `docs/deployment.md`
-- **Verify:** force a sync, confirm yesterday's real scores appear; restart container,
-      confirm scheduler resumes
+- [x] Nightly sync job (APScheduler `AsyncIOScheduler`, in-process, started/stopped via the
+      FastAPI lifespan). One cron job at `settings.sync_hour` (default 06:00 server-local)
+      walks every `SyncState.enabled` league and calls the adapter's `sync_recent`.
+      Per-league enable/disable persisted in a new `sync_state` table (migration
+      `d1f3a7c9e5b2`). **"In-season only" needs no calendar** — every adapter's `sync_recent`
+      queries by date range, so an out-of-season window just returns zero games. Adaptive
+      lookback (`compute_since`): last run today/yesterday or never → go back
+      `sync_lookback_days` (default 3); a missed run → cover the gap back to the last run
+      minus a 2-day cushion. Each league capped at a 600s timeout and wrapped so one league's
+      failure (e.g. NBA's unreachable `stats.nba.com`) is recorded, never crashes the job.
+      Shared `run_sync_for_league` / `sync_all_enabled` helpers used by both the scheduler and
+      the admin endpoints so every sync path records the same last-run state.
+- [x] Admin UI: `GET /api/admin/status` extended with per-league sync fields (enabled,
+      last-run timestamp, status, games imported/updated, error); `PATCH
+      /api/admin/sync-state/{league}` toggles auto-sync; `POST /api/admin/sync-all` runs the
+      nightly job on demand. Frontend League Status table gains an Auto-sync toggle, a
+      Last-sync column (OK/Error badge + timestamp + new-game count, error text on hover), and
+      a "Run nightly sync now" button.
+- [ ] Deploy via Docker Compose; document in `docs/deployment.md` — first deployment done
+      (out of band); `docs/deployment.md` still to be written.
+- **Verified (2026-07-16):** 174 backend tests green (14 new: `test_scheduler.py` covers the
+      adaptive-lookback logic, per-league state recording, hard-failure capture, enabled-only
+      iteration, and all sync-state endpoints). Lifespan confirmed to start/stop the scheduler
+      with the cron job registered at `hour=6`. Live end-to-end: a real MLB `sync_recent`
+      (in-season, Stats API) through `run_sync_for_league` against the dev DB imported a new
+      game + venue idempotently and recorded `status=success`. `tsc -b` + `vite build` clean.
+      Container-restart scheduler-resume check still pending an actual deploy.
 
 ### Phase 7 — Stretch (post-first-draft)
 - [ ] SP2 attendance migration script (SP2 SQLite → SP3, matching games on date+teams)

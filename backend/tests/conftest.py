@@ -1,6 +1,11 @@
 """
 Pytest configuration and fixtures for testing.
 """
+import os
+
+# Keep the nightly-sync scheduler from starting during TestClient lifespan.
+os.environ["SCHEDULER_ENABLED"] = "false"
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -45,7 +50,7 @@ def db_session():
 
 
 @pytest.fixture(scope="function")
-def client(db_session):
+def client(db_session, monkeypatch):
     """Create a test client with dependency injection."""
     def override_get_db():
         try:
@@ -54,6 +59,11 @@ def client(db_session):
             pass
 
     app.dependency_overrides[get_db] = override_get_db
+    # BackgroundTasks (e.g. the admin "run now" sync) don't go through get_db —
+    # like the nightly scheduler job, they open their own SessionLocal. Point
+    # that at the test engine too, or a background job would touch the real
+    # dev database file instead of this test's in-memory one.
+    monkeypatch.setattr("sports_passport.services.scheduler.SessionLocal", TestingSessionLocal)
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
