@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 from sports_passport.core.config import settings
 from sports_passport.db.database import engine, Base, SessionLocal
 from sports_passport.db.seed import seed_leagues
@@ -51,6 +52,7 @@ app = FastAPI(
     version="0.2.0",
     lifespan=lifespan,
 )
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 # Configure CORS
 app.add_middleware(
