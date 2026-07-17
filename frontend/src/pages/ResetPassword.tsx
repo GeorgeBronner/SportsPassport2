@@ -34,7 +34,8 @@ const ResetPassword: React.FC = () => {
       await authApi.resetPassword(token!, password);
       setSuccess(true);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Something went wrong. Please try again.');
+      const detail = err.response?.data?.detail;
+      setError(typeof detail === 'string' ? detail : 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

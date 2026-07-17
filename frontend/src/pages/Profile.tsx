@@ -39,11 +39,8 @@ const Profile: React.FC = () => {
       setConfirmPassword('');
     } catch (err: any) {
       const detail = err.response?.data?.detail;
-      setError(
-        detail === 'Current password is incorrect'
-          ? 'Current password is incorrect.'
-          : detail || 'Failed to update password.'
-      );
+      const message = typeof detail === 'string' ? detail : 'Failed to update password.';
+      setError(message === 'Current password is incorrect' ? 'Current password is incorrect.' : message);
     } finally {
       setSubmitting(false);
     }

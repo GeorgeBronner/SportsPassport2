@@ -19,7 +19,7 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         'password_reset_tokens',
-        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
         sa.Column('user_id', sa.Integer(), nullable=False),
         sa.Column('token_hash', sa.String(), nullable=False),
         sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False),
