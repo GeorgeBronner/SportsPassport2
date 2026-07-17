@@ -70,7 +70,12 @@ const Header = () => {
               </svg>
             )}
           </button>
-          <span className="hidden sm:inline text-xs text-ink-2">{user?.full_name}</span>
+          <Link
+            to="/profile"
+            className="hidden sm:inline text-xs text-ink-2 hover:text-ink transition-colors"
+          >
+            {user?.full_name}
+          </Link>
           <button
             type="button"
             onClick={handleLogout}

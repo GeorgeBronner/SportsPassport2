@@ -45,7 +45,15 @@ class Settings(BaseSettings):
     sentry_environment: str = "production"
     sentry_traces_sample_rate: float = 0.1
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    # Password reset email (Mailtrap). Left blank in local/dev — the forgot-password
+    # endpoint logs a warning and skips sending rather than failing when unset.
+    mailtrap_api_key: str = ""
+    app_base_url: str = "http://localhost:5173"
+    from_email: str = "noreply@bronnerapp.com"
+    from_name: str = "Sports Passport"
+    password_reset_token_expiry_minutes: int = 15
+
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
 
 
 settings = Settings()
