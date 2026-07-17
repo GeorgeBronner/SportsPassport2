@@ -136,3 +136,34 @@ not something newly introduced by that PR, so fixing it there alone would be
 inconsistent without a codebase-wide pass. Worth a dedicated cleanup pass across all
 routers if it's ever enforced in CI.
    (e.g. Florida Marlins `FLO`, St. Louis Browns `SLA`) are untouched.
+
+## 5. CFB (and other late-kickoff) games displaying a day late — **RESOLVED 2026-07-17**
+
+Some games with late US kickoffs (e.g. a 7:30 PM ET Saturday game, which is after
+midnight UTC) displayed as the day *after* they were actually played — reported
+example: Alabama @ LSU, played Sat 2024-11-09, showing as "Nov 10, 2024".
+
+The DB data was correct (`start_date` for that game is genuinely `2024-11-10
+00:30:00` UTC — 7:30 PM ET on Nov 9). Two compounding bugs caused the wrong display:
+
+1. The API serialized naive `datetime` fields (`start_date`, and
+   `first_game_date`/`last_game_date` in attendance stats) without a UTC marker
+   (e.g. `"2024-11-10T00:30:00"`, no `Z`/offset). Per the JS Date spec, a
+   date-time string with no offset is parsed as the *browser's local time*, not
+   UTC — so the absolute instant itself was wrong on any client not running in
+   the UTC timezone, before timezone-of-display even entered the picture.
+2. The frontend then always rendered dates in UTC to avoid rolling back the
+   `has_time=false` bulk-imported rows (old Retrosheet MLB data, which only
+   carry a naive midnight-UTC date with no real kickoff time) — but UTC is one
+   calendar day ahead of the correct US game day for any kickoff after ~7-8 PM
+   Eastern.
+
+**Fix**: `naive_utc_isoformat` (`backend/sports_passport/core/serializers.py`)
+attaches an explicit UTC offset when serializing these fields, applied via
+`field_serializer` on `GameBase`/`GameListResponse.start_date` and
+`AttendanceStats.first_game_date`/`last_game_date`. The frontend
+(`frontend/src/utils/format.ts`) now renders `has_time=true` games in the
+viewer's own local timezone (no explicit `timeZone` override) and keeps
+`has_time=false` rows pinned to UTC. Very late West Coast/Hawaii kickoffs that
+themselves cross midnight in the viewer's local timezone are a known remaining
+edge case, not fully solvable without per-venue timezone data.

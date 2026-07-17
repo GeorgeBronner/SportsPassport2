@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 from datetime import datetime
 from typing import Optional, List
+from sports_passport.core.serializers import naive_utc_isoformat
 from sports_passport.schemas.game import GameListResponse
 
 
@@ -47,8 +48,12 @@ class AttendanceStats(BaseModel):
     states_visited: list[str]
     games_by_state: dict[str, int] = {}
     venues: list[AttendanceVenueCount] = []
-    first_game_date: Optional[datetime] = None
+    first_game_date: Optional[datetime] = None  # naive, stored as UTC — see field_serializer below
     last_game_date: Optional[datetime] = None
+
+    @field_serializer("first_game_date", "last_game_date")
+    def _serialize_game_dates(self, value: Optional[datetime]) -> Optional[str]:
+        return naive_utc_isoformat(value)
 
 
 class AttendanceVenuePoint(BaseModel):

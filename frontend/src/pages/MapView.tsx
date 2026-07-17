@@ -205,7 +205,7 @@ const MapView: React.FC = () => {
                 {selectedGames.map((a) => (
                   <li key={a.id} className="py-2 border-b border-line">
                     <div className="text-[11px] font-mono text-ink-3">
-                      {formatDateShort(a.game.start_date)}
+                      {formatDateShort(a.game.start_date, a.game.has_time)}
                     </div>
                     <div className="text-[13px] text-ink">
                       {a.game.away_team.name}{' '}
