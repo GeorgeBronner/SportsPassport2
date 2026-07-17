@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Attendance } from '../../types/api';
+import { displayTimeZone } from '../../utils/format';
 
 const SHAPES = ['rounded-full', 'rounded-[50%/38%]', 'rounded-lg'] as const;
 const INKS = ['var(--stamp)', 'var(--lg-cfb)', 'var(--win)'] as const;
@@ -19,7 +20,12 @@ const StampCard: React.FC<StampCardProps> = ({ attendance, index }) => {
   const isOval = shape !== 'rounded-lg';
 
   const date = new Date(game.start_date)
-    .toLocaleDateString('en-US', { timeZone: 'UTC', day: '2-digit', month: 'short', year: 'numeric' })
+    .toLocaleDateString('en-US', {
+      timeZone: displayTimeZone(game.has_time),
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
     .toUpperCase();
 
   return (

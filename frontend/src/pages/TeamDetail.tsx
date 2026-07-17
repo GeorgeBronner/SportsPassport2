@@ -12,7 +12,7 @@ import { leaguesApi } from '../api/leagues';
 import { attendanceApi } from '../api/attendance';
 import type { GameListItem, Team, TeamAttendanceStats } from '../types/api';
 import { leagueColor } from '../utils/leagues';
-import { formatDateShort, yearUTC } from '../utils/format';
+import { formatDateShort, yearOf } from '../utils/format';
 
 const CURRENT_SEASON = new Date().getFullYear();
 
@@ -190,7 +190,7 @@ const TeamDetail: React.FC = () => {
                 {' '}
                 · your log: {stats.games_attended} game{stats.games_attended !== 1 ? 's' : ''}
                 {stats.first_game_date &&
-                  ` · ${yearUTC(stats.first_game_date)}–${yearUTC(stats.last_game_date!)}`}
+                  ` · ${yearOf(stats.first_game_date, false)}–${yearOf(stats.last_game_date!, false)}`}
               </>
             )}
           </p>
@@ -260,7 +260,7 @@ const TeamDetail: React.FC = () => {
                       className={`border-b border-line hover:bg-panel-2 ${attended ? '' : 'opacity-75'}`}
                     >
                       <td className="py-2 px-2 whitespace-nowrap font-mono text-xs text-ink-2">
-                        {formatDateShort(game.start_date)}
+                        {formatDateShort(game.start_date, game.has_time)}
                       </td>
                       <td className="py-2 px-2">
                         <span className="inline-flex items-center gap-1.5 text-ink flex-wrap">

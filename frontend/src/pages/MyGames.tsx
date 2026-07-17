@@ -106,7 +106,7 @@ const MyGames: React.FC = () => {
               return (
                 <div key={attendance.id} className="px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-2">
                   <span className="font-mono text-xs text-ink-2 w-24 shrink-0">
-                    {formatDateShort(game.start_date)}
+                    {formatDateShort(game.start_date, game.has_time)}
                   </span>
                   <span
                     className="text-[9px] font-extrabold tracking-[0.12em] uppercase text-white rounded px-1.5 py-0.5 shrink-0"

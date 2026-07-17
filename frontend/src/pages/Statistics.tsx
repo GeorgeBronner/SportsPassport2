@@ -6,7 +6,7 @@ import Loading from '../components/common/Loading';
 import TileMap from '../components/passport/TileMap';
 import SeasonChart from '../components/find/SeasonChart';
 import { LEAGUE_ORDER, leagueColor } from '../utils/leagues';
-import { yearUTC } from '../utils/format';
+import { yearOf } from '../utils/format';
 import { useAuth } from '../hooks/useAuth';
 
 const mrzName = (name: string) =>
@@ -35,8 +35,8 @@ const Statistics: React.FC = () => {
     );
   }
 
-  const firstYear = stats.first_game_date ? yearUTC(stats.first_game_date) : null;
-  const lastYear = stats.last_game_date ? yearUTC(stats.last_game_date) : null;
+  const firstYear = stats.first_game_date ? yearOf(stats.first_game_date, false) : null;
+  const lastYear = stats.last_game_date ? yearOf(stats.last_game_date, false) : null;
   const topTeams = Object.entries(stats.games_by_team)
     .sort(([, a], [, b]) => b - a)
     .slice(0, 8);

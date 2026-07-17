@@ -1,28 +1,43 @@
-// Format a UTC datetime as a readable date string. Formatted in UTC, not a
-// fixed US timezone: many historical rows (e.g. Retrosheet-sourced MLB games)
-// store start_date as a naive midnight-UTC date, and converting that to any
-// non-UTC timezone rolls the displayed date back a day. The app never shows
-// time-of-day, only the calendar date, so UTC is the safe default across
-// every league rather than a CFB-specific approximation.
-export const formatDate = (isoDateString: string): string => {
+// Timezone used to render a game's calendar date. Real kickoff times
+// (has_time=true) are stored as exact UTC instants — the API marks them
+// explicitly as UTC (see naive_utc_isoformat on the backend), so `new
+// Date(...)` parses the correct absolute instant on any client. Displaying
+// with no explicit timeZone then falls back to the viewer's own local
+// timezone, which is what most US evening games (CFB/NFL prime time,
+// NBA/NHL/MLB night games) need: a game that kicks off after midnight UTC
+// otherwise reads as the day *after* it actually happened.
+//
+// has_time=false rows (old bulk-imported data, e.g. Retrosheet MLB) only
+// ever carry a naive midnight-UTC date with no real kickoff time attached,
+// so they must stay pinned to UTC — reading them in the viewer's local
+// timezone would roll them back a day instead.
+export const displayTimeZone = (hasTime: boolean): string | undefined => (hasTime ? undefined : 'UTC');
+
+// Format a game datetime as a readable date string, in the correct timezone
+// for how it was stored (see displayTimeZone above).
+export const formatDate = (isoDateString: string, hasTime = true): string => {
   const date = new Date(isoDateString);
   return date.toLocaleDateString('en-US', {
-    timeZone: 'UTC',
+    timeZone: displayTimeZone(hasTime),
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
 };
 
-// Calendar year of a game date, read in UTC like every other date here.
-export const yearUTC = (isoDateString: string): number =>
-  new Date(isoDateString).getUTCFullYear();
+// Calendar year of a game date, in the correct timezone for how it was stored.
+export const yearOf = (isoDateString: string, hasTime = true): number =>
+  Number(
+    new Intl.DateTimeFormat('en-US', { timeZone: displayTimeZone(hasTime), year: 'numeric' }).format(
+      new Date(isoDateString)
+    )
+  );
 
 // Short form of formatDate (e.g. "Jul 12, 2026")
-export const formatDateShort = (isoDateString: string): string => {
+export const formatDateShort = (isoDateString: string, hasTime = true): string => {
   const date = new Date(isoDateString);
   return date.toLocaleDateString('en-US', {
-    timeZone: 'UTC',
+    timeZone: displayTimeZone(hasTime),
     year: 'numeric',
     month: 'short',
     day: 'numeric',
