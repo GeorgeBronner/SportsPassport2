@@ -20,6 +20,8 @@ dependencies = [
     "sentry-sdk[fastapi]>=2.0",
     "apscheduler>=3.10",
     "prometheus-fastapi-instrumentator>=8.0.2",
+    "mailtrap>=2.0",
+    "slowapi>=0.1.9",
 ]
 
 [project.optional-dependencies]

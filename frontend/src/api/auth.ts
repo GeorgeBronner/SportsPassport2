@@ -27,4 +27,22 @@ export const authApi = {
     const response = await apiClient.get<User>('/auth/me');
     return response.data;
   },
+
+  // Change password for the current user
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    await apiClient.put('/auth/password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+  },
+
+  // Request a password reset email
+  forgotPassword: async (email: string): Promise<void> => {
+    await apiClient.post('/auth/forgot-password', { email });
+  },
+
+  // Redeem a password reset token
+  resetPassword: async (token: string, newPassword: string): Promise<void> => {
+    await apiClient.post('/auth/reset-password', { token, new_password: newPassword });
+  },
 };

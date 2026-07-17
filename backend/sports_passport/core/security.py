@@ -6,12 +6,12 @@ from sports_passport.core.config import settings
 
 # bcrypt operates on at most the first 72 bytes of the password and raises a
 # ValueError for anything longer, so truncate to match that limit explicitly.
-_BCRYPT_MAX_BYTES = 72
+BCRYPT_MAX_PASSWORD_BYTES = 72
 
 
 def _encode_password(password: str) -> bytes:
     """Encode a password to the bytes bcrypt accepts (max 72 bytes)."""
-    return password.encode("utf-8")[:_BCRYPT_MAX_BYTES]
+    return password.encode("utf-8")[:BCRYPT_MAX_PASSWORD_BYTES]
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

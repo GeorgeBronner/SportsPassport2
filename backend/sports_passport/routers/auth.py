@@ -3,8 +3,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sports_passport.db.database import get_db
 from sports_passport.models.user import User
-from sports_passport.schemas.user import UserCreate, UserResponse, Token
-from sports_passport.core.security import verify_password, get_password_hash, create_access_token
+from sports_passport.schemas.user import UserCreate, UserResponse, Token, ChangePasswordRequest
+from sports_passport.core.security import (
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    BCRYPT_MAX_PASSWORD_BYTES,
+)
 from sports_passport.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
@@ -63,3 +68,30 @@ def login(
 def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information"""
     return current_user
+
+
+@router.put("/password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    body: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Change the current user's password"""
+    if not verify_password(body.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect",
+        )
+    if len(body.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Password must be at least 8 characters",
+        )
+    if len(body.new_password.encode()) > BCRYPT_MAX_PASSWORD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Password must be at most {BCRYPT_MAX_PASSWORD_BYTES} bytes",
+        )
+
+    current_user.password_hash = get_password_hash(body.new_password)
+    db.commit()

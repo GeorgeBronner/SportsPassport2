@@ -7,10 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from prometheus_fastapi_instrumentator import Instrumentator
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from sports_passport.core.config import settings
+from sports_passport.core.limiter import limiter
 from sports_passport.db.database import engine, Base, SessionLocal
 from sports_passport.db.seed import seed_leagues
-from sports_passport.routers import auth, games, attendance, admin, teams, leagues
+from sports_passport.routers import auth, games, attendance, admin, teams, leagues, password_reset
 from sports_passport.services.scheduler import start_scheduler, shutdown_scheduler
 import os
 from pathlib import Path
@@ -54,6 +57,10 @@ app = FastAPI(
 )
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
+# Rate limiting (forgot/reset-password endpoints)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -65,6 +72,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router)
+app.include_router(password_reset.router)
 app.include_router(leagues.router)
 app.include_router(games.router)
 app.include_router(teams.router)
