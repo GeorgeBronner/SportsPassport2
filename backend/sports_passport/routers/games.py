@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, func
 from typing import List, Optional
+from sports_passport.core.queries import LIKE_ESCAPE, contains_pattern
 from sports_passport.db.database import get_db
 from sports_passport.models.game import Game
 from sports_passport.models.attendance import UserGameAttendance
@@ -42,7 +43,7 @@ def _team_ids_by_name(db: Session, name: str, exact: bool = True) -> list[int]:
     if exact:
         query = query.filter(Team.name == name)
     else:
-        query = query.filter(Team.name.ilike(f"%{name}%"))
+        query = query.filter(Team.name.ilike(contains_pattern(name), escape=LIKE_ESCAPE))
     return [t[0] for t in query.all()]
 
 

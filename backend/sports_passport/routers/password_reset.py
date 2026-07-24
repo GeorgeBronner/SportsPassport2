@@ -4,12 +4,13 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 import mailtrap as mt
+import sentry_sdk
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from sports_passport.core.config import settings
 from sports_passport.core.limiter import limiter
-from sports_passport.core.security import BCRYPT_MAX_PASSWORD_BYTES, get_password_hash
+from sports_passport.core.security import get_password_hash, validate_password
 from sports_passport.db.database import get_db
 from sports_passport.models.password_reset_token import PasswordResetToken
 from sports_passport.models.user import User
@@ -84,7 +85,11 @@ def forgot_password(
             db.commit()
             logger.info("Password reset requested for user_id=%s", user.id)
         except (mt.AuthorizationError, mt.APIError) as e:
+            # The response stays generic (non-enumerating), so the user only
+            # learns the mail never arrived. Report to Sentry so the failure
+            # reaches an admin instead of dying in the container logs.
             logger.error("Password reset email failed for user_id=%s: %s", user.id, e)
+            sentry_sdk.capture_exception(e)
             db.rollback()
 
     return {"message": "If that email is registered, a reset link has been sent."}
@@ -112,16 +117,7 @@ def reset_password(request: Request, body: ResetPasswordRequest, db: Session = D
             detail="Invalid or expired reset link.",
         )
 
-    if len(body.new_password) < 8:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Password must be at least 8 characters.",
-        )
-    if len(body.new_password.encode()) > BCRYPT_MAX_PASSWORD_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=f"Password must be at most {BCRYPT_MAX_PASSWORD_BYTES} bytes.",
-        )
+    validate_password(body.new_password)
 
     user = db.query(User).filter(User.id == reset_token.user_id).first()
     if not user:

@@ -146,3 +146,54 @@ class TestCurrentUser:
         assert response.status_code == 200
         data = response.json()
         assert data["is_admin"] is True
+
+
+class TestPasswordValidation:
+    """Register enforces the same password rules as change/reset."""
+
+    def test_register_rejects_short_password(self, client):
+        response = client.post(
+            "/api/auth/register",
+            json={"email": "short@example.com", "password": "abc123", "full_name": "Short"},
+        )
+        assert response.status_code == 422
+
+    def test_register_rejects_password_over_bcrypt_limit(self, client):
+        """bcrypt truncates past 72 bytes; storing a silently-truncated hash
+        would leave the user with a password the reset flow refuses."""
+        response = client.post(
+            "/api/auth/register",
+            json={"email": "long@example.com", "password": "a" * 73, "full_name": "Long"},
+        )
+        assert response.status_code == 422
+
+    def test_register_accepts_password_at_limit(self, client):
+        response = client.post(
+            "/api/auth/register",
+            json={"email": "limit@example.com", "password": "a" * 72, "full_name": "Limit"},
+        )
+        assert response.status_code == 201
+
+
+class TestLoginRateLimit:
+    """The limiter is disabled suite-wide (see conftest); switch it on here."""
+
+    def test_login_is_rate_limited(self, client, test_user):
+        from sports_passport.core.limiter import limiter
+
+        limiter.enabled = True
+        limiter.reset()
+        try:
+            statuses = [
+                client.post(
+                    "/api/auth/login",
+                    data={"username": test_user.email, "password": "wrongpassword"},
+                ).status_code
+                for _ in range(12)
+            ]
+        finally:
+            limiter.reset()
+            limiter.enabled = False
+
+        assert statuses[0] == 401
+        assert 429 in statuses, "brute-force attempts should be throttled"

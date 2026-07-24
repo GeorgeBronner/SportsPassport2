@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List
@@ -71,7 +72,16 @@ def mark_game_attended(
     )
 
     db.add(attendance)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Lost the race against a concurrent request for the same game — the
+        # unique index caught what the check above couldn't.
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Game already marked as attended"
+        )
     db.refresh(attendance)
 
     return attendance
@@ -307,6 +317,10 @@ def mark_games_bulk_attended(
     created = 0
     skipped = 0
     errors = []
+    # Games staged by this request. The session doesn't autoflush, so a game
+    # listed twice in one payload isn't visible to the existing-row query below
+    # and would otherwise violate the unique index at commit time.
+    pending: set[int] = set()
 
     for item in bulk_request.games:
         try:
@@ -322,9 +336,11 @@ def mark_games_bulk_attended(
                 UserGameAttendance.game_id == item.game_id
             ).first()
 
-            if existing:
+            if existing or item.game_id in pending:
                 skipped += 1
                 continue
+
+            pending.add(item.game_id)
 
             # Create attendance record
             attendance = UserGameAttendance(

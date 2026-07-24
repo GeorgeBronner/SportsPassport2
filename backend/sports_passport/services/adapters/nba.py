@@ -98,8 +98,16 @@ class NbaAdapter(LeagueAdapter):
     league_code = "NBA"
     source = "nba-kaggle"
 
+    http_client_kwargs = {"headers": NBA_STATS_HEADERS, "follow_redirects": True}
+
     def _read_games_csv(self) -> list[dict]:
         path = os.path.join(settings.data_dir, "raw", "nba", "Games.csv")
+        if not os.path.isfile(path):
+            raise FileNotFoundError(
+                f"NBA historical data file not found at {path}. Download "
+                "eoinamoore's \"NBA Dataset: Box Scores and Stats\" from Kaggle "
+                "and place Games.csv there (see this module's docstring)."
+            )
         with open(path, newline="", encoding="utf-8") as f:
             return list(csv.DictReader(f))
 
@@ -236,14 +244,12 @@ class NbaAdapter(LeagueAdapter):
         return result
 
     async def _fetch_scoreboard(self, day: date) -> dict:
-        async with httpx.AsyncClient(headers=NBA_STATS_HEADERS, follow_redirects=True) as client:
-            response = await client.get(
-                f"{settings.nba_stats_api_url}/scoreboardv2",
-                params={"GameDate": day.strftime("%m/%d/%Y"), "LeagueID": "00", "DayOffset": 0},
-                timeout=30.0,
-            )
-            response.raise_for_status()
-            return response.json()
+        response = await self.http.get(
+            f"{settings.nba_stats_api_url}/scoreboardv2",
+            params={"GameDate": day.strftime("%m/%d/%Y"), "LeagueID": "00", "DayOffset": 0},
+        )
+        response.raise_for_status()
+        return response.json()
 
     def _active_team_lookup(self, league_id: int) -> dict[str, int]:
         """franchise_id (== NBA's numeric team id) -> db id, active era only.

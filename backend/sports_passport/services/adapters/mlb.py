@@ -35,8 +35,6 @@ import zipfile
 from datetime import date, datetime
 from typing import Optional
 
-import httpx
-
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
@@ -88,18 +86,19 @@ class MlbAdapter(LeagueAdapter):
     league_code = "MLB"
     source = "retrosheet"
 
+    http_client_kwargs = {"follow_redirects": True}
+
     async def _get_text(self, url: str) -> str:
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(url, timeout=30.0)
-            response.raise_for_status()
-            return response.text
+        response = await self.http.get(url)
+        response.raise_for_status()
+        return response.text
 
     async def _get_zipped_rows(self, url: str) -> list[list[str]]:
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(url, timeout=60.0)
-            if response.status_code == 404:
-                return []
-            response.raise_for_status()
+        # Retrosheet season zips are large; they get longer than the default.
+        response = await self.http.get(url, timeout=60.0)
+        if response.status_code == 404:
+            return []
+        response.raise_for_status()
         with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
             name = zf.namelist()[0]
             text = zf.read(name).decode("utf-8")
@@ -348,19 +347,17 @@ class MlbAdapter(LeagueAdapter):
             result.games_updated += 1
 
     async def _fetch_schedule(self, start: date, end: date) -> dict:
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(
-                f"{settings.mlb_api_url}/schedule",
-                params={
-                    "sportId": 1,
-                    "startDate": start.isoformat(),
-                    "endDate": end.isoformat(),
-                    "hydrate": "team,venue",
-                },
-                timeout=30.0,
-            )
-            response.raise_for_status()
-            return response.json()
+        response = await self.http.get(
+            f"{settings.mlb_api_url}/schedule",
+            params={
+                "sportId": 1,
+                "startDate": start.isoformat(),
+                "endDate": end.isoformat(),
+                "hydrate": "team,venue",
+            },
+        )
+        response.raise_for_status()
+        return response.json()
 
     async def sync_recent(self, since: date) -> ImportResult:
         result = ImportResult(league=self.league_code)

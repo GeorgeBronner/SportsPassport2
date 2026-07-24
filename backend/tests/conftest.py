@@ -5,6 +5,9 @@ import os
 
 # Keep the nightly-sync scheduler from starting during TestClient lifespan.
 os.environ["SCHEDULER_ENABLED"] = "false"
+# The limiter's storage is process-wide, so the suite's many logins would trip
+# the login limit and fail unrelated tests. TestRateLimiting re-enables it.
+os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 import pytest
 from fastapi.testclient import TestClient

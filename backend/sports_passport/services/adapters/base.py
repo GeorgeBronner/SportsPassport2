@@ -11,6 +11,9 @@ All methods are idempotent upserts keyed on (source, source_*_id).
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import date
+from typing import Optional
+
+import httpx
 from sqlalchemy.orm import Session
 
 
@@ -36,8 +39,36 @@ class LeagueAdapter(ABC):
     league_code: str
     source: str  # value stored in games.source / teams.source
 
+    # Passed to the shared httpx client; adapters override for per-source needs
+    # (redirect following, anti-bot headers).
+    http_client_kwargs: dict = {}
+    http_timeout_seconds: float = 30.0
+
     def __init__(self, db: Session):
         self.db = db
+        self._http: Optional[httpx.AsyncClient] = None
+
+    @property
+    def http(self) -> httpx.AsyncClient:
+        """Connection-pooled client shared by every request this adapter makes.
+
+        A historical backfill is thousands of requests to one host; a client
+        per request would pay a fresh TCP+TLS handshake for each. Created
+        lazily so adapters that never touch the network (NBA reads a local
+        CSV) don't open one, and so tests can patch `_get` without a client
+        ever existing. Callers own the lifecycle via `aclose`.
+        """
+        if self._http is None:
+            self._http = httpx.AsyncClient(
+                timeout=self.http_timeout_seconds, **self.http_client_kwargs
+            )
+        return self._http
+
+    async def aclose(self) -> None:
+        """Release pooled connections. Safe to call when none were opened."""
+        if self._http is not None:
+            await self._http.aclose()
+            self._http = None
 
     @abstractmethod
     async def import_teams(self) -> ImportResult:

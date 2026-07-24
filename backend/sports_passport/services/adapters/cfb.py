@@ -8,8 +8,6 @@ import logging
 from datetime import date, datetime
 from typing import Any, Dict, Optional
 
-import httpx
-
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
@@ -30,15 +28,13 @@ class CfbAdapter(LeagueAdapter):
             self.headers["Authorization"] = f"Bearer {settings.cfb_api_key}"
 
     async def _get(self, endpoint: str, params: Dict[str, Any] = None) -> Any:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.base_url}{endpoint}",
-                headers=self.headers,
-                params=params,
-                timeout=30.0,
-            )
-            response.raise_for_status()
-            return response.json()
+        response = await self.http.get(
+            f"{self.base_url}{endpoint}",
+            headers=self.headers,
+            params=params,
+        )
+        response.raise_for_status()
+        return response.json()
 
     def _upsert_team_row(self, league_id: int, team_data: dict, default_classification: str) -> bool:
         _, created = upsert_team(
@@ -175,6 +171,13 @@ class CfbAdapter(LeagueAdapter):
     async def sync_recent(self, since: date) -> ImportResult:
         # CFB seasons span Aug–Jan; Jan/Feb dates belong to the prior season.
         season = since.year - 1 if since.month < 6 else since.year
+        # CFBD's /games only filters by year + seasonType, never by date, so
+        # "recent" means re-upserting the whole season (~800 games). The
+        # upserts are idempotent, so this is wasteful rather than wrong.
+        logger.info(
+            "CFB sync since %s: no date filter on CFBD /games, re-syncing all of season %s",
+            since, season,
+        )
         return await self.import_season(season)
 
     @staticmethod

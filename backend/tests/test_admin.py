@@ -13,6 +13,7 @@ def _mock_adapter(**overrides):
     adapter.import_teams = AsyncMock(return_value=result)
     adapter.import_historical = AsyncMock(return_value=result)
     adapter.sync_recent = AsyncMock(return_value=result)
+    adapter.aclose = AsyncMock()
     return adapter
 
 
@@ -28,6 +29,21 @@ class TestImportEndpoints:
         )
         assert response.status_code == 200
         assert response.json()["games_imported"] == 100
+
+    @patch('sports_passport.routers.admin.get_adapter')
+    def test_historical_import_rejects_implausible_seasons(
+        self, mock_get_adapter, client, admin_headers
+    ):
+        """1900-2100 would have the NHL adapter, which sleeps 250ms per
+        request, grinding through two centuries of empty seasons."""
+        adapter = _mock_adapter()
+        mock_get_adapter.return_value = adapter
+        response = client.post(
+            "/api/admin/import/CFB/historical?start_season=1900&end_season=2100",
+            headers=admin_headers
+        )
+        assert response.status_code == 400
+        adapter.import_historical.assert_not_awaited()
 
     @patch('sports_passport.routers.admin.get_adapter')
     def test_import_teams_as_admin(self, mock_get_adapter, client, admin_headers):

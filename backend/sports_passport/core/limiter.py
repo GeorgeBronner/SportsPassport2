@@ -2,6 +2,8 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.requests import Request
 
+from sports_passport.core.config import settings
+
 
 def _client_ip(request: Request) -> str:
     # Behind nginx/docker every request arrives from the proxy's address, which
@@ -14,4 +16,4 @@ def _client_ip(request: Request) -> str:
     return get_remote_address(request)
 
 
-limiter = Limiter(key_func=_client_ip)
+limiter = Limiter(key_func=_client_ip, enabled=settings.rate_limit_enabled)
