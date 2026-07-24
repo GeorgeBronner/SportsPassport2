@@ -168,7 +168,7 @@ viewer's own local timezone (no explicit `timeZone` override) and keeps
 themselves cross midnight in the viewer's local timezone are a known remaining
 edge case, not fully solvable without per-venue timezone data.
 
-## 6. Fresh-database `alembic upgrade head` fails (existing deploys unaffected)
+## 6. `alembic upgrade head` fails from every database state
 
 Discovered 2026-07-23 while verifying the attendance unique-constraint migration
 (`f3a9d4b6c281`) on branch `opencode-fixes-7-23`.
@@ -176,16 +176,31 @@ Discovered 2026-07-23 while verifying the attendance unique-constraint migration
 The initial migration `9182bb4bc1d2` ("initial multi-league schema") is an empty
 `pass` stub — the schema has only ever been created by
 `Base.metadata.create_all()` at import time in `main.py`, with every later
-migration `ALTER TABLE`-ing on top of it. The Dockerfile's start command runs
-`alembic upgrade head && uvicorn ...`, so against an **empty** database the
-chain dies at `b4c9e1f7a2d3` with `no such table: teams` and the container never
-starts. Reproduced against a fresh SQLite file.
+migration `ALTER TABLE`-ing on top of it. That leaves two authorities for one
+schema: `create_all` always builds the *current* models, while `alembic_version`
+records a history that never created anything. Migrations then fail in both
+directions — "no such table" on an empty database, "already exists" on a
+populated one.
 
-- **Not urgent:** the running deployment's schema and `alembic_version` are both
-  already in place, so upgrades apply normally. Only a rebuild onto an empty
-  volume (or a new environment) hits this.
-- **Fix:** backfill `9182bb4bc1d2.upgrade()` with the real `create_table` calls
-  for the initial schema, then `alembic stamp` any database that predates the
-  change so it isn't re-run there. Note this also means `create_all()` in
-  `main.py` is currently **load-bearing**, not redundant — it can only be
-  removed after the initial migration is real.
+Reproduced 2026-07-23 by scripted runs against each real state:
+
+| State | Where it exists | Failure |
+|---|---|---|
+| empty database | fresh deploy / new volume | `no such table: teams` at `9182bb4bc1d2 → b4c9e1f7a2d3` |
+| stamped `c8e2f4a6b1d9` | `backend/deploy_sports_passport.db` | `table sync_state already exists` |
+| stamped `a7e4c2f1b3d6` | `backend/sports_passport.db` (live dev DB) | `table password_reset_tokens already exists` |
+| stamped `e2f5b8c3d4a1` | prior head | `index uq_user_game_attendance already exists` |
+
+- The Dockerfile runs `alembic upgrade head && uvicorn ...`, so a container
+  whose database is in any of these states will not start.
+- The last row is a regression from this branch's `f3a9d4b6c281`: the index it
+  creates is also built by `create_all` from the model's `__table_args__`. It
+  survives a first container deploy only because migrations run before uvicorn
+  imports `main.py` — ordering luck, not a guarantee.
+- **Fix:** make every migration create-if-absent (introspect with
+  `sa.inspect(op.get_bind())` before creating a table, column, or index), then
+  backfill `9182bb4bc1d2.upgrade()` with the real `create_table` calls so a
+  fresh database has a real root revision. Only then can `create_all()` come out
+  of `main.py` — it is currently **load-bearing**, not redundant. None of this
+  drops or rewrites a populated table; back up with `sqlite3 .backup` (WAL-safe,
+  unlike `cp`) and rehearse on the copy first.
