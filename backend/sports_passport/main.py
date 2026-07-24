@@ -35,18 +35,23 @@ if settings.sentry_dsn:
 else:
     logger.warning("SENTRY_DSN not set — Sentry error reporting is disabled")
 
-# Seed static reference data. The schema itself belongs to Alembic — the
-# Dockerfile runs `alembic upgrade head` before this process starts. Calling
-# create_all() here as well is what let the two drift: it always builds the
-# *current* models regardless of which migrations had run, so migrations later
-# met tables they did not create. Run `uv run alembic upgrade head` once before
-# the first local `uvicorn`.
-with SessionLocal() as _db:
-    seed_leagues(_db)
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start the nightly sync scheduler on the running event loop, stop it on shutdown."""
+    """Seed reference data and start the nightly sync scheduler; stop it on shutdown.
+
+    Seeding happens here rather than at module import so that importing this
+    module never touches a database — an import-time query means tests, CLI
+    tools and `--help` all need a migrated database just to load the app.
+
+    The schema itself belongs to Alembic: the Dockerfile runs `alembic upgrade
+    head` before this process starts. `create_all()` used to run here too,
+    which is exactly what let the two drift — it always built the *current*
+    models regardless of which migrations had run, so later migrations met
+    tables they had not created. Locally, run `uv run alembic upgrade head`
+    once before the first `uvicorn`.
+    """
+    with SessionLocal() as db:
+        seed_leagues(db)
     start_scheduler()
     try:
         yield
