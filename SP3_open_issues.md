@@ -167,3 +167,25 @@ viewer's own local timezone (no explicit `timeZone` override) and keeps
 `has_time=false` rows pinned to UTC. Very late West Coast/Hawaii kickoffs that
 themselves cross midnight in the viewer's local timezone are a known remaining
 edge case, not fully solvable without per-venue timezone data.
+
+## 6. Fresh-database `alembic upgrade head` fails (existing deploys unaffected)
+
+Discovered 2026-07-23 while verifying the attendance unique-constraint migration
+(`f3a9d4b6c281`) on branch `opencode-fixes-7-23`.
+
+The initial migration `9182bb4bc1d2` ("initial multi-league schema") is an empty
+`pass` stub — the schema has only ever been created by
+`Base.metadata.create_all()` at import time in `main.py`, with every later
+migration `ALTER TABLE`-ing on top of it. The Dockerfile's start command runs
+`alembic upgrade head && uvicorn ...`, so against an **empty** database the
+chain dies at `b4c9e1f7a2d3` with `no such table: teams` and the container never
+starts. Reproduced against a fresh SQLite file.
+
+- **Not urgent:** the running deployment's schema and `alembic_version` are both
+  already in place, so upgrades apply normally. Only a rebuild onto an empty
+  volume (or a new environment) hits this.
+- **Fix:** backfill `9182bb4bc1d2.upgrade()` with the real `create_table` calls
+  for the initial schema, then `alembic stamp` any database that predates the
+  change so it isn't re-run there. Note this also means `create_all()` in
+  `main.py` is currently **load-bearing**, not redundant — it can only be
+  removed after the initial migration is real.
