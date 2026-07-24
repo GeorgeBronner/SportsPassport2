@@ -8,6 +8,8 @@ Create Date: 2026-07-17 12:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 
+from sports_passport.db.migration_guards import has_table
+
 
 # revision identifiers, used by Alembic.
 revision = 'e2f5b8c3d4a1'
@@ -17,6 +19,11 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Guarded: create_all() built this table on every database the app has
+    # booted against, which is ahead of where alembic_version thinks they are.
+    if has_table('password_reset_tokens'):
+        return
+
     op.create_table(
         'password_reset_tokens',
         sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),

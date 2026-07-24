@@ -12,6 +12,8 @@ Any duplicates that slipped through are collapsed first, keeping the oldest row
 from alembic import op
 import sqlalchemy as sa
 
+from sports_passport.db.migration_guards import has_index
+
 
 # revision identifiers, used by Alembic.
 revision = 'f3a9d4b6c281'
@@ -21,6 +23,13 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Guarded: the model declares this index too, so create_all() will have
+    # built it on any database the app booted before this migration ran.
+    if has_index('user_game_attendance', 'uq_user_game_attendance'):
+        return
+
+    # No guard needed on the dedupe itself — it keeps MIN(id) per pair and is
+    # a no-op where there are no duplicates.
     op.execute(
         sa.text(
             """

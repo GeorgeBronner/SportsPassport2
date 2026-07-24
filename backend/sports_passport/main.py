@@ -13,7 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sports_passport.core.config import settings
 from sports_passport.core.limiter import limiter
-from sports_passport.db.database import engine, Base, SessionLocal
+from sports_passport.db.database import SessionLocal
 from sports_passport.db.seed import seed_leagues
 from sports_passport.routers import auth, games, attendance, admin, teams, leagues, password_reset
 from sports_passport.services.scheduler import start_scheduler, shutdown_scheduler
@@ -35,8 +35,12 @@ if settings.sentry_dsn:
 else:
     logger.warning("SENTRY_DSN not set — Sentry error reporting is disabled")
 
-# Create database tables and seed static reference data
-Base.metadata.create_all(bind=engine)
+# Seed static reference data. The schema itself belongs to Alembic — the
+# Dockerfile runs `alembic upgrade head` before this process starts. Calling
+# create_all() here as well is what let the two drift: it always builds the
+# *current* models regardless of which migrations had run, so migrations later
+# met tables they did not create. Run `uv run alembic upgrade head` once before
+# the first local `uvicorn`.
 with SessionLocal() as _db:
     seed_leagues(_db)
 

@@ -168,7 +168,7 @@ viewer's own local timezone (no explicit `timeZone` override) and keeps
 themselves cross midnight in the viewer's local timezone are a known remaining
 edge case, not fully solvable without per-venue timezone data.
 
-## 6. `alembic upgrade head` fails from every database state
+## 6. `alembic upgrade head` fails from every database state — **RESOLVED 2026-07-23**
 
 Discovered 2026-07-23 while verifying the attendance unique-constraint migration
 (`f3a9d4b6c281`) on branch `opencode-fixes-7-23`.
@@ -197,10 +197,30 @@ Reproduced 2026-07-23 by scripted runs against each real state:
   creates is also built by `create_all` from the model's `__table_args__`. It
   survives a first container deploy only because migrations run before uvicorn
   imports `main.py` — ordering luck, not a guarantee.
-- **Fix:** make every migration create-if-absent (introspect with
-  `sa.inspect(op.get_bind())` before creating a table, column, or index), then
-  backfill `9182bb4bc1d2.upgrade()` with the real `create_table` calls so a
-  fresh database has a real root revision. Only then can `create_all()` come out
-  of `main.py` — it is currently **load-bearing**, not redundant. None of this
-  drops or rewrites a populated table; back up with `sqlite3 .backup` (WAL-safe,
-  unlike `cp`) and rehearse on the copy first.
+### Fix applied (2026-07-23)
+
+1. `sports_passport/db/migration_guards.py` — `has_table` / `has_column` /
+   `has_index`, introspecting via `sa.inspect(op.get_bind())`. It lives in the
+   app package because `backend/alembic/` has no `__init__.py`, so
+   `from alembic.guards import ...` would resolve to the installed library.
+2. `9182bb4bc1d2` backfilled with the real `create_table` calls for the six
+   base tables, as of that revision (no `logo_url`, no venue coordinates, no
+   `sync_state`, no `password_reset_tokens`, no attendance unique index).
+3. All six later revisions made create-if-absent. Downgrades left unguarded —
+   a downgrade is deliberate and should fail loudly.
+4. `d1f3a7c9e5b2` corrected: it declared `sync_state.league_id` unique as a
+   table constraint, but the model spells it `unique=True, index=True`, i.e. a
+   unique index — so a migration-built database did not match a create_all-built
+   one. Caught by the new schema-parity test, not by inspection.
+5. `create_all()` removed from `main.py`. Alembic now owns the schema outright;
+   a fresh database needs `alembic upgrade head` first (Docker already does it).
+6. `tests/test_migrations.py` pins convergence from all five known states, that
+   a populated database keeps its rows, and that a migration-built schema
+   matches the models.
+
+**Applied to the live database** (496,382 games / 237 attendance rows): backed
+up first with SQLite's own `.backup` (WAL-safe, unlike `cp`), rehearsed on the
+copy, then upgraded `e2f5b8c3d4a1 → f3a9d4b6c281`. Row counts, per-user
+attendance, `integrity_check` and `foreign_key_check` all identical afterwards;
+the only changes are the version stamp and the new unique index. Backup kept at
+`backend/sports_passport.pre-f3a9d4b6c281.db` (gitignored).
