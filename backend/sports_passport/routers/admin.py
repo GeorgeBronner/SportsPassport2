@@ -33,12 +33,12 @@ EARLIEST_SEASON = 1850
 def _adapter_or_404(league_code: str, db: Session):
     try:
         return get_adapter(league_code, db)
-    except KeyError:
+    except KeyError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No adapter implemented for league: {league_code}. "
                    f"Available: {sorted(ADAPTERS.keys())}"
-        )
+        ) from e
 
 
 @router.post("/import/{league_code}/teams")
@@ -56,7 +56,7 @@ async def import_league_teams(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Team import failed: {str(e)}"
-        )
+        ) from e
     finally:
         await adapter.aclose()
 
@@ -89,7 +89,7 @@ async def import_league_historical(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Historical import failed: {str(e)}"
-        )
+        ) from e
     finally:
         await adapter.aclose()
 

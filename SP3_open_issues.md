@@ -217,7 +217,23 @@ Reproduced 2026-07-23 by scripted runs against each real state:
 6. `tests/test_migrations.py` pins convergence from all five known states, that
    a populated database keeps its rows, and that a migration-built schema
    matches the models.
-7. Two more drifts caught once the parity check was widened to compare column
+7. **A sixth state, missed on the first pass and found 2026-07-25** (via
+   CodeRabbit on PR #6): a database *stamped at `9182bb4bc1d2` with no tables*.
+   This is the wreckage the old chain left on every fresh deploy — the empty
+   `pass` stub committed and stamped, then `b4c9e1f7a2d3` died at the first
+   ALTER. Backfilling the root does not rescue it: Alembic sees such a database
+   as already past that revision and restarts at `b4c9e1f7a2d3`, which meets a
+   `teams` table nobody created. The table definitions therefore moved to
+   `sports_passport/db/base_schema.py`, and `b4c9e1f7a2d3` calls
+   `create_base_schema()` before altering anything. The original test matrix
+   covered "empty and unstamped" but never "stamped and empty", which is why it
+   went unnoticed.
+
+   Note the deliberate boundary: an empty database *manually* stamped at some
+   mid-chain revision still fails, and should. That is operator error, and
+   silently reconstructing a schema underneath it would hide the mistake rather
+   than surface it.
+8. Two more drifts caught once the parity check was widened to compare column
    defaults and foreign keys, not just names and types: `sync_state.enabled`
    and `password_reset_tokens.used` carry a `server_default` in their
    migrations that the models never declared. The models now declare it, so

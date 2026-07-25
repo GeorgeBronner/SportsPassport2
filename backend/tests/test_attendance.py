@@ -415,6 +415,56 @@ class TestAttendanceUniqueness:
             db_session.commit()
         db_session.rollback()
 
+    def test_bulk_survives_a_row_already_committed_elsewhere(
+        self, client, db_session, test_user, sample_games, auth_headers, monkeypatch
+    ):
+        """A row committed by a concurrent request between the lookup and the
+        insert must cost only itself.
+
+        Before the per-row savepoint the unique index aborted the whole
+        transaction at commit, so one collided row took every good row with it
+        and the caller got a 500 with nothing saved.
+
+        The tests share one session with the endpoint (see conftest), so a row
+        committed here is visible to the lookup and would simply be skipped.
+        Blinding the lookup is what reproduces the real ordering: the other
+        request commits *after* this one has already checked.
+        """
+        from sports_passport.models.attendance import UserGameAttendance
+
+        db_session.add(
+            UserGameAttendance(user_id=test_user.id, game_id=sample_games[1].id)
+        )
+        db_session.commit()
+
+        monkeypatch.setattr(
+            "sports_passport.routers.attendance._existing_attendance",
+            lambda db, user_id, game_id: None,
+        )
+
+        response = client.post(
+            "/api/attendance/bulk",
+            json={
+                "games": [
+                    {"game_id": sample_games[0].id},
+                    {"game_id": sample_games[1].id},
+                ]
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert data["created"] == 1, "the uncollided row must still be saved"
+        assert data["skipped"] == 1
+
+        saved = {
+            a.game_id
+            for a in db_session.query(UserGameAttendance)
+            .filter(UserGameAttendance.user_id == test_user.id)
+            .all()
+        }
+        assert {sample_games[0].id, sample_games[1].id} <= saved
+
     def test_bulk_rejects_oversized_payload(self, client, sample_games, auth_headers):
         response = client.post(
             "/api/attendance/bulk",

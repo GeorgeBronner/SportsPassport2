@@ -37,6 +37,18 @@ def _with_game_relations(query):
     )
 
 
+def _existing_attendance(db: Session, user_id: int, game_id: int):
+    """The caller's attendance row for this game, if any.
+
+    Advisory only — it cannot see a row another session has not committed yet,
+    which is why both callers still let the unique index have the final say.
+    """
+    return db.query(UserGameAttendance).filter(
+        UserGameAttendance.user_id == user_id,
+        UserGameAttendance.game_id == game_id,
+    ).first()
+
+
 @router.post("/", response_model=AttendanceResponse, status_code=status.HTTP_201_CREATED)
 def mark_game_attended(
     attendance_data: AttendanceCreate,
@@ -53,10 +65,7 @@ def mark_game_attended(
         )
 
     # Check if already marked as attended
-    existing = db.query(UserGameAttendance).filter(
-        UserGameAttendance.user_id == current_user.id,
-        UserGameAttendance.game_id == attendance_data.game_id
-    ).first()
+    existing = _existing_attendance(db, current_user.id, attendance_data.game_id)
 
     if existing:
         raise HTTPException(
@@ -74,14 +83,14 @@ def mark_game_attended(
     db.add(attendance)
     try:
         db.commit()
-    except IntegrityError:
+    except IntegrityError as e:
         # Lost the race against a concurrent request for the same game — the
         # unique index caught what the check above couldn't.
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Game already marked as attended"
-        )
+        ) from e
     db.refresh(attendance)
 
     return attendance
@@ -331,10 +340,7 @@ def mark_games_bulk_attended(
                 continue
 
             # Check if already marked as attended
-            existing = db.query(UserGameAttendance).filter(
-                UserGameAttendance.user_id == current_user.id,
-                UserGameAttendance.game_id == item.game_id
-            ).first()
+            existing = _existing_attendance(db, current_user.id, item.game_id)
 
             if existing or item.game_id in pending:
                 skipped += 1
@@ -342,13 +348,27 @@ def mark_games_bulk_attended(
 
             pending.add(item.game_id)
 
-            # Create attendance record
-            attendance = UserGameAttendance(
-                user_id=current_user.id,
-                game_id=item.game_id,
-                notes=item.notes
-            )
-            db.add(attendance)
+            # Create attendance record inside a savepoint, so a row that loses
+            # the race against a *concurrent* bulk request costs only itself.
+            # The lookup above can't see uncommitted work in another session,
+            # so without this the unique index would abort the whole
+            # transaction at commit and drop every good row with it.
+            try:
+                with db.begin_nested():
+                    db.add(
+                        UserGameAttendance(
+                            user_id=current_user.id,
+                            game_id=item.game_id,
+                            notes=item.notes
+                        )
+                    )
+            except IntegrityError:
+                # Someone else committed this pair first. It stays in `pending`
+                # so a later copy in this same payload is skipped too, rather
+                # than burning another savepoint to rediscover the conflict.
+                skipped += 1
+                continue
+
             created += 1
 
         except Exception as e:
@@ -363,7 +383,7 @@ def mark_games_bulk_attended(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to save attendance records: {str(e)}"
-        )
+        ) from e
 
     return BulkAttendanceResponse(
         created=created,

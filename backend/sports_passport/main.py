@@ -110,7 +110,7 @@ def health_check():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="database unavailable",
-        )
+        ) from e
     return {"status": "healthy"}
 
 

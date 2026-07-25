@@ -36,9 +36,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
           <p className="text-ink-2 mb-6">
             The page hit an unexpected error. Reloading usually clears it.
           </p>
-          <pre className="text-left text-xs text-ink-3 bg-panel-2 rounded-xl p-4 mb-6 overflow-x-auto">
-            {error.message}
-          </pre>
+          {/* The message itself stays out of the DOM — it can carry internal
+              paths, query shapes or response fragments. componentDidCatch has
+              already logged it with the full component stack for debugging. */}
           <Button onClick={() => window.location.reload()}>Reload the app</Button>
         </div>
       </div>

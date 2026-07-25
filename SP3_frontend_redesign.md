@@ -133,6 +133,13 @@ Match results (2026-07-15 run):
       the production DB (or copy `backend/data/logos/` into the `./data` volume)
 - [x] CLAUDE.md points at this plan; Login/Register kept their own light styling
       (self-contained pages; token pass optional later)
+- [x] Resilience: a top-level `ErrorBoundary` wraps every route, so a render
+      error shows a recoverable "Something went wrong" page with a reload
+      action instead of unmounting the tree to a blank screen. The error text
+      goes to `console.error` with the component stack, never into the DOM —
+      it can carry internal paths or response fragments. Paired with request
+      timeouts in `api/client.ts` (30s default, 10m for admin imports/syncs)
+      so a stalled backend surfaces as an error rather than a forever-spinner.
 
 ## Compliance
 
