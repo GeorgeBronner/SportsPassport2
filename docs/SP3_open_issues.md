@@ -55,13 +55,27 @@ files if regular-season coverage is ever extended earlier.
   toward venue/stamp stats). Only one attended game is affected, so deferred.
 - After any import, log attendance for user_id 2 on the game above.
 
-## 2. Can't tell CFB and CBB teams apart in the all-leagues view
+## 2. Can't tell CFB and CBB teams apart in the all-leagues view — **RESOLVED 2026-07-25**
 
 When browsing/searching teams with the league filter set to all leagues, college
-football and college basketball teams are indistinguishable: the same school appears
+football and college basketball teams were indistinguishable: the same school appeared
 twice with the same name (e.g. two "Alabama Crimson Tide" entries — one CFB, one CBB)
-and nothing in the list indicates which league a given entry belongs to. Noted
-2026-07-15; no solution designed yet.
+and nothing in the list indicated which league a given entry belonged to. Noted
+2026-07-15.
+
+Partly addressed by the frontend rebuild — omnibox results are grouped under a
+league header (`Omnibox.tsx`) and TeamDetail prints the league code — but the
+"Your teams" chips on Find and the game rows on My log still showed nothing but
+a name and a logo, and a school's CFB and CBB rows often share both.
+
+**Fix**: `TeamBadge` renders a small basketball marker on the bottom-right corner
+of the team icon when `leagueCode === 'CBB'`, ringed in `var(--panel)` so it stays
+legible over a busy logo. The marker is absolutely positioned inside a wrapper the
+size of the badge, so no layout box changes; the slight overhang is kept under the
+6px badge-to-name gap used by the tightest rows. Every surface that shows a team
+icon goes through `TeamBadge`, so the one change covers Find, the omnibox, My log
+and TeamDetail. CFB is left unmarked — it's the default reading of a college team
+here, and marking only the exception keeps the lists quiet.
 
 ## 3. MLB team naming: "St. Louis Browns" is really the Cardinals — **RESOLVED 2026-07-15**
 
