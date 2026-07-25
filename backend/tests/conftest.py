@@ -8,6 +8,10 @@ os.environ["SCHEDULER_ENABLED"] = "false"
 # The limiter's storage is process-wide, so the suite's many logins would trip
 # the login limit and fail unrelated tests. TestRateLimiting re-enables it.
 os.environ["RATE_LIMIT_ENABLED"] = "false"
+# A developer's .env supplies a real DSN, so without this every run reports the
+# suite's deliberately-raised exceptions to the production project, tagged with
+# whatever SHA happens to be checked out.
+os.environ["SENTRY_DSN"] = ""
 
 import pytest
 from fastapi.testclient import TestClient
