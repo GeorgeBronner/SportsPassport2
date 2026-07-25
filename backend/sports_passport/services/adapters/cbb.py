@@ -9,8 +9,8 @@ Scope is Division I men's basketball (the app's trackable floor, same idea
 as CFB's FBS-only floor), with a 1990 historical floor matching CFB's — not
 a data-availability limit (live testing found clean CBBD game data back to
 at least 1950), a scope choice to bound decades of conference-realignment
-bookkeeping. See SP3_data_sources.md's CBB section for the full research and
-SP3_plan.md for the floor-year decision.
+bookkeeping. See docs/SP3_data_sources.md's CBB section for the full research and
+docs/SP3_plan.md for the floor-year decision.
 
 Non-D-I opponents ("buy games"): D-I teams occasionally play D-II/D-III/NAIA
 opponents, and those games should still be loggable. CBBD's `/games` payload

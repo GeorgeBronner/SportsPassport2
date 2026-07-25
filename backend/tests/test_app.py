@@ -48,6 +48,25 @@ class TestCorsConfig:
         assert "*" not in settings.cors_origin_list
         assert settings.cors_origin_list
 
+    def test_wildcard_origin_is_rejected_at_config_load(self):
+        """A wildcard must fail startup, not be honoured. Configuring it is
+        the one way this app could hand any site credentialed API access."""
+        import pytest
+        from pydantic import ValidationError
+
+        from sports_passport.core.config import Settings
+
+        with pytest.raises(ValidationError):
+            Settings(secret_key="x", cors_origins="*")
+        with pytest.raises(ValidationError):
+            Settings(secret_key="x", cors_origins="http://ok.example, *")
+
+    def test_explicit_origins_still_load(self):
+        from sports_passport.core.config import Settings
+
+        s = Settings(secret_key="x", cors_origins="http://a.example, http://b.example")
+        assert s.cors_origin_list == ["http://a.example", "http://b.example"]
+
 
 class TestLikePattern:
     def test_wildcards_are_escaped(self):

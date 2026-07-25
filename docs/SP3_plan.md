@@ -5,7 +5,8 @@ SportsPassport2** and lives in `E:\Documents\Coding\myProjects\SportsPassport2`)
 attended across **College Football (CFB), MLB, NFL, NBA, and NHL**, extensible to future
 leagues (MLS, etc.). Direct evolution of the original college football tracker (preserved at
 `E:\Documents\Coding\myProjects\cfb-tracker`), reusing its proven stack and porting its CFB
-integration. Phase progress is tracked in [tasks/todo.md](tasks/todo.md).
+integration. Phase progress is tracked in this document's own phase checkboxes
+(`tasks/todo.md` was retired).
 
 Companion doc: [SP3_data_sources.md](SP3_data_sources.md) — full data source research.
 

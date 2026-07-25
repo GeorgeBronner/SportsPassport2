@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
 
@@ -43,6 +44,24 @@ class Settings(BaseSettings):
     # Rate limiting (login, forgot/reset-password). Disabled in tests so the
     # suite's repeated logins don't trip the limiter.
     rate_limit_enabled: bool = True
+
+    @field_validator("cors_origins")
+    @classmethod
+    def _reject_wildcard_origin(cls, v: str) -> str:
+        """Fail startup on CORS_ORIGINS=*, rather than honouring it.
+
+        The middleware runs with allow_credentials, and Starlette answers a
+        wildcard by echoing back whatever Origin asked — so "*" would hand any
+        site credentialed access to this API. Refusing it at config load makes
+        that a startup failure an operator sees immediately, instead of a
+        silently permissive deployment.
+        """
+        if any(o.strip() == "*" for o in v.split(",")):
+            raise ValueError(
+                "CORS_ORIGINS must list explicit origins; '*' is unsafe with "
+                "credentialed requests"
+            )
+        return v
 
     @property
     def cors_origin_list(self) -> list[str]:

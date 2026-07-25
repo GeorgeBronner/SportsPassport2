@@ -6,7 +6,7 @@ full schedule (1999-present, auto-updated, including the in-progress
 season). Per a 2026-07-11 decision, NFL ships with a **1999 floor** rather
 than the plan's original 1970 target: the 1970-1998 gap would need the
 Kaggle "Spreadspoke" CSV, which now sits behind a Kaggle login or a paid
-tier (see SP3_data_sources.md) — deferred rather than blocking on that.
+tier (see docs/SP3_data_sources.md) — deferred rather than blocking on that.
 
 - Games (1999-present):
     https://github.com/nflverse/nfldata/raw/master/data/games.csv

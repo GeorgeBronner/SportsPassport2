@@ -4,10 +4,11 @@ A web application for tracking games you've attended across **College Football, 
 and NHL**, with statistics and historical game data back to 1970 (1990 for CFB). Built to be
 extensible to future leagues (MLS, etc.).
 
-**Status:** 🚧 In development — see [tasks/todo.md](tasks/todo.md) for phase progress.
+**Status:** 🚧 In development — see [docs/SP3_plan.md](docs/SP3_plan.md) for phase progress.
 
 This is the successor to the college-football-only tracker (preserved at `../cfb-tracker`).
-Planning docs: [SP3_plan.md](SP3_plan.md) · [SP3_data_sources.md](SP3_data_sources.md)
+Planning docs: [SP3_plan.md](docs/SP3_plan.md) · [SP3_data_sources.md](docs/SP3_data_sources.md) ·
+[SP3_frontend_redesign.md](docs/SP3_frontend_redesign.md) · [SP3_open_issues.md](docs/SP3_open_issues.md)
 
 ## Features
 

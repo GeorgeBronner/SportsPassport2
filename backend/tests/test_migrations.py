@@ -142,6 +142,36 @@ class TestUpgradeConvergence:
         assert result.returncode == 0, f"upgrade failed:\n{result.stderr}"
         assert _current_revision(tmp_db) == HEAD
 
+    def test_upgrade_head_from_root_stamp_with_no_tables(self, tmp_db):
+        """The wreckage the old chain left on every fresh deploy.
+
+        `9182bb4bc1d2` shipped as an empty `pass` stub, so a fresh database
+        *committed* it — stamping alembic_version — and only then died at the
+        first ALTER in `b4c9e1f7a2d3`. The result is stamped one revision past
+        a schema that was never created, and Alembic will not re-run the root.
+        Backfilling the root alone therefore does not rescue these; the repair
+        has to live in the revision Alembic actually restarts at.
+        """
+        assert _alembic(["stamp", "9182bb4bc1d2"], tmp_db).returncode == 0
+        con = sqlite3.connect(f"file:{tmp_db}?mode=ro", uri=True)
+        tables = [r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+        con.close()
+        assert tables == ["alembic_version"], "precondition: no tables, only the stamp"
+
+        result = _alembic(["upgrade", "head"], tmp_db)
+        assert result.returncode == 0, f"upgrade failed:\n{result.stderr}"
+        assert _current_revision(tmp_db) == HEAD
+
+        # Reaching head is not enough — the recovered schema has to be the
+        # real one, not a partial rebuild that merely stopped erroring.
+        directory = tempfile.mkdtemp()
+        try:
+            reference = os.path.join(directory, "models.db")
+            _create_all(reference)
+            assert _schema(tmp_db) == _schema(reference)
+        finally:
+            shutil.rmtree(directory, ignore_errors=True)
+
     def test_upgrade_preserves_existing_rows(self, tmp_db):
         """Migrating a populated database must not touch its data."""
         _create_all(tmp_db)

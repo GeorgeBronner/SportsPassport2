@@ -5,13 +5,14 @@ basketball; extensible to MLS etc.).
 Evolution of the original college football tracker (preserved at `../cfb-tracker`). Personal/family
 use, Docker-deployed.
 
-Key docs: [SP3_plan.md](SP3_plan.md) (build plan + phase status), [SP3_data_sources.md](SP3_data_sources.md)
-(data source research), [SP3_frontend_redesign.md](SP3_frontend_redesign.md) (frontend rebuild plan + phase status),
-[SP3_open_issues.md](SP3_open_issues.md) (known data gaps/defects), [tasks/todo.md](tasks/todo.md) (current work).
+Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase status),
+[SP3_data_sources.md](docs/SP3_data_sources.md) (data source research),
+[SP3_frontend_redesign.md](docs/SP3_frontend_redesign.md) (frontend rebuild plan + phase status),
+[SP3_open_issues.md](docs/SP3_open_issues.md) (known data gaps/defects).
 
 ## Tech Stack
 - **Backend**: FastAPI, SQLAlchemy, Alembic, SQLite, Pydantic; JWT auth + bcrypt; package `sports_passport`
-- **Frontend**: React 18 + TypeScript, Vite, Tailwind CSS v4, React Router v6, Axios — built to `backend/static/`, served by FastAPI. Views: Find (omnibox + team workspace), Map (venue atlas), My log (stamps + ledger), Stats (passport page), Admin. Light/dark via CSS-var tokens (see SP3_frontend_redesign.md).
+- **Frontend**: React 18 + TypeScript, Vite, Tailwind CSS v4, React Router v6, Axios — built to `backend/static/`, served by FastAPI. Views: Find (omnibox + team workspace), Map (venue atlas), My log (stamps + ledger), Stats (passport page), Admin. Light/dark via CSS-var tokens (see `docs/SP3_frontend_redesign.md`).
 - **Deploy**: Docker + Docker Compose, single port 8000
 
 ## Architecture
@@ -22,15 +23,15 @@ Key docs: [SP3_plan.md](SP3_plan.md) (build plan + phase status), [SP3_data_sour
   Adding a league = one adapter module + one seed row.
 - Bulk files for historical backfill live in `backend/data/raw/<league>/` (gitignored).
   A hand-built `backend/data/seed/nba_arenas.csv` (historical venue lookup) is planned
-  but not yet built — deferred to Phase 7, see SP3_plan.md.
-- **Compliance rules** (from SP3_data_sources.md — do not violate): MLB Stats API is
+  but not yet built — deferred to Phase 7, see `docs/SP3_plan.md`.
+- **Compliance rules** (from `docs/SP3_data_sources.md` — do not violate): MLB Stats API is
   sync-only, never bulk backfill (Retrosheet for that); throttle stats.nba.com; never
   scrape Sports-Reference sites.
 
 ## Conventions
 - **Git**: feature branches (`feature-name`); merge to `main` when complete and tested. Commit messages concise; **never mention Claude/AI/code-generation tools**.
 - **Code organization**: routers focused by domain (auth, leagues, games, teams, attendance, admin); add schemas to the matching schema file; test new endpoints before committing.
-- Keep documentation (this file, SP3_plan.md phase checkboxes) updated when features change.
+- Keep documentation (this file, `docs/SP3_plan.md` phase checkboxes) updated when features change.
 
 ## Common Commands
 ```bash
@@ -44,7 +45,7 @@ docker compose up -d --build                 # full build (backend + frontend)
 ## Database schema
 Alembic owns the schema outright — the app no longer calls `create_all()` at
 startup (two authorities for one schema is what broke the migration chain; see
-SP3_open_issues.md #6). So a new database needs `alembic upgrade head` before
+`docs/SP3_open_issues.md` #6). So a new database needs `alembic upgrade head` before
 the first `uvicorn`; Docker runs it automatically. Migrations are written
 create-if-absent using `sports_passport/db/migration_guards.py`, so `upgrade
 head` is safe from any existing database state. `tests/test_migrations.py`

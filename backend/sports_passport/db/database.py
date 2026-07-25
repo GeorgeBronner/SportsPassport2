@@ -12,7 +12,7 @@ if "sqlite" in settings.database_url:
     # WAL allows concurrent readers alongside a writer; busy_timeout makes a
     # second writer (e.g. two admin imports, or parallel backfill scripts)
     # wait for the lock instead of failing immediately with "database is
-    # locked". Documented as already-decided in SP3_plan.md's risk table but
+    # locked". Documented as already-decided in docs/SP3_plan.md's risk table but
     # never actually wired up until now.
     @event.listens_for(engine, "connect")
     def _set_sqlite_pragma(dbapi_connection, connection_record):
