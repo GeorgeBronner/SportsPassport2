@@ -8,6 +8,8 @@ Create Date: 2026-07-16 11:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 
+from sports_passport.db.migration_guards import has_column
+
 
 # revision identifiers, used by Alembic.
 revision = 'a7e4c2f1b3d6'
@@ -17,7 +19,9 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column('sync_state', sa.Column('last_success_at', sa.DateTime(), nullable=True))
+    # Guarded: create_all() built this column on every existing database.
+    if not has_column('sync_state', 'last_success_at'):
+        op.add_column('sync_state', sa.Column('last_success_at', sa.DateTime(), nullable=True))
 
 
 def downgrade() -> None:

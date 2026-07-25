@@ -104,6 +104,7 @@ async def run_sync_for_league(
 
     result = ImportResult(league=league.code)
     started = datetime.now()
+    adapter = None
     try:
         adapter = get_adapter(league_code, db)
         result = await asyncio.wait_for(
@@ -122,6 +123,8 @@ async def run_sync_for_league(
         result.errors.append(str(e))
         logger.exception("Sync for %s failed", league_code)
     finally:
+        if adapter is not None:
+            await adapter.aclose()  # release the adapter's pooled connections
         state.last_run_at = started
         state.last_duration_ms = int((datetime.now() - started).total_seconds() * 1000)
         state.last_games_imported = result.games_imported

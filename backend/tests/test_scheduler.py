@@ -19,6 +19,7 @@ def _mock_adapter(**overrides):
     adapter = Mock()
     result = ImportResult(league="CFB", games_imported=5, games_updated=2, **overrides)
     adapter.sync_recent = AsyncMock(return_value=result)
+    adapter.aclose = AsyncMock()
     return adapter
 
 
@@ -83,6 +84,7 @@ class TestRunSyncForLeague:
     def test_hard_failure_recorded_not_raised(self, mock_get_adapter, db_session):
         adapter = Mock()
         adapter.sync_recent = AsyncMock(side_effect=Exception("network down"))
+        adapter.aclose = AsyncMock()
         mock_get_adapter.return_value = adapter
         import asyncio
         result = asyncio.run(
@@ -109,6 +111,7 @@ class TestRunSyncForLeague:
 
         adapter = Mock()
         adapter.sync_recent = AsyncMock(side_effect=_boom)
+        adapter.aclose = AsyncMock()
         mock_get_adapter.return_value = adapter
 
         import asyncio

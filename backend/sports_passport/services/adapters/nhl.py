@@ -20,8 +20,6 @@ import logging
 from datetime import date, datetime, timedelta
 from typing import Any, Optional
 
-import httpx
-
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
@@ -40,12 +38,11 @@ class NhlAdapter(LeagueAdapter):
     source = "nhl"
 
     async def _get(self, url: str, ok_404: bool = False) -> Optional[Any]:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, timeout=30.0)
-            if ok_404 and response.status_code == 404:
-                return None
-            response.raise_for_status()
-            return response.json()
+        response = await self.http.get(url)
+        if ok_404 and response.status_code == 404:
+            return None
+        response.raise_for_status()
+        return response.json()
 
     async def import_teams(self) -> ImportResult:
         result = ImportResult(league=self.league_code)

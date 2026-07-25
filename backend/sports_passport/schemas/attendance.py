@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 from datetime import datetime
 from typing import Optional, List
 from sports_passport.core.serializers import naive_utc_isoformat
@@ -80,8 +80,13 @@ class BulkAttendanceItem(BaseModel):
 
 
 class BulkAttendanceRequest(BaseModel):
-    """Request to mark multiple games as attended"""
-    games: List[BulkAttendanceItem]
+    """Request to mark multiple games as attended.
+
+    Capped so an oversized payload is rejected during parsing rather than
+    turning into an unbounded row-by-row loop; a lifetime of attendance is a
+    few thousand games, and imports can be split across requests.
+    """
+    games: List[BulkAttendanceItem] = Field(..., max_length=5000)
 
 
 class BulkAttendanceResponse(BaseModel):

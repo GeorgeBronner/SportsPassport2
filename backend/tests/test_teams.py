@@ -120,3 +120,18 @@ class TestGetTeam:
         team_id = sample_teams[0].id
         response = client.get(f"/api/teams/{team_id}")
         assert response.status_code == 401
+
+
+class TestSearchWildcards:
+    """`%` and `_` are LIKE wildcards; a search for them is a literal search."""
+
+    def test_percent_does_not_match_everything(self, client, sample_teams, auth_headers):
+        response = client.get("/api/teams/?search=%25", headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json() == []
+
+    def test_underscore_does_not_match_any_character(self, client, sample_teams, auth_headers):
+        # "Ohio State" would match "%Ohi_%" if the underscore stayed a wildcard
+        response = client.get("/api/teams/?search=Ohi_", headers=auth_headers)
+        assert response.status_code == 200
+        assert response.json() == []

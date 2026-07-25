@@ -1,10 +1,18 @@
-import apiClient from './client';
+import apiClient, { LONG_TIMEOUT_MS } from './client';
 import type { User, ImportResult, AdminStatusRow } from '../types/api';
+
+// Imports and syncs pull whole seasons from upstream APIs — far past the
+// client's default timeout.
+const longRunning = { timeout: LONG_TIMEOUT_MS };
 
 export const adminApi = {
   // Import/refresh teams for a league
   importTeams: async (league: string): Promise<ImportResult> => {
-    const response = await apiClient.post<ImportResult>(`/admin/import/${league}/teams`);
+    const response = await apiClient.post<ImportResult>(
+      `/admin/import/${league}/teams`,
+      null,
+      longRunning
+    );
     return response.data;
   },
 
@@ -17,7 +25,7 @@ export const adminApi = {
     const response = await apiClient.post<ImportResult>(
       `/admin/import/${league}/historical`,
       null,
-      { params: { start_season: startSeason, end_season: endSeason } }
+      { params: { start_season: startSeason, end_season: endSeason }, ...longRunning }
     );
     return response.data;
   },
@@ -26,6 +34,7 @@ export const adminApi = {
   syncLeague: async (league: string, days: number = 7): Promise<ImportResult> => {
     const response = await apiClient.post<ImportResult>(`/admin/sync/${league}`, null, {
       params: { days },
+      ...longRunning,
     });
     return response.data;
   },

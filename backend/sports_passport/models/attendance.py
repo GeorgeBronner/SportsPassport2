@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sports_passport.db.database import Base
@@ -6,6 +6,13 @@ from sports_passport.db.database import Base
 
 class UserGameAttendance(Base):
     __tablename__ = "user_game_attendance"
+
+    # A user attends a given game once. The routers check before inserting, but
+    # two concurrent requests can both pass that check — the database is what
+    # actually makes it true.
+    __table_args__ = (
+        Index("uq_user_game_attendance", "user_id", "game_id", unique=True),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)

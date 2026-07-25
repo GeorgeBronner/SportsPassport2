@@ -34,8 +34,19 @@ Key docs: [SP3_plan.md](SP3_plan.md) (build plan + phase status), [SP3_data_sour
 
 ## Common Commands
 ```bash
+cd backend && uv run alembic upgrade head    # apply migrations — required before first run
 cd backend && uv run pytest tests/ -q        # run tests
 cd backend && uv run uvicorn sports_passport.main:app --reload   # dev server (localhost:8000)
 cd frontend && npm run dev                   # frontend hot-reload dev (localhost:5173)
 docker compose up -d --build                 # full build (backend + frontend)
 ```
+
+## Database schema
+Alembic owns the schema outright — the app no longer calls `create_all()` at
+startup (two authorities for one schema is what broke the migration chain; see
+SP3_open_issues.md #6). So a new database needs `alembic upgrade head` before
+the first `uvicorn`; Docker runs it automatically. Migrations are written
+create-if-absent using `sports_passport/db/migration_guards.py`, so `upgrade
+head` is safe from any existing database state. `tests/test_migrations.py`
+pins both properties, including that a migration-built schema matches the
+models — keep it green when adding migrations.

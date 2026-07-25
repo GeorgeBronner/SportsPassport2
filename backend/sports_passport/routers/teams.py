@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func
 from typing import List, Optional
+from sports_passport.core.queries import LIKE_ESCAPE, contains_pattern
 from sports_passport.db.database import get_db
 from sports_passport.models.team import Team
 from sports_passport.models.league import League
@@ -65,13 +66,17 @@ def list_teams(
 
     # CFB-specific fbs/fcs filter; pass 'all' or omit for everything
     if classification and classification.lower() != "all":
-        query = query.filter(Team.classification.ilike(f"%{classification}%"))
+        query = query.filter(
+            Team.classification.ilike(contains_pattern(classification), escape=LIKE_ESCAPE)
+        )
 
     if conference:
-        query = query.filter(Team.conference.ilike(f"%{conference}%"))
+        query = query.filter(
+            Team.conference.ilike(contains_pattern(conference), escape=LIKE_ESCAPE)
+        )
 
     if search:
-        query = query.filter(Team.name.ilike(f"%{search}%"))
+        query = query.filter(Team.name.ilike(contains_pattern(search), escape=LIKE_ESCAPE))
 
     if franchise_id is not None:
         query = query.filter(Team.franchise_id == franchise_id)
@@ -96,14 +101,14 @@ def search_teams(
     Matches name/nickname/city, returns the caller's attended count per team,
     and ranks: attended first, then prefix matches, active teams, name.
     """
-    like = f"%{q}%"
+    like = contains_pattern(q)
     query = (
         db.query(Team, League.code)
         .join(League, Team.league_id == League.id)
         .filter(or_(
-            Team.name.ilike(like),
-            Team.nickname.ilike(like),
-            Team.city.ilike(like),
+            Team.name.ilike(like, escape=LIKE_ESCAPE),
+            Team.nickname.ilike(like, escape=LIKE_ESCAPE),
+            Team.city.ilike(like, escape=LIKE_ESCAPE),
         ))
     )
     if league:

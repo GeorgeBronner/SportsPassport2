@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -18,77 +19,79 @@ const App: React.FC = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Find />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Find />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/map"
-            element={
-              <ProtectedRoute>
-                <MapView />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/map"
+              element={
+                <ProtectedRoute>
+                  <MapView />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/my-games"
-            element={
-              <ProtectedRoute>
-                <MyGames />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/my-games"
+              element={
+                <ProtectedRoute>
+                  <MyGames />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/statistics"
-            element={
-              <ProtectedRoute>
-                <Statistics />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/statistics"
+              element={
+                <ProtectedRoute>
+                  <Statistics />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute requireAdmin>
-                <Admin />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requireAdmin>
+                  <Admin />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route
-            path="/teams/:id"
-            element={
-              <ProtectedRoute>
-                <TeamDetail />
-              </ProtectedRoute>
-            }
-          />
+            <Route
+              path="/teams/:id"
+              element={
+                <ProtectedRoute>
+                  <TeamDetail />
+                </ProtectedRoute>
+              }
+            />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ErrorBoundary>
       </AuthProvider>
     </BrowserRouter>
   );

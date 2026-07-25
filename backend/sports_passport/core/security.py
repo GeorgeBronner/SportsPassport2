@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 import bcrypt
+from fastapi import HTTPException, status
 from jose import JWTError, jwt
 from sports_passport.core.config import settings
 
@@ -8,10 +9,31 @@ from sports_passport.core.config import settings
 # ValueError for anything longer, so truncate to match that limit explicitly.
 BCRYPT_MAX_PASSWORD_BYTES = 72
 
+MIN_PASSWORD_LENGTH = 8
+
 
 def _encode_password(password: str) -> bytes:
     """Encode a password to the bytes bcrypt accepts (max 72 bytes)."""
     return password.encode("utf-8")[:BCRYPT_MAX_PASSWORD_BYTES]
+
+
+def validate_password(password: str) -> None:
+    """Enforce the same rules everywhere a password is set (register, change, reset).
+
+    The upper bound matters as much as the lower one: bcrypt truncates past 72
+    bytes, so without this check register would silently store the first 72
+    bytes of a longer password while the reset flow rejects it outright.
+    """
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Password must be at least {MIN_PASSWORD_LENGTH} characters",
+        )
+    if len(password.encode()) > BCRYPT_MAX_PASSWORD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"Password must be at most {BCRYPT_MAX_PASSWORD_BYTES} bytes",
+        )
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

@@ -40,8 +40,6 @@ import logging
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, Optional
 
-import httpx
-
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
@@ -64,15 +62,13 @@ class CbbAdapter(LeagueAdapter):
             self.headers["Authorization"] = f"Bearer {settings.cfb_api_key}"
 
     async def _get(self, endpoint: str, params: Dict[str, Any] = None) -> Any:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.base_url}{endpoint}",
-                headers=self.headers,
-                params=params,
-                timeout=30.0,
-            )
-            response.raise_for_status()
-            return response.json()
+        response = await self.http.get(
+            f"{self.base_url}{endpoint}",
+            headers=self.headers,
+            params=params,
+        )
+        response.raise_for_status()
+        return response.json()
 
     @staticmethod
     def _current_cbbd_season() -> int:

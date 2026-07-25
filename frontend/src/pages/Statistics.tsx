@@ -22,7 +22,10 @@ const Statistics: React.FC = () => {
     attendanceApi
       .getStats()
       .then(setStats)
-      .catch(() => setStats(null))
+      .catch((err) => {
+        console.error('Failed to load statistics', err);
+        setStats(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 

@@ -5,6 +5,9 @@ import os
 
 # Keep the nightly-sync scheduler from starting during TestClient lifespan.
 os.environ["SCHEDULER_ENABLED"] = "false"
+# The limiter's storage is process-wide, so the suite's many logins would trip
+# the login limit and fail unrelated tests. TestRateLimiting re-enables it.
+os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -64,6 +67,10 @@ def client(db_session, monkeypatch):
     # that at the test engine too, or a background job would touch the real
     # dev database file instead of this test's in-memory one.
     monkeypatch.setattr("sports_passport.services.scheduler.SessionLocal", TestingSessionLocal)
+    # Same for the lifespan's league seeding, which TestClient triggers on
+    # entry. Without this it would seed the real dev database — and fail
+    # outright wherever one doesn't exist yet (fresh clone, CI).
+    monkeypatch.setattr("sports_passport.main.SessionLocal", TestingSessionLocal)
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

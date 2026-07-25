@@ -167,3 +167,67 @@ viewer's own local timezone (no explicit `timeZone` override) and keeps
 `has_time=false` rows pinned to UTC. Very late West Coast/Hawaii kickoffs that
 themselves cross midnight in the viewer's local timezone are a known remaining
 edge case, not fully solvable without per-venue timezone data.
+
+## 6. `alembic upgrade head` fails from every database state — **RESOLVED 2026-07-23**
+
+Discovered 2026-07-23 while verifying the attendance unique-constraint migration
+(`f3a9d4b6c281`) on branch `opencode-fixes-7-23`.
+
+The initial migration `9182bb4bc1d2` ("initial multi-league schema") is an empty
+`pass` stub — the schema has only ever been created by
+`Base.metadata.create_all()` at import time in `main.py`, with every later
+migration `ALTER TABLE`-ing on top of it. That leaves two authorities for one
+schema: `create_all` always builds the *current* models, while `alembic_version`
+records a history that never created anything. Migrations then fail in both
+directions — "no such table" on an empty database, "already exists" on a
+populated one.
+
+Reproduced 2026-07-23 by scripted runs against each real state:
+
+| State | Where it exists | Failure |
+|---|---|---|
+| empty database | fresh deploy / new volume | `no such table: teams` at `9182bb4bc1d2 → b4c9e1f7a2d3` |
+| stamped `c8e2f4a6b1d9` | `backend/deploy_sports_passport.db` | `table sync_state already exists` |
+| stamped `a7e4c2f1b3d6` | `backend/sports_passport.db` (live dev DB) | `table password_reset_tokens already exists` |
+| stamped `e2f5b8c3d4a1` | prior head | `index uq_user_game_attendance already exists` |
+
+- The Dockerfile runs `alembic upgrade head && uvicorn ...`, so a container
+  whose database is in any of these states will not start.
+- The last row is a regression from this branch's `f3a9d4b6c281`: the index it
+  creates is also built by `create_all` from the model's `__table_args__`. It
+  survives a first container deploy only because migrations run before uvicorn
+  imports `main.py` — ordering luck, not a guarantee.
+### Fix applied (2026-07-23)
+
+1. `sports_passport/db/migration_guards.py` — `has_table` / `has_column` /
+   `has_index`, introspecting via `sa.inspect(op.get_bind())`. It lives in the
+   app package because `backend/alembic/` has no `__init__.py`, so
+   `from alembic.guards import ...` would resolve to the installed library.
+2. `9182bb4bc1d2` backfilled with the real `create_table` calls for the six
+   base tables, as of that revision (no `logo_url`, no venue coordinates, no
+   `sync_state`, no `password_reset_tokens`, no attendance unique index).
+3. All six later revisions made create-if-absent. Downgrades left unguarded —
+   a downgrade is deliberate and should fail loudly.
+4. `d1f3a7c9e5b2` corrected: it declared `sync_state.league_id` unique as a
+   table constraint, but the model spells it `unique=True, index=True`, i.e. a
+   unique index — so a migration-built database did not match a create_all-built
+   one. Caught by the new schema-parity test, not by inspection.
+5. `create_all()` removed from `main.py`. Alembic now owns the schema outright;
+   a fresh database needs `alembic upgrade head` first (Docker already does it).
+6. `tests/test_migrations.py` pins convergence from all five known states, that
+   a populated database keeps its rows, and that a migration-built schema
+   matches the models.
+7. Two more drifts caught once the parity check was widened to compare column
+   defaults and foreign keys, not just names and types: `sync_state.enabled`
+   and `password_reset_tokens.used` carry a `server_default` in their
+   migrations that the models never declared. The models now declare it, so
+   `create_all` matches both the migrations and every live database — the
+   alternative, dropping it from the migrations, would need a SQLite table
+   rebuild to change a column default on databases that already have it.
+
+**Applied to the live database** (496,382 games / 237 attendance rows): backed
+up first with SQLite's own `.backup` (WAL-safe, unlike `cp`), rehearsed on the
+copy, then upgraded `e2f5b8c3d4a1 → f3a9d4b6c281`. Row counts, per-user
+attendance, `integrity_check` and `foreign_key_check` all identical afterwards;
+the only changes are the version stamp and the new unique index. Backup kept at
+`backend/sports_passport.pre-f3a9d4b6c281.db` (gitignored).

@@ -28,7 +28,12 @@ const Find: React.FC = () => {
   };
 
   useEffect(() => {
-    attendanceApi.getAttendedGames().then(setAttendances).catch(() => {});
+    attendanceApi
+      .getAttendedGames()
+      .then(setAttendances)
+      // "Your teams" just stays empty on failure — but a silent catch makes
+      // that indistinguishable from having logged no games.
+      .catch((err) => console.error('Failed to load attended games', err));
   }, []);
 
   const yourTeams = useMemo<TeamTally[]>(() => {

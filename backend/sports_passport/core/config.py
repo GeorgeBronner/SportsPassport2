@@ -35,6 +35,19 @@ class Settings(BaseSettings):
     app_name: str = "SportsPassport2"
     debug: bool = False
 
+    # CORS. The SPA is served by this same app, so no cross-origin access is
+    # needed in production; the default covers the Vite dev server only. Set
+    # CORS_ORIGINS to a comma-separated list to allow other origins.
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    # Rate limiting (login, forgot/reset-password). Disabled in tests so the
+    # suite's repeated logins don't trip the limiter.
+    rate_limit_enabled: bool = True
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
     # Nightly sync scheduler (APScheduler, in-process)
     scheduler_enabled: bool = True   # set false in tests / one-off scripts
     sync_hour: int = 6               # server-local hour (0-23) for the nightly run

@@ -380,3 +380,45 @@ class TestDeleteAttendance:
         """Test deleting attendance requires authentication."""
         response = client.delete(f"/api/attendance/{sample_attendance[0].id}")
         assert response.status_code == 401
+
+
+class TestAttendanceUniqueness:
+    """The (user_id, game_id) unique index backs up the router's own check."""
+
+    def test_bulk_skips_duplicate_within_one_payload(self, client, sample_games, auth_headers):
+        """The session doesn't autoflush, so the same game listed twice used to
+        slip past the existing-row check and violate the index at commit."""
+        response = client.post(
+            "/api/attendance/bulk",
+            json={
+                "games": [
+                    {"game_id": sample_games[0].id},
+                    {"game_id": sample_games[0].id},
+                ]
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 201
+        data = response.json()
+        assert (data["created"], data["skipped"]) == (1, 1)
+
+    def test_database_rejects_duplicate_attendance(self, db_session, test_user, sample_games):
+        from sqlalchemy.exc import IntegrityError
+
+        from sports_passport.models.attendance import UserGameAttendance
+
+        db_session.add(UserGameAttendance(user_id=test_user.id, game_id=sample_games[0].id))
+        db_session.commit()
+
+        db_session.add(UserGameAttendance(user_id=test_user.id, game_id=sample_games[0].id))
+        with pytest.raises(IntegrityError):
+            db_session.commit()
+        db_session.rollback()
+
+    def test_bulk_rejects_oversized_payload(self, client, sample_games, auth_headers):
+        response = client.post(
+            "/api/attendance/bulk",
+            json={"games": [{"game_id": sample_games[0].id}] * 5001},
+            headers=auth_headers,
+        )
+        assert response.status_code == 422

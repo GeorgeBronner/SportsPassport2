@@ -27,8 +27,6 @@ import logging
 from datetime import date, datetime
 from typing import Optional
 
-import httpx
-
 from sports_passport.models.team import Team
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
 from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
@@ -44,11 +42,12 @@ class NflAdapter(LeagueAdapter):
     league_code = "NFL"
     source = "nflverse"
 
+    http_client_kwargs = {"follow_redirects": True}
+
     async def _get_csv(self, url: str) -> list[dict]:
-        async with httpx.AsyncClient(follow_redirects=True) as client:
-            response = await client.get(url, timeout=30.0)
-            response.raise_for_status()
-            return list(csv.DictReader(io.StringIO(response.text)))
+        response = await self.http.get(url)
+        response.raise_for_status()
+        return list(csv.DictReader(io.StringIO(response.text)))
 
     async def import_teams(self) -> ImportResult:
         result = ImportResult(league=self.league_code)

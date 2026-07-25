@@ -2,16 +2,18 @@ import logging
 from contextlib import asynccontextmanager
 
 import sentry_sdk
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sports_passport.core.config import settings
 from sports_passport.core.limiter import limiter
-from sports_passport.db.database import engine, Base, SessionLocal
+from sports_passport.db.database import SessionLocal
 from sports_passport.db.seed import seed_leagues
 from sports_passport.routers import auth, games, attendance, admin, teams, leagues, password_reset
 from sports_passport.services.scheduler import start_scheduler, shutdown_scheduler
@@ -33,14 +35,23 @@ if settings.sentry_dsn:
 else:
     logger.warning("SENTRY_DSN not set — Sentry error reporting is disabled")
 
-# Create database tables and seed static reference data
-Base.metadata.create_all(bind=engine)
-with SessionLocal() as _db:
-    seed_leagues(_db)
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Start the nightly sync scheduler on the running event loop, stop it on shutdown."""
+    """Seed reference data and start the nightly sync scheduler; stop it on shutdown.
+
+    Seeding happens here rather than at module import so that importing this
+    module never touches a database — an import-time query means tests, CLI
+    tools and `--help` all need a migrated database just to load the app.
+
+    The schema itself belongs to Alembic: the Dockerfile runs `alembic upgrade
+    head` before this process starts. `create_all()` used to run here too,
+    which is exactly what let the two drift — it always built the *current*
+    models regardless of which migrations had run, so later migrations met
+    tables they had not created. Locally, run `uv run alembic upgrade head`
+    once before the first `uvicorn`.
+    """
+    with SessionLocal() as db:
+        seed_leagues(db)
     start_scheduler()
     try:
         yield
@@ -61,10 +72,13 @@ Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Configure CORS
+# Configure CORS. Explicit origins, never "*": with allow_credentials the
+# wildcard makes Starlette echo back whatever Origin asked, so any site could
+# make credentialed calls to this API. The SPA is same-origin in production,
+# so this list only needs to cover the Vite dev server (see CORS_ORIGINS).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -82,7 +96,21 @@ app.include_router(admin.router)
 
 @app.get("/health")
 def health_check():
-    """Health check endpoint"""
+    """Health check endpoint.
+
+    Docker restarts the container on repeated failures, so this has to mean
+    "can actually serve requests" — a process that's up but can't reach its
+    database is not healthy.
+    """
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+    except SQLAlchemyError as e:
+        logger.error("Health check failed: database unreachable: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="database unavailable",
+        )
     return {"status": "healthy"}
 
 
@@ -105,6 +133,12 @@ if static_dir.exists():
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
         """Serve the SPA for all non-API routes"""
+        # An unmatched /api path is a broken route, not a client-side one.
+        # Serving the SPA shell there turns a 404 into a confusing 200 of HTML.
+        # Bare "/api" counts: it is no more a client-side route than "/api/x".
+        if full_path == "api" or full_path.startswith("api/"):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+
         # If requesting a static file that exists, serve it
         file_path = static_dir / full_path
         if file_path.is_file():

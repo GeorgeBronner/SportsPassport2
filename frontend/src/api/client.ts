@@ -1,8 +1,14 @@
 import axios from 'axios';
 
+// Admin imports and syncs run for minutes; everything else should fail fast
+// rather than leave the UI spinning on a backend that has stopped answering.
+export const DEFAULT_TIMEOUT_MS = 30_000;
+export const LONG_TIMEOUT_MS = 10 * 60_000;
+
 // Create axios instance with base configuration
 const apiClient = axios.create({
   baseURL: '/api',
+  timeout: DEFAULT_TIMEOUT_MS,
   headers: {
     'Content-Type': 'application/json',
   },

@@ -63,7 +63,8 @@ const TeamDetail: React.FC = () => {
         setLeagueCode(leagues.find((l) => l.id === teamData.league_id)?.code ?? '');
         setError('');
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('Failed to load team', err);
         if (!stale) setError('Failed to load team');
       })
       .finally(() => {
@@ -82,7 +83,8 @@ const TeamDetail: React.FC = () => {
       .then((data) => {
         if (!stale) setGames(data);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error('Failed to load team games', err);
         if (!stale) setError('Failed to load games');
       });
     return () => {
@@ -91,7 +93,12 @@ const TeamDetail: React.FC = () => {
   }, [teamId, season, attendedOnly]);
 
   const refreshStats = useCallback(() => {
-    teamsApi.getAttendanceStats(teamId).then(setStats).catch(() => {});
+    teamsApi
+      .getAttendanceStats(teamId)
+      .then(setStats)
+      // Stale stats are better than blowing away a working page, but the
+      // failure still needs to be visible somewhere.
+      .catch((err) => console.error('Failed to refresh team stats', err));
   }, [teamId]);
 
   const attend = async (gameId: number) => {

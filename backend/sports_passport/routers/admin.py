@@ -22,6 +22,13 @@ from sports_passport.services.scheduler import (
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
+# Bounds for historical import. The floor sits below the oldest season any
+# league has data for (MLB 1871 via Retrosheet, NHL 1917); the ceiling is
+# "next season". Outside this window the request is a typo, and honouring it
+# means an adapter grinding through decades of empty seasons — the NHL adapter
+# alone sleeps 250ms per request while doing it.
+EARLIEST_SEASON = 1850
+
 
 def _adapter_or_404(league_code: str, db: Session):
     try:
@@ -50,6 +57,8 @@ async def import_league_teams(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Team import failed: {str(e)}"
         )
+    finally:
+        await adapter.aclose()
 
 
 @router.post("/import/{league_code}/historical")
@@ -66,6 +75,12 @@ async def import_league_historical(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="start_season must be <= end_season"
         )
+    latest_season = date.today().year + 1
+    if start_season < EARLIEST_SEASON or end_season > latest_season:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Seasons must fall between {EARLIEST_SEASON} and {latest_season}"
+        )
     adapter = _adapter_or_404(league_code, db)
     try:
         result = await adapter.import_historical(start_season, end_season)
@@ -75,6 +90,8 @@ async def import_league_historical(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Historical import failed: {str(e)}"
         )
+    finally:
+        await adapter.aclose()
 
 
 @router.post("/sync/{league_code}")

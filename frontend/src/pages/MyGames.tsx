@@ -29,7 +29,10 @@ const MyGames: React.FC = () => {
           )
         )
       )
-      .catch(() => setError('Failed to load attended games'))
+      .catch((err) => {
+        console.error('Failed to load attended games', err);
+        setError('Failed to load attended games');
+      })
       .finally(() => setLoading(false));
   }, []);
 

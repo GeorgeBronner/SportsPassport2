@@ -1,14 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from sports_passport.db.database import get_db
+from sports_passport.core.limiter import limiter
 from sports_passport.models.user import User
 from sports_passport.schemas.user import UserCreate, UserResponse, Token, ChangePasswordRequest
 from sports_passport.core.security import (
     verify_password,
     get_password_hash,
     create_access_token,
-    BCRYPT_MAX_PASSWORD_BYTES,
+    validate_password,
 )
 from sports_passport.core.dependencies import get_current_user
 
@@ -18,6 +19,8 @@ router = APIRouter(prefix="/api/auth", tags=["authentication"])
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
     """Register a new user"""
+    validate_password(user_data.password)
+
     # Check if user already exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
@@ -43,11 +46,17 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit("10/minute")
 def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
-    """Login and get access token"""
+    """Login and get access token.
+
+    Rate-limited per client IP: without it every registered account is open to
+    unthrottled password guessing.
+    """
     # Find user by email
     user = db.query(User).filter(User.email == form_data.username).first()
 
@@ -82,16 +91,7 @@ def change_password(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Current password is incorrect",
         )
-    if len(body.new_password) < 8:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="Password must be at least 8 characters",
-        )
-    if len(body.new_password.encode()) > BCRYPT_MAX_PASSWORD_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=f"Password must be at most {BCRYPT_MAX_PASSWORD_BYTES} bytes",
-        )
+    validate_password(body.new_password)
 
     current_user.password_hash = get_password_hash(body.new_password)
     db.commit()
