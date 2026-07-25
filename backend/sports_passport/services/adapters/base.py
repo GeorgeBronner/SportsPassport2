@@ -1,6 +1,6 @@
 """LeagueAdapter interface — one implementation per league.
 
-Contract (see SP3_plan.md §4):
+Contract (see docs/SP3_plan.md §4):
 - import_teams: load/refresh the league's teams.
 - import_historical: one-time bulk backfill from local files or API pagination.
 - sync_recent: cheap incremental update hitting only free APIs; run by the

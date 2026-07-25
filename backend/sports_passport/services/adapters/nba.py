@@ -34,7 +34,7 @@ dataset's most recent season as of this writing (the dataset's own
 description says older entries are being backfilled by its maintainer
 over time) — historical games import with venue_id = NULL. A hand-built
 `data/seed/nba_arenas.csv` (team → arena → season range) is the planned
-fix, per SP3_plan.md Phase 4; not yet built.
+fix, per docs/SP3_plan.md Phase 4; not yet built.
 """
 import csv
 import logging
