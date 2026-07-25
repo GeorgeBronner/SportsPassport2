@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: ./backend/Dockerfile
-    container_name: sp2-stage-backend
+    container_name: sportspassport2-backend
     ports:
       - "8003:8000"
     environment:
