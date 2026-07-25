@@ -217,6 +217,13 @@ Reproduced 2026-07-23 by scripted runs against each real state:
 6. `tests/test_migrations.py` pins convergence from all five known states, that
    a populated database keeps its rows, and that a migration-built schema
    matches the models.
+7. Two more drifts caught once the parity check was widened to compare column
+   defaults and foreign keys, not just names and types: `sync_state.enabled`
+   and `password_reset_tokens.used` carry a `server_default` in their
+   migrations that the models never declared. The models now declare it, so
+   `create_all` matches both the migrations and every live database — the
+   alternative, dropping it from the migrations, would need a SQLite table
+   rebuild to change a column default on databases that already have it.
 
 **Applied to the live database** (496,382 games / 237 attendance rows): backed
 up first with SQLite's own `.backup` (WAL-safe, unlike `cp`), rehearsed on the

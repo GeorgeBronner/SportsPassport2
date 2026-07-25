@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, true
 from sqlalchemy.orm import relationship
 from sports_passport.db.database import Base
 
@@ -14,7 +14,10 @@ class SyncState(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     league_id = Column(Integer, ForeignKey("leagues.id"), unique=True, nullable=False, index=True)
-    enabled = Column(Boolean, default=True, nullable=False)
+    # server_default mirrors migration d1f3a7c9e5b2, which every existing
+    # database was built from. Without it here, create_all() emits a table
+    # without the DEFAULT and --autogenerate reports a phantom change.
+    enabled = Column(Boolean, default=True, server_default=true(), nullable=False)
 
     last_run_at = Column(DateTime, nullable=True)          # naive UTC, like game start_date — most recent attempt
     last_success_at = Column(DateTime, nullable=True)      # most recent successful run; drives the adaptive lookback

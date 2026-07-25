@@ -77,7 +77,14 @@ def _current_revision(db_path):
 
 
 def _schema(db_path):
-    """Comparable snapshot: columns, indexes, and which indexes are unique."""
+    """Comparable snapshot: columns, defaults, foreign keys, and indexes.
+
+    Column defaults and foreign keys are part of the comparison because they
+    are exactly what a narrower snapshot lets drift: a `server_default` present
+    in a migration but missing from the model produces two schemas that agree
+    on every column name and type, yet make `--autogenerate` emit a phantom
+    change on the next revision.
+    """
     con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     try:
         snapshot = {}
@@ -87,8 +94,14 @@ def _schema(db_path):
         ).fetchall()
         for (table,) in tables:
             columns = {
-                (row[1], row[2].upper(), bool(row[3]))
+                # name, type, NOT NULL, DEFAULT — SQLite stores the default as
+                # the literal SQL text, so normalise case before comparing.
+                (row[1], row[2].upper(), bool(row[3]), (row[4] or "").upper())
                 for row in con.execute(f"PRAGMA table_info({table})")
+            }
+            foreign_keys = {
+                (row[2], row[3], row[4])  # referenced table, local col, remote col
+                for row in con.execute(f"PRAGMA foreign_key_list({table})")
             }
             index_list = list(con.execute(f"PRAGMA index_list({table})"))
             # Autoindexes are how SQLite implements a table-level UNIQUE
@@ -100,7 +113,7 @@ def _schema(db_path):
                 if row[2]
             }
             named = {row[1] for row in index_list if not row[1].startswith("sqlite_autoindex")}
-            snapshot[table] = (columns, named, unique_cols)
+            snapshot[table] = (columns, foreign_keys, named, unique_cols)
         return snapshot
     finally:
         con.close()

@@ -34,6 +34,13 @@ class TestApiRouting:
         assert response.status_code == 404
         assert "text/html" not in response.headers.get("content-type", "")
 
+    def test_bare_api_path_returns_404(self, client):
+        """"/api" with nothing after it is no more a client-side route than
+        "/api/x" — the prefix check has to cover it too."""
+        response = client.get("/api")
+        assert response.status_code == 404
+        assert "text/html" not in response.headers.get("content-type", "")
+
 
 class TestCorsConfig:
     def test_cors_origins_are_explicit(self):

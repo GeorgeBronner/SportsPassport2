@@ -135,7 +135,8 @@ if static_dir.exists():
         """Serve the SPA for all non-API routes"""
         # An unmatched /api path is a broken route, not a client-side one.
         # Serving the SPA shell there turns a 404 into a confusing 200 of HTML.
-        if full_path.startswith("api/"):
+        # Bare "/api" counts: it is no more a client-side route than "/api/x".
+        if full_path == "api" or full_path.startswith("api/"):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
 
         # If requesting a static file that exists, serve it
