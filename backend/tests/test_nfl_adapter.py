@@ -94,6 +94,25 @@ class TestNflImportHistorical:
         assert db_session.query(Venue).count() == 2  # both 1999 games' venues, distinct stadiums
 
     @pytest.mark.asyncio
+    async def test_venue_backfilled_from_seed(self, adapter, db_session):
+        # KAN00 is a real nflverse stadium_id present in data/seed/nfl_stadiums.csv;
+        # the fixture ids above (TEN00/GAM01/LAX00) are test-only and intentionally
+        # don't match the seed, so this covers the actual lookup path.
+        row = {
+            "game_id": "1999_02_KAN_TEN", "season": "1999", "game_type": "REG", "week": "2",
+            "gameday": "1999-09-19", "gametime": "", "home_team": "TEN", "away_team": "STL",
+            "home_score": "10", "away_score": "7", "location": "Home", "overtime": "0",
+            "stadium_id": "KAN00", "stadium": "Arrowhead Stadium",
+        }
+        with patch.object(adapter, "_get_csv", _fake_get_csv(games_rows=GAMES_ROWS + [row])):
+            await adapter.import_historical(1999, 1999)
+
+        game = db_session.query(Game).filter(Game.source_game_id == "1999_02_KAN_TEN").one()
+        assert game.venue.city == "Kansas City"
+        assert game.venue.state == "MO"
+        assert game.venue.latitude is not None
+
+    @pytest.mark.asyncio
     async def test_unmatched_team_recorded_as_error(self, adapter, db_session):
         # teams never imported -> every game's teams are unresolved
         with patch.object(adapter, "_get_csv", _fake_get_csv(games_rows=[GAMES_ROWS[2]])):

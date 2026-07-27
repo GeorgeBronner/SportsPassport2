@@ -5,7 +5,7 @@ import SeasonChart from '../components/find/SeasonChart';
 import { attendanceApi } from '../api/attendance';
 import type { Attendance, AttendanceStats, AttendanceVenuePoint } from '../types/api';
 import { LEAGUE_ORDER, leagueColor } from '../utils/leagues';
-import { MAP_H, MAP_W, US_PATH, projectX, projectY } from '../components/map/usOutline';
+import { MAP_H, MAP_W, US_PATH, STATE_BORDERS_PATH, projectPoint } from '../components/map/usOutline';
 import { formatDateShort } from '../utils/format';
 
 const dotRadius = (count: number) => 3.5 + Math.sqrt(count) * 2;
@@ -15,6 +15,8 @@ const spreadOverlaps = (venues: AttendanceVenuePoint[]) => {
   const seen = new Map<string, number>();
   return venues.map((v) => {
     if (v.latitude == null || v.longitude == null) return { ...v, x: null, y: null };
+    const projected = projectPoint(v.latitude, v.longitude);
+    if (!projected) return { ...v, x: null, y: null }; // outside the US (e.g. an international venue)
     const key = `${v.latitude.toFixed(3)},${v.longitude.toFixed(3)}`;
     const n = seen.get(key) ?? 0;
     seen.set(key, n + 1);
@@ -22,10 +24,11 @@ const spreadOverlaps = (venues: AttendanceVenuePoint[]) => {
     // growing radius, so a 4th+ venue never lands back on an earlier dot.
     const angle = n * 2.39996;
     const nudge = n === 0 ? 0 : 5 + 2 * Math.sqrt(n);
+    const [px, py] = projected;
     return {
       ...v,
-      x: projectX(v.longitude) + Math.cos(angle) * nudge,
-      y: projectY(v.latitude) + Math.sin(angle) * nudge,
+      x: px + Math.cos(angle) * nudge,
+      y: py + Math.sin(angle) * nudge,
     };
   });
 };
@@ -147,6 +150,13 @@ const MapView: React.FC = () => {
               fill="var(--panel)"
               stroke="var(--line-strong)"
               strokeWidth={1.4}
+              strokeLinejoin="round"
+            />
+            <path
+              d={STATE_BORDERS_PATH}
+              fill="none"
+              stroke="var(--line)"
+              strokeWidth={0.75}
               strokeLinejoin="round"
             />
             {[...visible]

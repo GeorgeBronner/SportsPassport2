@@ -417,10 +417,11 @@ generalization) and added the league dimension:
 ### Phase 7 — Stretch (post-first-draft)
 - [ ] SP2 attendance migration script (SP2 SQLite → SP3, matching games on date+teams)
 - [ ] Franchise rollup stats; MLS adapter (ESPN/TheSportsDB per research); deepen history pre-1970
-- [ ] `data/seed/nba_arenas.csv` — hand-built NBA team → arena → season-range lookup
-      (~120 rows, one-time Wikipedia research) to backfill historical venues; deferred
-      from Phase 4 (see §5 Phase 4) since `Games.csv` only carries venue data for the
-      current season (~2% coverage otherwise)
+- [x] **Done (2026-07-27):** `data/seed/nba_arenas.csv` — hand-built NBA team → arena →
+      season-range lookup, scoped to **1990-present** (66 rows) rather than the original
+      full-history ~120-row target; games before 1990 remain venue_id = NULL. Backfills
+      historical rows where `Games.csv` carries no arena data at all (see §5 Phase 4).
+      Loaded via `services/adapters/venue_seed.py`, wired into `nba.py`'s `_upsert_row`.
 
 ### Phase 8 — CBB adapter (added beyond original scope) ✅ DONE 2026-07-12
 Not part of the original 5-league plan (see §1). Added after Phase 5 once CBB data-source

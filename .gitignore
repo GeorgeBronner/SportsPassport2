@@ -28,8 +28,8 @@ frontend/dist/
 backend/static/*
 !backend/static/.gitkeep
 
-# Runtime data volume
-data/
+# Runtime data volume (repo-root only — not backend/data/seed, which is committed)
+/data/
 
 # OS
 .DS_Store

@@ -22,6 +22,7 @@ from typing import Any, Optional
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
+from sports_passport.services.adapters import venue_seed
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
 from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
 
@@ -101,11 +102,13 @@ class NhlAdapter(LeagueAdapter):
         venue_id = None
         venue_name = (game.get("venue") or {}).get("default")
         if venue_name:
+            seed = venue_seed.nhl_arenas().get(venue_name)
             venue, created = upsert_venue(
                 self.db,
                 source=self.source,
                 source_venue_id=venue_name,  # API exposes no venue id; name is the key
                 name=venue_name,
+                **(venue_seed.venue_fields(seed) if seed else {}),
             )
             venue_id = venue.id
             if created:

@@ -28,6 +28,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from sports_passport.models.team import Team
+from sports_passport.services.adapters import venue_seed
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
 from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
 
@@ -106,11 +107,13 @@ class NflAdapter(LeagueAdapter):
         venue_id = None
         stadium_id = row.get("stadium_id")
         if stadium_id:
+            seed = venue_seed.nfl_stadiums().get(stadium_id)
             venue, created = upsert_venue(
                 self.db,
                 source=self.source,
                 source_venue_id=stadium_id,
                 name=row.get("stadium") or stadium_id,
+                **(venue_seed.venue_fields(seed) if seed else {}),
             )
             venue_id = venue.id
             if created:

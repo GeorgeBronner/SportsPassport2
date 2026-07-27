@@ -110,6 +110,10 @@ class TestNhlImportSeason:
         assert (game.home_score, game.away_score) == (4, 3)
         assert game.source_game_id == "1993020518"
         assert game.venue.name == "Madison Square Garden"
+        # backfilled from data/seed/nhl_arenas.csv (the API gives no city/state)
+        assert game.venue.city == "New York"
+        assert game.venue.state == "NY"
+        assert game.venue.latitude is not None
         assert db_session.query(Venue).count() == 1
 
     @pytest.mark.asyncio

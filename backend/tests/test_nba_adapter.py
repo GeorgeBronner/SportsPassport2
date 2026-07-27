@@ -158,16 +158,31 @@ class TestNbaImportHistorical:
         assert cup_games[0].season == 2023
 
     @pytest.mark.asyncio
-    async def test_import_historical_venue_only_when_present(self, adapter, db_session):
+    async def test_import_historical_venue_falls_back_to_seed(self, adapter, db_session):
         with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS):
             await adapter.import_historical(2005, 2023)
 
+        # 2005 row carries no arena data at all -> resolved via data/seed/nba_arenas.csv
+        # (SuperSonics/Thunder franchise id 1610612760, season 2005 -> KeyArena, Seattle)
         sonics_game = db_session.query(Game).filter(Game.source_game_id == "20500001").one()
         thunder_game = db_session.query(Game).filter(Game.source_game_id == "22300002").one()
-        assert sonics_game.venue_id is None  # no arena data for this historical row
+        assert sonics_game.venue.name == "KeyArena"
+        assert sonics_game.venue.city == "Seattle"
         assert thunder_game.venue.name == "Paycom Center"
         assert thunder_game.venue.city == "Oklahoma City"
-        assert db_session.query(Venue).count() == 2  # Paycom Center + T-Mobile Arena
+        assert db_session.query(Venue).count() == 3  # KeyArena + Paycom Center + T-Mobile Arena
+
+    @pytest.mark.asyncio
+    async def test_import_historical_venue_none_before_seed_coverage(self, adapter, db_session):
+        # data/seed/nba_arenas.csv only covers 1990-present; an older row with no
+        # arena data has nothing to fall back to and stays venue_id = NULL.
+        row = _row(gameId="27000001", gameDate="1970-11-01 19:00:00")
+        with patch.object(adapter, "_read_games_csv", return_value=[row]):
+            await adapter.import_historical(1970, 1970)
+
+        game = db_session.query(Game).filter(Game.source_game_id == "27000001").one()
+        assert game.venue_id is None
+        assert db_session.query(Venue).count() == 0
 
     @pytest.mark.asyncio
     async def test_import_historical_season_range_filter(self, adapter, db_session):

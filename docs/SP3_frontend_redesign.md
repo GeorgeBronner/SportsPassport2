@@ -108,7 +108,22 @@ Match results (2026-07-15 run):
       by count / colored by league, hover tooltip, click → venue panel with that
       venue's games, league chips (empty leagues disabled), season timeline strip;
       overlapping same-city venues fan out a few px
-- [ ] AK/HI inset (or graceful clamp) once a non-continental venue appears
+- [x] **Done (2026-07-27):** map outline replaced with a real `d3-geo`
+      `geoAlbersUsa` projection over `us-atlas` Census boundaries
+      (`components/map/usOutline.ts`), instead of the original ~90-point
+      hand-typed equirectangular polygon. Alaska/Hawaii deliberately excluded
+      (dropped from the projected geometry, per user decision — no non-continental
+      venues in this dataset) rather than rendered as insets, closing this out
+      without needing the originally-planned inset layout.
+- [x] **Done (2026-07-27):** the map only ever showed CFB/MLB/CBB venues because
+      the NFL and NHL adapters never captured city/state (their sources don't
+      supply it) and NBA's bulk source only carries venue data for its current
+      season. Fixed via hand-built venue seeds — see Phase 7's `nba_arenas.csv`
+      entry and `services/adapters/venue_seed.py` (also covers NFL stadiums and
+      NHL arenas, ground-truthed against nflverse's `games.csv` / the live NHL API
+      rather than from memory). MLB/CBB were unaffected — they already captured
+      city/state; only need `scripts/geocode_venues.py` re-run for venues attended
+      since the 2026-07-12 run.
 
 ## Phase 5 — Passport flourishes
 

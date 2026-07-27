@@ -1,0 +1,22 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Pull latest code
+        working-directory: /home/george/docker-config/sportspassport2
+        run: git pull
+
+      - name: Build and deploy
+        working-directory: /home/george/docker-config/sportspassport2
+        run: |
+          docker compose -f docker-compose-stage.yml build --no-cache
+          docker compose -f docker-compose-stage.yml up -d
+
+      - name: Verify
+        run: docker logs sp2-stage-backend --tail 20

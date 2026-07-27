@@ -32,9 +32,10 @@ not. Safe through 2045 given this dataset's 1946 floor (see `_season`).
 Venue caveat: Games.csv only carries arena/city/state/attendance for the
 dataset's most recent season as of this writing (the dataset's own
 description says older entries are being backfilled by its maintainer
-over time) — historical games import with venue_id = NULL. A hand-built
-`data/seed/nba_arenas.csv` (team → arena → season range) is the planned
-fix, per docs/SP3_plan.md Phase 4; not yet built.
+over time) — historical rows arrive with no arena data at all. For those,
+`_upsert_row` falls back to the hand-built `data/seed/nba_arenas.csv`
+(team → arena → season range, 1990-present); older-still games remain
+venue_id = NULL.
 """
 import csv
 import logging
@@ -46,6 +47,7 @@ import httpx
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
+from sports_passport.services.adapters import venue_seed
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
 from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
 
@@ -195,6 +197,26 @@ class NbaAdapter(LeagueAdapter):
                 venue_cache[arena_name] = venue_id
                 if created:
                     result.venues_imported += 1
+        else:
+            # Games.csv only carries arena data for its most recent season (see
+            # module docstring) — for everything older, fall back to the hand-built
+            # team -> arena seed (data/seed/nba_arenas.csv, covers 1990-present).
+            seed = venue_seed.lookup_nba_arena(row["hometeamId"], season)
+            if seed:
+                cache_key = f"seed:{seed['arena']}"
+                venue_id = venue_cache.get(cache_key)
+                if venue_id is None:
+                    venue, created = upsert_venue(
+                        self.db,
+                        source=self.source,
+                        source_venue_id=f"seed-{seed['arena']}",
+                        name=seed["arena"],
+                        **venue_seed.venue_fields(seed),
+                    )
+                    venue_id = venue.id
+                    venue_cache[cache_key] = venue_id
+                    if created:
+                        result.venues_imported += 1
 
         attendance = int(row["attendance"]) if row.get("attendance", "").strip().isdigit() else None
         if attendance == 0:
