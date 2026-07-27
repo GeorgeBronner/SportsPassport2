@@ -99,16 +99,36 @@ class NhlAdapter(LeagueAdapter):
             result.errors.append(f"game {game.get('id')}: no date")
             return
 
+        season_raw = game.get("season")  # e.g. 19931994
+        season = int(str(season_raw)[:4]) if season_raw else start_date.year
+
         venue_id = None
         venue_name = (game.get("venue") or {}).get("default")
-        if venue_name:
-            seed = venue_seed.nhl_arenas().get(venue_name)
+        home_tricode = game.get("homeTeam", {}).get("abbrev")
+        seed = venue_seed.lookup_nhl_arena(home_tricode, season) if home_tricode else None
+        if seed:
+            # Keyed by team + season era (data/seed/nhl_arenas.csv), not by the
+            # display name the API happens to report today — naming-rights
+            # renames (frequent in this league) just update `name` on the same
+            # row instead of silently creating an unlocated new venue.
             venue, created = upsert_venue(
                 self.db,
                 source=self.source,
-                source_venue_id=venue_name,  # API exposes no venue id; name is the key
+                source_venue_id=f"nhl-{seed['tricode']}-{seed['start_season']}",
+                name=venue_name or seed["arena"],
+                **venue_seed.venue_fields(seed),
+            )
+            venue_id = venue.id
+            if created:
+                result.venues_imported += 1
+        elif venue_name:
+            # No seed coverage for this team/era — still record a venue (by
+            # name, the only id the API gives us), just without coordinates.
+            venue, created = upsert_venue(
+                self.db,
+                source=self.source,
+                source_venue_id=venue_name,
                 name=venue_name,
-                **(venue_seed.venue_fields(seed) if seed else {}),
             )
             venue_id = venue.id
             if created:
@@ -116,9 +136,6 @@ class NhlAdapter(LeagueAdapter):
 
         last_period = (game.get("gameOutcome") or {}).get("lastPeriodType")
         overtime_flag = last_period if last_period and last_period != "REG" else None
-
-        season_raw = game.get("season")  # e.g. 19931994
-        season = int(str(season_raw)[:4]) if season_raw else start_date.year
 
         _, created = upsert_game(
             self.db,

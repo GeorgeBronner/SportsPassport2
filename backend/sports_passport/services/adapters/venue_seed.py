@@ -3,6 +3,13 @@ carry city/state (NFL, NHL) or is historically sparse for venue info (NBA,
 pre-current-season) — see backend/data/seed/*.csv. Coordinates are supplied
 directly (arena/stadium-level precision) rather than routing through
 scripts/geocode_venues.py, since these are small, finite, hand-verified lists.
+
+NHL and NBA are keyed by (team, season-range) rather than by venue name/id,
+since neither source gives a stable physical-venue identifier and NHL arena
+names in particular change on every naming-rights deal — keying by team+era
+means a rename just updates the `name` on the existing venue row instead of
+silently orphaning a new, uncoordinated one. NFL is keyed by nflverse's own
+stadium_id, which is already stable across renames.
 """
 import csv
 import os
@@ -23,30 +30,43 @@ def nfl_stadiums() -> dict[str, dict]:
         return {row["stadium_id"]: row for row in csv.DictReader(f)}
 
 
-@lru_cache(maxsize=1)
-def nhl_arenas() -> dict[str, dict]:
-    """NHL API venue name -> seed row (the API exposes no stable venue id)."""
-    with open(_seed_path("nhl_arenas.csv"), newline="", encoding="utf-8") as f:
-        return {row["name"]: row for row in csv.DictReader(f)}
-
-
-@lru_cache(maxsize=1)
-def _nba_arenas_by_team() -> dict[str, list[dict]]:
-    by_team: dict[str, list[dict]] = {}
-    with open(_seed_path("nba_arenas.csv"), newline="", encoding="utf-8") as f:
+def _load_by_key(filename: str, key_column: str) -> dict[str, list[dict]]:
+    by_key: dict[str, list[dict]] = {}
+    with open(_seed_path(filename), newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
-            by_team.setdefault(row["team_id"], []).append(row)
-    return by_team
+            by_key.setdefault(row[key_column], []).append(row)
+    return by_key
 
 
-def lookup_nba_arena(team_id: str, season: int) -> Optional[dict]:
-    """The seed row whose [start_season, end_season] covers this season, if any."""
-    for row in _nba_arenas_by_team().get(str(team_id), []):
+def _lookup_by_season(rows_by_key: dict[str, list[dict]], key: str, season: int) -> Optional[dict]:
+    """The row (from rows_by_key[key]) whose [start_season, end_season] covers this season."""
+    for row in rows_by_key.get(key, []):
         start = int(row["start_season"])
         end = int(row["end_season"]) if row["end_season"] else None
         if season >= start and (end is None or season <= end):
             return row
     return None
+
+
+@lru_cache(maxsize=1)
+def _nba_arenas_by_team() -> dict[str, list[dict]]:
+    return _load_by_key("nba_arenas.csv", "team_id")
+
+
+def lookup_nba_arena(team_id: str, season: int) -> Optional[dict]:
+    return _lookup_by_season(_nba_arenas_by_team(), str(team_id), season)
+
+
+@lru_cache(maxsize=1)
+def _nhl_arenas_by_tricode() -> dict[str, list[dict]]:
+    return _load_by_key("nhl_arenas.csv", "tricode")
+
+
+def lookup_nhl_arena(tricode: str, season: int) -> Optional[dict]:
+    """The physical-arena-era row (team + season range) covering this season —
+    keyed by team rather than by the API's display name, so a naming-rights
+    rename never breaks the lookup (see nhl.py's _upsert_api_game)."""
+    return _lookup_by_season(_nhl_arenas_by_tricode(), tricode, season)
 
 
 def venue_fields(row: dict) -> dict:

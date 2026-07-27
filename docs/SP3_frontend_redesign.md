@@ -119,11 +119,16 @@ Match results (2026-07-15 run):
       the NFL and NHL adapters never captured city/state (their sources don't
       supply it) and NBA's bulk source only carries venue data for its current
       season. Fixed via hand-built venue seeds — see Phase 7's `nba_arenas.csv`
-      entry and `services/adapters/venue_seed.py` (also covers NFL stadiums and
-      NHL arenas, ground-truthed against nflverse's `games.csv` / the live NHL API
-      rather than from memory). MLB/CBB were unaffected — they already captured
-      city/state; only need `scripts/geocode_venues.py` re-run for venues attended
-      since the 2026-07-12 run.
+      entry and `services/adapters/venue_seed.py`. NFL is keyed by nflverse's
+      own (already-stable) `stadium_id`. NHL arenas are keyed by **team +
+      season-range**, not by the API's display name: NHL naming-rights deals
+      change every few years, and an earlier name-keyed version of this seed
+      would have silently dropped a team's venue off the map the next time
+      its arena got renamed. Keying by team+era means a rename just updates
+      the existing row's `name` instead of orphaning a new, uncoordinated one.
+      MLB/CBB were unaffected — they already captured city/state; only need
+      `scripts/geocode_venues.py` re-run for venues attended since the
+      2026-07-12 run.
 
 ## Phase 5 — Passport flourishes
 

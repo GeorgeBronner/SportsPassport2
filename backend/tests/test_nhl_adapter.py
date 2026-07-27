@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, patch
 from sports_passport.models.game import Game
 from sports_passport.models.team import Team
 from sports_passport.models.venue import Venue
+from sports_passport.services.adapters.base import ImportResult
 from sports_passport.services.adapters.nhl import NhlAdapter
 
 TEAMS_PAYLOAD = {
@@ -117,6 +118,40 @@ class TestNhlImportSeason:
         assert db_session.query(Venue).count() == 1
 
     @pytest.mark.asyncio
+    async def test_venue_survives_naming_rights_rename(self, adapter, db_session):
+        """A naming-rights rename (a new `venue.default` string, same team/season)
+        must resolve to the same physical-arena venue row, not orphan a new one —
+        the whole point of keying the seed lookup by team+era instead of by name."""
+        game_old_name = dict(GAME_REGULAR_OT)
+        game_new_name = {
+            **GAME_REGULAR_OT,
+            "id": 1993020519,
+            "venue": {"default": "The Garden at Penn Plaza"},  # hypothetical rename
+        }
+
+        async def fake_get(url, ok_404=False):
+            if "stats/rest/en/team" in url:
+                return TEAMS_PAYLOAD
+            if "/standings/" in url:
+                return STANDINGS_PAYLOAD
+            if "/club-schedule-season/" in url:
+                return _schedule_payload(game_old_name, game_new_name)
+            raise AssertionError(f"unexpected url {url}")
+
+        with patch.object(adapter, "_get", AsyncMock(side_effect=fake_get)), \
+             patch("sports_passport.services.adapters.nhl.BACKFILL_DELAY_SECONDS", 0):
+            await adapter.import_teams()
+            result = await adapter.import_season(1993)
+
+        assert result.games_imported == 2
+        assert db_session.query(Venue).count() == 1  # same team+season era -> one venue row
+        venue = db_session.query(Venue).one()
+        assert venue.name == "The Garden at Penn Plaza"  # most-recently-seen name wins
+        assert venue.city == "New York"  # coords never depended on the name at all
+        games = db_session.query(Game).all()
+        assert {g.venue_id for g in games} == {venue.id}  # both games point at the same venue
+
+    @pytest.mark.asyncio
     async def test_import_season_no_standings(self, adapter, db_session):
         """2004-05 lockout: no standings -> no games, recorded as an error note."""
         async def fake_get(url, ok_404=False):
@@ -129,6 +164,34 @@ class TestNhlImportSeason:
 
         assert result.games_imported == 0
         assert len(result.errors) == 1
+
+
+class TestNhlVenueSeedFallback:
+    @pytest.mark.asyncio
+    async def test_no_seed_coverage_still_creates_venue_without_coords(self, adapter, db_session, nhl_league):
+        # HFD's seed coverage ends 1996 (the Whalers relocated); a season outside
+        # that range has nothing to match, so the old name-keyed path takes over.
+        with patch.object(adapter, "_get", AsyncMock(return_value=TEAMS_PAYLOAD)):
+            await adapter.import_teams()
+
+        game = {
+            "id": 2000020001, "season": 20002001, "gameType": 2,
+            "gameDate": "2000-11-01", "startTimeUTC": "2000-11-02T00:00:00Z",
+            "venue": {"default": "Some Uncovered Arena"},
+            "homeTeam": {"id": 33, "abbrev": "HFD", "score": 2},
+            "awayTeam": {"id": 3, "abbrev": "NYR", "score": 1},
+            "gameOutcome": {"lastPeriodType": "REG"},
+        }
+        by_source_id, by_abbrev = adapter._team_lookups(nhl_league.id)
+        result = ImportResult(league="NHL")
+        adapter._upsert_api_game(nhl_league.id, game, by_source_id, by_abbrev, result)
+        db_session.commit()
+
+        assert not result.errors
+        venue = db_session.query(Venue).one()
+        assert venue.name == "Some Uncovered Arena"
+        assert venue.city is None
+        assert venue.latitude is None
 
 
 class TestNhlSync:
