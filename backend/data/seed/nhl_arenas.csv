@@ -1,0 +1,59 @@
+tricode,start_season,end_season,arena,city,state,country,latitude,longitude
+ANA,1993,,Honda Center,Anaheim,CA,USA,33.8078,-117.8765
+BOS,1990,1994,Boston Garden,Boston,MA,USA,42.3667,-71.0620
+BOS,1995,,TD Garden,Boston,MA,USA,42.3662,-71.0621
+BUF,1990,1995,Buffalo Memorial Auditorium,Buffalo,NY,USA,42.8919,-78.8747
+BUF,1996,,KeyBank Center,Buffalo,NY,USA,42.8750,-78.8765
+HFD,1990,1996,Hartford Civic Center,Hartford,CT,USA,41.7658,-72.6734
+CAR,1997,1998,Greensboro Coliseum,Greensboro,NC,USA,36.0726,-79.8286
+CAR,1999,,Lenovo Center,Raleigh,NC,USA,35.8033,-78.7219
+CBJ,2000,,Nationwide Arena,Columbus,OH,USA,39.9692,-83.0061
+CGY,1990,,Scotiabank Saddledome,Calgary,AB,Canada,51.0374,-114.0519
+CHI,1990,1993,Chicago Stadium,Chicago,IL,USA,41.8807,-87.6742
+CHI,1994,,United Center,Chicago,IL,USA,41.8807,-87.6742
+COL,1995,,Ball Arena,Denver,CO,USA,39.7487,-105.0077
+DAL,1993,2000,Reunion Arena,Dallas,TX,USA,32.7767,-96.8107
+DAL,2001,,American Airlines Center,Dallas,TX,USA,32.7905,-96.8103
+DET,1990,2016,Joe Louis Arena,Detroit,MI,USA,42.3286,-83.0548
+DET,2017,,Little Caesars Arena,Detroit,MI,USA,42.3411,-83.0553
+EDM,1990,2015,Rexall Place,Edmonton,AB,Canada,53.5629,-113.5188
+EDM,2016,,Rogers Place,Edmonton,AB,Canada,53.5469,-113.4979
+FLA,1993,1997,Miami Arena,Miami,FL,USA,25.7887,-80.2000
+FLA,1998,,Amerant Bank Arena,Sunrise,FL,USA,26.1584,-80.3255
+LAK,1990,1998,Great Western Forum,Inglewood,CA,USA,33.9581,-118.3418
+LAK,1999,,Crypto.com Arena,Los Angeles,CA,USA,34.0430,-118.2673
+MIN,2000,,Grand Casino Arena,Saint Paul,MN,USA,44.9447,-93.1011
+MTL,1990,1995,Montreal Forum,Montreal,QC,Canada,45.4960,-73.5793
+MTL,1996,,Centre Bell,Montreal,QC,Canada,45.4961,-73.5693
+NJD,1990,2006,Brendan Byrne Arena,East Rutherford,NJ,USA,40.8135,-74.0744
+NJD,2007,,Prudential Center,Newark,NJ,USA,40.7336,-74.1710
+NSH,1998,,Bridgestone Arena,Nashville,TN,USA,36.1593,-86.7784
+NYI,1990,2014,Nassau Veterans Memorial Coliseum,Uniondale,NY,USA,40.7229,-73.5905
+NYI,2015,2020,Barclays Center,Brooklyn,NY,USA,40.6826,-73.9754
+NYI,2021,,UBS Arena,Elmont,NY,USA,40.7230,-73.7256
+NYR,1990,,Madison Square Garden,New York,NY,USA,40.7505,-73.9934
+OTT,1992,,Canadian Tire Centre,Ottawa,ON,Canada,45.2969,-75.9270
+PHI,1990,1995,The Spectrum,Philadelphia,PA,USA,39.9046,-75.1719
+PHI,1996,,Xfinity Mobile Arena,Philadelphia,PA,USA,39.9012,-75.1720
+WIN,1990,1995,Winnipeg Arena,Winnipeg,MB,Canada,49.9038,-97.1653
+PHX,1996,2002,America West Arena,Phoenix,AZ,USA,33.4457,-112.0712
+PHX,2003,2013,Jobing.com Arena,Glendale,AZ,USA,33.5319,-112.2611
+ARI,2014,2021,Gila River Arena,Glendale,AZ,USA,33.5319,-112.2611
+ARI,2022,2023,Mullett Arena,Tempe,AZ,USA,33.4242,-111.9316
+UTA,2024,,Delta Center,Salt Lake City,UT,USA,40.7683,-111.9011
+PIT,1990,2009,Civic Arena,Pittsburgh,PA,USA,40.4482,-79.9899
+PIT,2010,,PPG Paints Arena,Pittsburgh,PA,USA,40.4395,-79.9892
+SEA,2021,,Climate Pledge Arena,Seattle,WA,USA,47.6221,-122.3540
+SJS,1991,,SAP Center at San Jose,San Jose,CA,USA,37.3327,-121.9013
+STL,1990,1993,St. Louis Arena,St. Louis,MO,USA,38.6373,-90.2540
+STL,1994,,Enterprise Center,St. Louis,MO,USA,38.6266,-90.2027
+TBL,1992,,Benchmark International Arena,Tampa,FL,USA,27.9428,-82.4518
+TOR,1990,1998,Maple Leaf Gardens,Toronto,ON,Canada,43.6616,-79.3891
+TOR,1999,,Scotiabank Arena,Toronto,ON,Canada,43.6435,-79.3791
+VAN,1990,1994,Pacific Coliseum,Vancouver,BC,Canada,49.2837,-123.0428
+VAN,1995,,Rogers Arena,Vancouver,BC,Canada,49.2778,-123.1088
+VGK,2017,,T-Mobile Arena,Las Vegas,NV,USA,36.1029,-115.1785
+ATL,1999,2010,Philips Arena,Atlanta,GA,USA,33.7573,-84.3963
+WPG,2011,,Canada Life Centre,Winnipeg,MB,Canada,49.8926,-97.1436
+WSH,1990,1996,Capital Centre,Landover,MD,USA,38.9345,-76.8497
+WSH,1997,,Capital One Arena,Washington,DC,USA,38.8981,-77.0209

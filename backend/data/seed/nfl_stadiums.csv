@@ -1,0 +1,63 @@
+stadium_id,name,city,state,country,latitude,longitude
+ATL00,Georgia Dome,Atlanta,GA,USA,33.7573,-84.4006
+ATL97,Mercedes-Benz Stadium,Atlanta,GA,USA,33.7554,-84.4009
+BAL00,M&T Bank Stadium,Baltimore,MD,USA,39.2780,-76.6227
+BOS00,Gillette Stadium,Foxborough,MA,USA,42.0909,-71.2643
+BOS99,Foxboro Stadium,Foxborough,MA,USA,42.0654,-71.2571
+BRG00,Tiger Stadium (LSU),Baton Rouge,LA,USA,30.4118,-91.1839
+BUF00,Highmark Stadium,Orchard Park,NY,USA,42.7738,-78.7869
+BUF01,Rogers Centre,Toronto,ON,Canada,43.6414,-79.3894
+CAR00,Bank of America Stadium,Charlotte,NC,USA,35.2258,-80.8528
+CHI98,Soldier Field,Chicago,IL,USA,41.8623,-87.6167
+CHI99,Memorial Stadium (Champaign),Champaign,IL,USA,40.0996,-88.2361
+CIN00,Paycor Stadium,Cincinnati,OH,USA,39.0955,-84.5160
+CIN99,Cinergy Field,Cincinnati,OH,USA,39.0975,-84.5164
+CLE00,Huntington Bank Field,Cleveland,OH,USA,41.5061,-81.6995
+DAL00,AT&T Stadium,Arlington,TX,USA,32.7473,-97.0945
+DAL99,Texas Stadium,Irving,TX,USA,32.8407,-96.9111
+DEN00,Empower Field at Mile High,Denver,CO,USA,39.7439,-105.0201
+DEN99,Mile High Stadium,Denver,CO,USA,39.7444,-105.0201
+DET00,Ford Field,Detroit,MI,USA,42.3400,-83.0456
+DET99,Pontiac Silverdome,Pontiac,MI,USA,42.6297,-83.2578
+FRA00,Deutsche Bank Park,Frankfurt,,Germany,50.0685,8.6455
+GER00,Allianz Arena,Munich,,Germany,48.2188,11.6247
+GNB00,Lambeau Field,Green Bay,WI,USA,44.5013,-88.0622
+HOU00,NRG Stadium,Houston,TX,USA,29.6847,-95.4107
+IND00,Lucas Oil Stadium,Indianapolis,IN,USA,39.7601,-86.1639
+IND99,RCA Dome,Indianapolis,IN,USA,39.7633,-86.1608
+JAX00,EverBank Stadium,Jacksonville,FL,USA,30.3239,-81.6373
+KAN00,Arrowhead Stadium,Kansas City,MO,USA,39.0489,-94.4839
+LAX01,SoFi Stadium,Inglewood,CA,USA,33.9535,-118.3392
+LAX97,Dignity Health Sports Park,Carson,CA,USA,33.8644,-118.2611
+LAX99,Los Angeles Memorial Coliseum,Los Angeles,CA,USA,34.0141,-118.2879
+LON00,Wembley Stadium,London,,England,51.5560,-0.2795
+LON01,Twickenham Stadium,London,,England,51.4560,-0.3410
+LON02,Tottenham Hotspur Stadium,London,,England,51.6043,-0.0664
+MEX00,Estadio Azteca,Mexico City,,Mexico,19.3029,-99.1505
+MIA00,Hard Rock Stadium,Miami Gardens,FL,USA,25.9580,-80.2389
+MIN00,Hubert H. Humphrey Metrodome,Minneapolis,MN,USA,44.9740,-93.2581
+MIN01,U.S. Bank Stadium,Minneapolis,MN,USA,44.9736,-93.2575
+MIN98,TCF Bank Stadium,Minneapolis,MN,USA,44.9760,-93.2239
+NAS00,Nissan Stadium,Nashville,TN,USA,36.1665,-86.7713
+NOR00,Caesars Superdome,New Orleans,LA,USA,29.9511,-90.0812
+NYC00,Giants Stadium,East Rutherford,NJ,USA,40.8135,-74.0744
+NYC01,MetLife Stadium,East Rutherford,NJ,USA,40.8135,-74.0745
+OAK00,Oakland Coliseum,Oakland,CA,USA,37.7516,-122.2005
+PHI00,Lincoln Financial Field,Philadelphia,PA,USA,39.9008,-75.1675
+PHI99,Veterans Stadium,Philadelphia,PA,USA,39.9058,-75.1861
+PHO00,State Farm Stadium,Glendale,AZ,USA,33.5276,-112.2626
+PHO99,Sun Devil Stadium,Tempe,AZ,USA,33.4267,-111.9325
+PIT00,Acrisure Stadium,Pittsburgh,PA,USA,40.4468,-80.0158
+PIT99,Three Rivers Stadium,Pittsburgh,PA,USA,40.4463,-80.0158
+SAN00,Alamodome,San Antonio,TX,USA,29.4169,-98.4770
+SAO00,Arena Corinthians,Sao Paulo,,Brazil,-23.5453,-46.4742
+SDG00,Qualcomm Stadium,San Diego,CA,USA,32.7831,-117.1195
+SEA00,Lumen Field,Seattle,WA,USA,47.5952,-122.3316
+SEA98,Seattle Kingdome,Seattle,WA,USA,47.5952,-122.3316
+SEA99,Husky Stadium,Seattle,WA,USA,47.6503,-122.3017
+SFO00,Candlestick Park,San Francisco,CA,USA,37.7135,-122.3860
+SFO01,Levi's Stadium,Santa Clara,CA,USA,37.4033,-121.9694
+STL00,The Dome at America's Center,St. Louis,MO,USA,38.6329,-90.1886
+TAM00,Raymond James Stadium,Tampa,FL,USA,27.9759,-82.5033
+VEG00,Allegiant Stadium,Las Vegas,NV,USA,36.0909,-115.1833
+WAS00,Northwest Stadium,Landover,MD,USA,38.9077,-76.8645
