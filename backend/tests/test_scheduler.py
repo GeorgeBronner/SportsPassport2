@@ -204,7 +204,7 @@ class TestSyncStateEndpoints:
         # so by the time post() returns, every enabled league has been synced.
         status_rows = client.get("/api/admin/status", headers=admin_headers).json()
         adapter_backed = [r for r in status_rows if r["adapter_available"]]
-        assert len(adapter_backed) == 6
+        assert len(adapter_backed) == 7
         assert all(r["last_sync_status"] == "success" for r in adapter_backed)
         assert all(r["last_sync_games_imported"] == 5 for r in adapter_backed)
 

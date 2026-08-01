@@ -114,7 +114,7 @@ class TestDataStatus:
         response = client.get("/api/admin/status", headers=admin_headers)
         assert response.status_code == 200
         rows = {row["league"]: row for row in response.json()}
-        assert set(rows.keys()) == {"CFB", "MLB", "NFL", "NBA", "NHL", "CBB"}
+        assert set(rows.keys()) == {"CFB", "MLB", "NFL", "NBA", "NHL", "CBB", "MLS"}
         assert rows["CFB"]["games"] == 3
         assert rows["NHL"]["games"] == 1
         assert rows["MLB"]["games"] == 0

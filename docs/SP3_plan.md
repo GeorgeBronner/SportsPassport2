@@ -523,6 +523,37 @@ SQL query against the database.
 - Independently re-verified every final count via a direct SQL query against the database
   (not just trusting each subagent's self-report) before considering this phase done.
 
+### Phase 10 — MLS adapter (added beyond original scope) ✅ DONE 2026-08-01
+Added to unblock the one attended MLS game in `SP3_open_issues.md` #1b. The seventh
+league, and the first built on **two sources split at a hard season boundary** —
+`FIRST_ASA_SEASON = 2013` — so the same match can never arrive twice.
+- [x] Source research live-tested before ranking (`SP3_data_sources.md` MLS section):
+      the ASA API won on UTC-native timestamps, complete per-season slates, and
+      **venue coordinates supplied directly** — the only source in this project that
+      does, so the 2013+ era needed no hand-built seed at all.
+- [x] Kaggle `matches.csv` fills 1996–2012, but only after being validated against ASA
+      on the 2013–2022 overlap (per-season counts match exactly; all 3,687 rows find a
+      twin). Its clock times are 73% present and 80.6% accurate, so the era imports
+      **date-only**; its `date` column is the *local* game day, which is what would
+      have shifted every late kickoff a day forward if taken as UTC.
+- [x] `mls_stadiums.csv` (27 rows) covers pre-2013 grounds ASA never lists plus the 8
+      ASA stadia missing coordinates. Coordinates geocoded via Nominatim, not typed
+      from memory. Adjacent-but-distinct buildings (Mile High/Empower Field, Foxboro/
+      Gillette, Houlihan's/Raymond James) stay separate venue rows.
+- [x] Explicit canonical maps for 33 team-name variants and 70 venue strings, plus
+      free-text round labels → `season_type`. Validated exhaustively against the real
+      file before import: 0 unmapped names, 0 unparseable dates, 0 key collisions.
+- [x] **Final counts, live database, zero errors:**
+
+  | Source | Games | Seasons | Notes |
+  |--------|-------|---------|-------|
+  | Kaggle | 3,601 | 1996–2012 | date-only; 453 with no venue (2001–03 source hole) |
+  | ASA | 5,732 | 2013–2026 | real UTC kickoffs, coordinates, attendance |
+  | **Total** | **9,333** | **1996–2026** | 33 teams, 75 venues, **0 venues missing coordinates** |
+
+- Known limitation: ASA publishes results only (every row is `FullTime`), so MLS has
+  no upcoming fixtures, unlike CFB/CBB/NHL.
+
 **Total estimate: ~7–10 working days** for the first draft (Phases 0–6).
 
 ---
@@ -546,4 +577,7 @@ SQL query against the database.
    SP3_data_sources.md if a free source dies.
 4. Bulk files for backfill, APIs for sync — never bulk-crawl a rate-limited/ToS-restricted API.
 5. 1970 floor for pro leagues, 1990 for CFB; `start_season` parameterized for later deepening.
-6. Venue completeness target: MLB/NFL/NHL/CFB from source data; NBA via hand-built seed file.
+6. Venue completeness target: MLB/NFL/NHL/CFB from source data; NBA via hand-built seed file;
+   MLS from the ASA API directly, with a small seed for pre-2013 grounds.
+7. `has_time=False` games are parked at **noon** UTC, never midnight, via
+   `local_time.date_only()` — see `SP3_open_issues.md` #8.

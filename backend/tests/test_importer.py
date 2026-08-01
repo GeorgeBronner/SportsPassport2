@@ -74,7 +74,7 @@ class TestUpserts:
 
     def test_get_league_unknown_raises(self, db_session):
         with pytest.raises(ValueError):
-            get_league(db_session, "MLS")
+            get_league(db_session, "XFL")
 
 
 class TestMultiLeagueFilters:
@@ -95,14 +95,14 @@ class TestMultiLeagueFilters:
         assert len(response.json()) == 4
 
     def test_unknown_league_404(self, client, sample_games, auth_headers):
-        response = client.get("/api/games/?league=MLS", headers=auth_headers)
+        response = client.get("/api/games/?league=XFL", headers=auth_headers)
         assert response.status_code == 404
 
     def test_leagues_endpoint(self, client, auth_headers, db_session):
         response = client.get("/api/leagues/", headers=auth_headers)
         assert response.status_code == 200
         codes = [row["code"] for row in response.json()]
-        assert codes == ["CBB", "CFB", "MLB", "NBA", "NFL", "NHL"]
+        assert codes == ["CBB", "CFB", "MLB", "MLS", "NBA", "NFL", "NHL"]
 
     def test_teams_filtered_by_league(self, client, sample_teams, sample_nhl_teams, auth_headers):
         response = client.get("/api/teams/?league=NHL", headers=auth_headers)

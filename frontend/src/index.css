@@ -25,6 +25,7 @@
   --lg-nba: #a86e00;
   --lg-nhl: #0e8a5f;
   --lg-cbb: #cf4d1d;
+  --lg-mls: #7a4bc4;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -49,6 +50,7 @@
     --lg-nba: #c98500;
     --lg-nhl: #199e70;
     --lg-cbb: #d95926;
+    --lg-mls: #9b74dd;
   }
 }
 
@@ -73,6 +75,7 @@
   --lg-nba: #c98500;
   --lg-nhl: #199e70;
   --lg-cbb: #d95926;
+  --lg-mls: #9b74dd;
 }
 
 /* Semantic utilities: bg-page, bg-panel, text-ink, border-line, text-win, ... */
