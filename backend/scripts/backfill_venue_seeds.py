@@ -88,6 +88,59 @@ def backfill_nba(db, dry_run: bool) -> int:
     if not dry_run and updates:
         db.bulk_update_mappings(Game, updates)
         db.commit()
+    return len(updates) + _dedupe_nba_venues(db, league, dry_run)
+
+
+def _dedupe_nba_venues(db, league, dry_run: bool) -> int:
+    """Repoint games off arenaId-keyed venue rows onto the seed row for the
+    same building.
+
+    Games.csv carries arena data for its current season, and that path used to
+    key the venue by the CSV's arenaId while every other path keyed it by
+    arena name — so 26 arenas ended up with two rows, the arenaId one holding
+    no coordinates. Any game landing on that row is invisible on the map and
+    shows as a second entry for the same building. The adapter now reconciles
+    on name; this repoints the rows that predate that fix.
+
+    The emptied arenaId rows are left in place, unreferenced — same as the
+    NHL pass above, and safer than deleting rows something else may point at.
+    """
+    stale = {
+        v.id: v.name
+        for v in db.query(Venue).filter(
+            Venue.source == "nba-kaggle",
+            ~Venue.source_venue_id.like("seed-%"),
+        )
+        if venue_seed.lookup_nba_arena_by_name(v.name)
+    }
+    if not stale:
+        return 0
+
+    updates = []
+    venue_cache: dict[str, int] = {}
+    for game_id, venue_id in (
+        db.query(Game.id, Game.venue_id)
+        .filter(Game.league_id == league.id, Game.venue_id.in_(stale))
+        .all()
+    ):
+        seed = venue_seed.lookup_nba_arena_by_name(stale[venue_id])
+        target = venue_cache.get(seed["arena"])
+        if target is None:
+            if dry_run:
+                target = -1
+            else:
+                venue, _ = upsert_venue(
+                    db, source="nba-kaggle", source_venue_id=f"seed-{seed['arena']}",
+                    name=seed["arena"], **venue_seed.venue_fields(seed),
+                )
+                db.flush()
+                target = venue.id
+            venue_cache[seed["arena"]] = target
+        updates.append({"id": game_id, "venue_id": target})
+
+    if not dry_run and updates:
+        db.bulk_update_mappings(Game, updates)
+        db.commit()
     return len(updates)
 
 

@@ -67,6 +67,26 @@ def lookup_nba_arena(team_id: str, season: int) -> Optional[dict]:
 
 
 @lru_cache(maxsize=1)
+def _nba_arenas_by_name() -> dict[str, dict]:
+    """Arena name -> seed row, across every team and era.
+
+    Lets a caller that already knows the building by name (Games.csv carries
+    arena data for its current season) land on the same venue row the
+    team+era lookup produces, instead of minting a second row for the same
+    arena under a different key.
+    """
+    by_name: dict[str, dict] = {}
+    for rows in _nba_arenas_by_team().values():
+        for row in rows:
+            by_name.setdefault(row["arena"], row)
+    return by_name
+
+
+def lookup_nba_arena_by_name(arena: str) -> Optional[dict]:
+    return _nba_arenas_by_name().get(arena)
+
+
+@lru_cache(maxsize=1)
 def _nhl_arenas_by_tricode() -> dict[str, list[dict]]:
     return _load_by_key("nhl_arenas.csv", "tricode")
 

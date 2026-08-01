@@ -188,6 +188,48 @@ class TestNbaImportHistorical:
         assert cup_games[0].season == 2023
 
     @pytest.mark.asyncio
+    async def test_csv_arena_reuses_the_seed_row_for_the_same_building(self, adapter, db_session):
+        """Games.csv names the arena for its current season. Keying that by
+        arenaId while the seed path keys by name gave the same building two
+        rows, and the arenaId one carried no coordinates -- so a game landing
+        on it dropped off the map and showed as a duplicate venue."""
+        with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS):
+            await adapter.import_historical(2005, 2023)
+
+        paycom = db_session.query(Venue).filter(Venue.name == "Paycom Center").all()
+        assert len(paycom) == 1                      # not one per key style
+        assert paycom[0].source_venue_id == "seed-Paycom Center"
+        assert paycom[0].latitude is not None        # the seed's verified coords
+
+        # ROW_THUNDER_2023 carries arenaId 1000123; that key must not survive
+        assert not db_session.query(Venue).filter(
+            Venue.source_venue_id == "1000123"
+        ).count()
+
+    @pytest.mark.asyncio
+    async def test_arena_outside_the_seed_keeps_csv_location(self, adapter, db_session):
+        """A building the seed doesn't describe -- neutral-site/global games --
+        must still be recorded, with the CSV's city/state so it can be
+        geocoded later rather than being silently coordinate-less."""
+        mexico = _row(
+            gameId="22300500",
+            hometeamCity="Oklahoma City", hometeamName="Thunder", hometeamId=SONICS_ID,
+            awayteamCity="Boston", awayteamName="Celtics", awayteamId=CELTICS_ID,
+            gameDate="2023-11-09 20:00:00",
+            arenaId="9001", arenaName="Arena Ciudad de Mexico",
+            arenaCity="Mexico City", arenaState="",
+        )
+        with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS + [mexico]):
+            await adapter.import_historical(2023, 2023)
+
+        venue = db_session.query(Venue).filter(Venue.name == "Arena Ciudad de Mexico").one()
+        assert venue.source_venue_id == "9001"       # no seed row to fold into
+        assert venue.city == "Mexico City"
+        # and it did NOT get mis-attributed to the home team's usual arena
+        game = db_session.query(Game).filter(Game.source_game_id == "22300500").one()
+        assert game.venue_id == venue.id
+
+    @pytest.mark.asyncio
     async def test_import_historical_venue_falls_back_to_seed(self, adapter, db_session):
         with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS):
             await adapter.import_historical(2005, 2023)

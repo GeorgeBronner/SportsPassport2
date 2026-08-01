@@ -218,18 +218,39 @@ class NbaAdapter(LeagueAdapter):
         venue_id = None
         arena_name = row.get("arenaName")
         if arena_name:
-            venue_id = venue_cache.get(arena_name)
+            # The CSV names the building, which is the only signal that a game
+            # was played somewhere other than the home team's arena (this
+            # importer has no neutral-site flag), so it decides *which* arena.
+            # But when that arena is one the seed already describes, reuse the
+            # seed's row: keying the same building by arenaId here and by name
+            # in the seed path produced two rows per arena, one of them without
+            # the hand-verified coordinates the map needs.
+            named_seed = venue_seed.lookup_nba_arena_by_name(arena_name)
+            cache_key = f"seed:{arena_name}" if named_seed else f"csv:{arena_name}"
+            venue_id = venue_cache.get(cache_key)
             if venue_id is None:
-                venue, created = upsert_venue(
-                    self.db,
-                    source=self.source,
-                    source_venue_id=row.get("arenaId") or arena_name,
-                    name=arena_name,
-                    city=row.get("arenaCity") or None,
-                    state=row.get("arenaState") or None,
-                )
+                if named_seed:
+                    venue, created = upsert_venue(
+                        self.db,
+                        source=self.source,
+                        source_venue_id=f"seed-{named_seed['arena']}",
+                        name=named_seed["arena"],
+                        **venue_seed.venue_fields(named_seed),
+                    )
+                else:
+                    # A building the seed doesn't cover — neutral-site/global
+                    # games, or arenas outside its 1990+ scope. Keep the CSV's
+                    # city/state so geocode_venues.py can place it later.
+                    venue, created = upsert_venue(
+                        self.db,
+                        source=self.source,
+                        source_venue_id=row.get("arenaId") or arena_name,
+                        name=arena_name,
+                        city=row.get("arenaCity") or None,
+                        state=row.get("arenaState") or None,
+                    )
                 venue_id = venue.id
-                venue_cache[arena_name] = venue_id
+                venue_cache[cache_key] = venue_id
                 if created:
                     result.venues_imported += 1
         else:
