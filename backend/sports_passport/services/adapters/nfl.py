@@ -16,10 +16,11 @@ tier (see docs/SP3_data_sources.md) — deferred rather than blocking on that.
 `nfl_team_id` from teams.csv is stable across relocations (e.g. STL/LA
 Rams both carry 2510) and is stored as our `franchise_id`; the abbreviation
 itself is the per-era team identity (STL and LA Rams are separate team
-rows), matching the CFB/NHL pattern. `gametime` in the source data is not
-UTC (nflverse publishes it in US Eastern local time) — stored as-is like
-the other adapters' "date-only OK for old games" allowance; not precise
-UTC, good enough for a games-attended tracker.
+rows), matching the CFB/NHL pattern. `gametime` in the source data is US
+Eastern local time for every game regardless of where it is played, so
+`_parse_start` converts it to UTC — `games.start_date` is defined as UTC
+(SP3_plan.md §3) and the API serializer stamps an explicit UTC offset on
+it, so storing Eastern here would publish a time 4-5 hours off.
 """
 import csv
 import io
@@ -28,7 +29,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from sports_passport.models.team import Team
-from sports_passport.services.adapters import venue_seed
+from sports_passport.services.adapters import local_time, venue_seed
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
 from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
 
@@ -183,7 +184,12 @@ class NflAdapter(LeagueAdapter):
         gametime = row.get("gametime")
         try:
             if gametime:
-                return datetime.fromisoformat(f"{gameday}T{gametime}:00")
+                return local_time.eastern_to_utc(
+                    datetime.fromisoformat(f"{gameday}T{gametime}:00")
+                )
+            # No kickoff time: the date itself is already the local game day,
+            # and the row goes in with has_time=False, so it stays at naive
+            # midnight rather than being shifted into the previous day.
             return datetime.fromisoformat(gameday)
         except ValueError:
             return None

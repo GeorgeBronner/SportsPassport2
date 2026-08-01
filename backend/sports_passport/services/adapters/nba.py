@@ -60,7 +60,7 @@ import httpx
 from sports_passport.core.config import settings
 from sports_passport.models.game import Game
 from sports_passport.models.team import Team
-from sports_passport.services.adapters import venue_seed
+from sports_passport.services.adapters import local_time, venue_seed
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
 from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
 
@@ -82,9 +82,14 @@ GAME_TYPES = {
     # "All-Star Game" intentionally excluded: uses synthetic non-franchise team ids
 }
 
-# Real per-game tip-off times only start showing variety in the CSV from
-# 1969 on; earlier seasons carry a single placeholder time for every game.
-FIRST_SEASON_WITH_REAL_TIMES = 1969
+# Real per-game tip-off times only start in the CSV with the 1996 season.
+# Every season before it carries one or two placeholder clock values for the
+# entire year (1969-95 have exactly 1-2 distinct times per season, almost all
+# 7:00 or 8:00pm); from 1996 on there are 20+ distinct tip-offs a season with
+# a realistic spread of half-hours. Rows below the cutoff go in with
+# has_time=False at naive midnight, so the UI shows their date and stops
+# implying a kickoff time the source never had.
+FIRST_SEASON_WITH_REAL_TIMES = 1996
 
 ONE_DAY = timedelta(days=1)
 
@@ -100,15 +105,17 @@ ESPN_SEASON_TYPES = {1: "preseason", 2: "regular", 3: "postseason"}
 # Polite spacing between ESPN scoreboard calls; a sync window is a handful of days.
 ESPN_THROTTLE_SECONDS = 0.5
 
-# How far apart the same game may look between the two sources. ESPN stamps
-# UTC; the Kaggle rows carry a naive *local* tip-off, so the same game differs
-# by the venue's UTC offset — at most 8h for a 7:30pm Pacific start.
+# How far apart the same game may look between the two sources. Both now
+# store UTC (the Kaggle rows are converted from Eastern on import, see
+# _upsert_row), so the two should agree to the minute; the window absorbs a
+# source disagreeing about a rescheduled tip-off, and any row still carrying
+# a pre-conversion Eastern time — at most 5h off.
 #
 # The ceiling is set by how close two *different* games with the same matchup
 # can be. They are not rare: the same pair meets on consecutive nights 294
 # times in this dataset (287 of them exactly 24.0h apart, tightest genuine
 # modern gap 22h), so an earlier ±1 day window sat exactly on top of them.
-# 12h clears the 8h skew and stays well inside the 22h separation.
+# 12h clears the 5h skew and stays well inside the 22h separation.
 NATURAL_KEY_WINDOW = timedelta(hours=12)
 
 
@@ -208,7 +215,7 @@ class NbaAdapter(LeagueAdapter):
             return
 
         try:
-            start_date = datetime.strptime(row["gameDate"], "%Y-%m-%d %H:%M:%S")
+            eastern_start = datetime.strptime(row["gameDate"], "%Y-%m-%d %H:%M:%S")
         except ValueError:
             result.errors.append(f"game {row['gameId']}: bad date {row['gameDate']!r}")
             return
@@ -274,6 +281,17 @@ class NbaAdapter(LeagueAdapter):
                     if created:
                         result.venues_imported += 1
 
+        # The CSV publishes tip-off in US Eastern for every game, wherever it
+        # is played (see local_time); start_date is UTC. Below the real-times
+        # cutoff there is no tip-off to convert, so the row keeps its date at
+        # naive midnight — has_time=False rows render pinned to UTC, so
+        # shifting them would roll the calendar day.
+        has_time = season >= FIRST_SEASON_WITH_REAL_TIMES
+        if has_time:
+            start_date = local_time.eastern_to_utc(eastern_start)
+        else:
+            start_date = eastern_start.replace(hour=0, minute=0, second=0, microsecond=0)
+
         attendance = int(row["attendance"]) if row.get("attendance", "").strip().isdigit() else None
         if attendance == 0:
             attendance = None
@@ -297,7 +315,7 @@ class NbaAdapter(LeagueAdapter):
             home_score=int(row["homeScore"]),
             away_score=int(row["awayScore"]),
             start_date=start_date,
-            has_time=season >= FIRST_SEASON_WITH_REAL_TIMES,
+            has_time=has_time,
             season=season,
             season_type=season_type,
             venue_id=venue_id,

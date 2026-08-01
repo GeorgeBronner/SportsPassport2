@@ -180,7 +180,8 @@ attaches an explicit UTC offset when serializing these fields, applied via
 viewer's own local timezone (no explicit `timeZone` override) and keeps
 `has_time=false` rows pinned to UTC. Very late West Coast/Hawaii kickoffs that
 themselves cross midnight in the viewer's local timezone are a known remaining
-edge case, not fully solvable without per-venue timezone data.
+edge case, not fully solvable without per-venue timezone data — see issue #7,
+which quantifies it and confirms it now applies uniformly across all leagues.
 
 ## 6. `alembic upgrade head` fails from every database state — **RESOLVED 2026-07-23**
 
@@ -262,40 +263,108 @@ attendance, `integrity_check` and `foreign_key_check` all identical afterwards;
 the only changes are the version stamp and the new unique index. Backup kept at
 `backend/sports_passport.pre-f3a9d4b6c281.db` (gitignored).
 
-## 7. NBA `start_date` mixes local and UTC in one column — open
+## 7. NBA and NFL `start_date` held Eastern, not UTC — **RESOLVED 2026-08-01**
 
-Raised by CodeRabbit on PR #9 and confirmed against the loaded database
-2026-08-01. `games.start_date` is documented as UTC (`SP3_plan.md` §3), and
-the ESPN sync path writes true UTC. The Kaggle bulk path does not: it writes
-the CSV's naive **local** tip-off straight into the same column.
+Raised by CodeRabbit on PR #9. `games.start_date` is documented as UTC
+(`SP3_plan.md` §3), `core/serializers.py` stamps a UTC offset on it, and the
+frontend renders `has_time = true` rows in the viewer's timezone (issue #5).
+Two bulk paths broke that contract by writing a naive **US Eastern** wall
+clock into the column: the NBA Kaggle `Games.csv` (`gameDate`) and nflverse
+(`gameday` + `gametime`). NFL was the wider gap — it was never recorded here,
+and `nfl.py`'s docstring described storing Eastern as-is as a deliberate
+"good enough" allowance, which stopped being true once issue #5 made the API
+assert an explicit UTC offset.
 
-Confirmed on a real row — game `22500795` (Pacers @ Wizards) stores
-`2026-02-19 19:00:00` while ESPN reports the same game at
-`2026-02-20T00:00Z`, i.e. 7:00pm ET. The stored value is local, not UTC.
-**66,319 NBA rows carry `has_time = 1`**, so this is the normal case, not an
-edge one.
+### What the source data actually is
 
-Consequences:
+The original write-up assumed the NBA times were *arena-local*. They are not,
+and the distinction matters: converting arena-local would have been three
+hours wrong for every western venue. Two independent checks, both against the
+loaded database:
 
-- `core/serializers.py` stamps a UTC offset on serialization and the frontend
-  renders `has_time = true` rows in the viewer's timezone (see issue #5), so
-  bulk-imported NBA games display their tip-off roughly 5–8 hours early. The
-  calendar date — which is what the UI actually leads with — stays correct for
-  US viewers, which is why this went unnoticed; a viewer east of UTC could see
-  a late game roll to the wrong day.
-- A game touched by `sync_recent` gets rewritten to true UTC, so the same
-  column holds both conventions, and a later `Games.csv` re-import flips that
-  row back. `NATURAL_KEY_WINDOW` is 12h precisely so reconciliation survives
-  this, so matching is unaffected either way.
+- Modal tip-off by venue timezone, NBA 1996+: Eastern arenas 19:00/19:30,
+  Central 20:00/20:30, Mountain 21:00, Pacific 22:00/22:30 — every zone peaks
+  at 7:00–7:30pm *local*, expressed in Eastern. Stable across 1996–2004,
+  2005–2014 and 2015–2025.
+- NFL west-coast home games cluster at 16:05/16:25, i.e. the 1:05/1:25pm PT
+  windows in Eastern.
 
-**Not fixed** because the correct fix needs per-venue timezone data, which the
-app does not have — the same limitation already recorded at the end of issue
-#5. Options, in rough order of cost: derive an offset per team from the seed
-CSVs' city/state (cheap, wrong for neutral-site games); add a real timezone
-column to `venues` and normalize on import (correct, and would let issue #5's
-remaining edge case close too); or leave bulk rows local and set
-`has_time = false` for them so the UI stops implying a precise time it does
-not have.
+Confirmed against ESPN on two real rows:
 
-The same question applies to any other adapter reading naive local times out
-of a bulk file — worth checking MLB/NFL before picking a fix.
+| Game | Stored (before) | ESPN | Stored (after) |
+|---|---|---|---|
+| `22500795` Pacers @ Wizards (ET venue) | `2026-02-19 19:00` | `2026-02-20T00:00Z` | `2026-02-20 00:00` |
+| `22500696` Pistons @ Warriors (PT venue) | `2026-01-30 22:00` | `2026-01-31T03:00Z` | `2026-01-31 03:00` |
+
+The Warriors row is the decisive one: 22:00 is 10:00pm **Eastern**, not
+10:00pm Pacific.
+
+### Fix
+
+`services/adapters/local_time.py` — `to_utc(naive, zone=EASTERN)`, using
+`zoneinfo` so the DST offset is the one in effect on that date. Applied in
+`nfl.py::_parse_start` and `nba.py::_upsert_row`. No per-venue timezone data
+is involved, because neither source needs it; the venue timezone column
+floated in the original write-up would have been both more work and, for
+these two sources, wrong.
+
+`FIRST_SEASON_WITH_REAL_TIMES` also moved 1969 → 1996. The CSV has no real
+tip-offs before then: every season 1969–1995 carries one or two distinct
+clock values for the *entire year* (almost all 7:00 or 8:00pm), while 1996+
+has 20–29 distinct tip-offs a season. Those 26,425 rows now go in with
+`has_time = False` at naive midnight, so the UI shows their date and stops
+implying a precision the source never had. NBA `has_time = 1` rows therefore
+drop 66,319 → 39,894.
+
+Backfill: migration `c4d8e2a1f7b3`, applied to the live database
+(496,382 games / 237 attendance rows) after a WAL-safe `.backup` rehearsal;
+row counts, attendance, `integrity_check` and `foreign_key_check` all
+identical afterwards. Backup at `backend/sports_passport.pre-c4d8e2a1f7b3.db`
+(gitignored). The migration is deliberately **not reversible** — the pre-1996
+placeholder times it discards are not recoverable.
+
+### Verified effect on what users see
+
+The frontend renders dates only (it has no clock-time formatter at all), so
+the check that matters is whether any game's displayed calendar day moved.
+Across all 80,820 NBA + NFL rows:
+
+| Viewer timezone | Displayed date changed |
+|---|---|
+| US Eastern | 14 |
+| US Central | 11 |
+| US Pacific | 6 |
+| Sydney | 28,005 |
+
+All 237 attended games are unchanged in every US zone. The 14 Eastern changes
+are all October preseason games played abroad (NBA Global Games) that
+genuinely tip between 00:00 and 02:00 ET. The Sydney column is the bug being
+fixed: viewers east of UTC were seeing tens of thousands of games on the
+wrong day.
+
+NBA's rate of "ET-rendered date differs from the venue-local game day" is now
+0.03%, against CBB 0.13% and CFB 0.58% — i.e. in line with the leagues that
+were already storing UTC correctly.
+
+### Known remaining issue
+
+The residual is issue #5's unchanged edge case, now shared uniformly by every
+league: a game that crosses midnight in the *viewer's* timezone displays on
+the following calendar day, because the frontend renders in viewer-local time
+and the app has no notion of the venue's local "game day". A late West Coast
+game viewed from the East Coast is the common instance; the 14 rows above are
+the extreme one. Closing it properly means displaying each game's date in its
+*venue's* timezone rather than the viewer's — which is the point at which a
+real timezone column on `venues` would earn its keep. Not worth it for a
+handful of rows today.
+
+Two smaller things deliberately left alone:
+
+- CFB sets `has_time=True` unconditionally (`cfb.py:146`) where CBB gates on
+  `startTimeTbd`, so ~518 unscheduled 2026 games publish CFBD's midnight-ET
+  placeholder as though it were a real kickoff. Harmless while no clock time
+  is displayed.
+- NBA seasons 1973 and 1975 have 17 and 24 distinct clock values against 1–2
+  for every other pre-1996 season, so the Kaggle source may carry partially
+  real times for those two years. They fall below the 1996 cutoff and are
+  treated as time-less like the rest.

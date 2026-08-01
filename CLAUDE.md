@@ -26,6 +26,9 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
   source doesn't carry them — `backend/sports_passport/data/seed/{nfl_stadiums,nhl_arenas,nba_arenas}.csv`,
   loaded via `services/adapters/venue_seed.py` — are committed and wired into
   their adapters; see `docs/SP3_plan.md` Phase 4/7 for scope notes.
+  `games.start_date` is **always UTC**; the NBA (Kaggle) and NFL (nflverse) bulk
+  files publish US Eastern instead, and are converted on import via
+  `services/adapters/local_time.py` — see `docs/SP3_open_issues.md` #7.
   These live **inside the package**, not under `settings.data_dir`: `data_dir` is the
   Docker bind-mount volume (database, logos, `raw/` bulk files), and a mount shadows
   whatever the image put there. Committed code assets belong next to the code that

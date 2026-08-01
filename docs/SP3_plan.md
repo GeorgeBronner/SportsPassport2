@@ -81,8 +81,10 @@ venues
 
 games
   id, league_id (FK), season, season_type ('regular'|'postseason'|'preseason'),
-  week (nullable — NFL/CFB only), start_date (UTC; date-only OK for old games,
-  has_time flag), home_team_id (FK), away_team_id (FK),
+  week (nullable — NFL/CFB only), start_date (UTC — always; sources that
+  publish US Eastern are converted on import via
+  `services/adapters/local_time.py`, see SP3_open_issues.md #7. Date-only OK
+  for old games, has_time flag), home_team_id (FK), away_team_id (FK),
   home_score, away_score, venue_id (FK, nullable), neutral_site (bool),
   attendance (nullable), overtime_flag (nullable — OT/SO for NHL, extra innings for MLB),
   source, source_game_id  → UNIQUE(source, source_game_id)

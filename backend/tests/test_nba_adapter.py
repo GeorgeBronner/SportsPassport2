@@ -265,6 +265,65 @@ class TestNbaImportHistorical:
         assert db_session.query(Game).filter(Game.season == 2005).count() == 0
 
 
+class TestNbaStartDateIsUtc:
+    """The Kaggle CSV publishes tip-off in US Eastern for every game, wherever
+    it is played; start_date is UTC (docs/SP3_open_issues.md #7)."""
+
+    @pytest.mark.asyncio
+    async def test_tipoff_converts_from_eastern(self, adapter, db_session):
+        # 7:00pm EDT on 2023-11-01 -> 23:00 UTC the same day
+        with patch.object(adapter, "_read_games_csv", return_value=[ROW_THUNDER_2023]):
+            await adapter.import_historical(2023, 2023)
+
+        game = db_session.query(Game).filter(Game.source_game_id == "22300002").one()
+        assert game.start_date == datetime(2023, 11, 1, 23, 0)
+        assert game.has_time is True
+
+    @pytest.mark.asyncio
+    async def test_western_arena_still_converts_from_eastern(self, adapter, db_session):
+        """A 7:00pm Pacific tip-off arrives as 22:00 Eastern; converting off
+        the arena's own zone would be three hours out. Matches ESPN's
+        03:00Z for Pistons @ Warriors on this date."""
+        row = _row(
+            gameId="22500696", gameDate="2026-01-30 22:00:00",
+            hometeamCity="Oklahoma City", hometeamName="Thunder", hometeamId=SONICS_ID,
+            awayteamCity="Boston", awayteamName="Celtics", awayteamId=CELTICS_ID,
+        )
+        with patch.object(adapter, "_read_games_csv", return_value=[row]):
+            await adapter.import_historical(2025, 2025)
+
+        game = db_session.query(Game).filter(Game.source_game_id == "22500696").one()
+        assert game.start_date == datetime(2026, 1, 31, 3, 0)
+
+    @pytest.mark.asyncio
+    async def test_pre_1996_placeholder_times_are_dropped(self, adapter, db_session):
+        """Seasons before 1996 carry one or two placeholder clock values for the
+        whole year, so the row keeps its local date at midnight with has_time
+        false rather than publishing a tip-off the source never had."""
+        row = _row(gameId="27000001", gameDate="1970-11-01 19:00:00")
+        with patch.object(adapter, "_read_games_csv", return_value=[row]):
+            await adapter.import_historical(1970, 1970)
+
+        game = db_session.query(Game).filter(Game.source_game_id == "27000001").one()
+        assert game.has_time is False
+        assert game.start_date == datetime(1970, 11, 1, 0, 0)
+
+    @pytest.mark.asyncio
+    async def test_international_game_converts_from_eastern_too(self, adapter, db_session):
+        """The CSV reports games played abroad in Eastern like every other
+        row, so no venue lookup is involved."""
+        row = _row(
+            gameId="22300500", gameDate="2023-11-09 20:00:00",
+            arenaId="9001", arenaName="Arena Ciudad de Mexico",
+            arenaCity="Mexico City", arenaState="",
+        )
+        with patch.object(adapter, "_read_games_csv", return_value=[row]):
+            await adapter.import_historical(2023, 2023)
+
+        game = db_session.query(Game).filter(Game.source_game_id == "22300500").one()
+        assert game.start_date == datetime(2023, 11, 10, 1, 0)  # 8:00pm EST
+
+
 class TestNbaSync:
     async def _sync(self, adapter, payload):
         with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS):
@@ -416,11 +475,16 @@ class TestNbaSync:
             await adapter.sync_recent(since=date.today() - timedelta(days=1))
         assert db_session.query(Game).count() == 2
 
+        # The CSV time is US Eastern and is converted on import -- 07:00 EST
+        # is 12:00 UTC, the midpoint of the two synced rows and so inside both
+        # windows. No realistic tip-off sits midway between two games 22h
+        # apart, which is the point: this is the adversarial case the guard
+        # exists for.
         bulk = _row(
             gameId="22500001",
             hometeamCity="Oklahoma City", hometeamName="Thunder", hometeamId=SONICS_ID,
             awayteamCity="Boston", awayteamName="Celtics", awayteamId=CELTICS_ID,
-            gameDate="2025-11-02 12:00:00",
+            gameDate="2025-11-02 07:00:00",
         )
         with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS + [bulk]):
             await adapter.import_historical(2025, 2025)

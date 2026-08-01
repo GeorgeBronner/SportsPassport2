@@ -3,7 +3,7 @@ Tests for the NFL adapter using mocked nflverse CSV payloads (shapes verified
 against the live games.csv/teams.csv on 2026-07-11).
 """
 import pytest
-from datetime import date
+from datetime import date, datetime
 from unittest.mock import AsyncMock, patch
 
 from sports_passport.models.game import Game
@@ -120,6 +120,46 @@ class TestNflImportHistorical:
         assert result.games_imported == 0
         assert len(result.errors) == 1
         assert "unmatched team" in result.errors[0]
+
+
+class TestNflStartDateIsUtc:
+    """nflverse publishes `gametime` in US Eastern for every game regardless of
+    where it is played; start_date is UTC (docs/SP3_open_issues.md #7)."""
+
+    @pytest.mark.asyncio
+    async def test_kickoff_converts_from_eastern(self, adapter, db_session):
+        with patch.object(adapter, "_get_csv", _fake_get_csv()):
+            await adapter.import_historical(2016, 2016)
+
+        game = db_session.query(Game).filter(Game.source_game_id == "2016_01_LA_SF").one()
+        # 8:30pm EDT on 2016-09-12 -> 00:30 UTC the next day
+        assert game.start_date == datetime(2016, 9, 13, 0, 30)
+        assert game.has_time is True
+
+    @pytest.mark.asyncio
+    async def test_west_coast_game_still_converts_from_eastern(self, adapter, db_session):
+        """The source time is Eastern even for a game played in California, so
+        converting off the venue would be three hours wrong."""
+        row = dict(GAMES_ROWS[2], game_id="2016_02_LA_SF", gameday="2016-01-10", gametime="16:40")
+        with patch.object(adapter, "_get_csv", _fake_get_csv(games_rows=[row])):
+            await adapter.import_teams()
+            await adapter.import_historical(2016, 2016)
+
+        game = db_session.query(Game).filter(Game.source_game_id == "2016_02_LA_SF").one()
+        # 4:40pm EST in January -> 21:40 UTC same day
+        assert game.start_date == datetime(2016, 1, 10, 21, 40)
+
+    @pytest.mark.asyncio
+    async def test_date_only_rows_stay_at_midnight(self, adapter, db_session):
+        """No kickoff time means nothing to convert -- shifting the bare date
+        would roll it into the previous day, and has_time=False rows render
+        pinned to UTC."""
+        with patch.object(adapter, "_get_csv", _fake_get_csv()):
+            await adapter.import_historical(1999, 1999)
+
+        game = db_session.query(Game).filter(Game.source_game_id == "1999_01_STL_TEN").one()
+        assert game.has_time is False
+        assert game.start_date == datetime(1999, 9, 12, 0, 0)
 
 
 class TestNflSync:

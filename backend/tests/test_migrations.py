@@ -22,7 +22,7 @@ import tempfile
 import pytest
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HEAD = "f3a9d4b6c281"
+HEAD = "c4d8e2a1f7b3"
 
 # Revisions real databases have been found stamped at. None = empty database.
 # Each non-None case also gets the *current* full schema from create_all, which
@@ -32,6 +32,7 @@ KNOWN_STATES = [
     pytest.param("c8e2f4a6b1d9", id="stamped-add-venue-coordinates"),
     pytest.param("a7e4c2f1b3d6", id="stamped-sync-state-last-success"),
     pytest.param("e2f5b8c3d4a1", id="stamped-password-reset-tokens"),
+    pytest.param("f3a9d4b6c281", id="stamped-unique-user-game-attendance"),
     pytest.param(HEAD, id="already-at-head"),
 ]
 
