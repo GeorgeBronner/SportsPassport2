@@ -165,5 +165,6 @@ Match results (2026-07-15 run):
 
 - ESPN hidden API: unofficial — one-time/occasional scrapes only, throttled, with a
   descriptive User-Agent; logos cached locally so the app never hotlinks ESPN.
-- Existing rules unchanged: MLB Stats API sync-only; throttle stats.nba.com; never
-  scrape Sports-Reference.
+- Existing rules unchanged: MLB Stats API sync-only; never scrape Sports-Reference.
+  NBA sync also runs on ESPN as of 2026-08-01 (nba.com is Akamai-blocked from our
+  hosts), under the same throttled/descriptive-User-Agent terms as the logo scrape.

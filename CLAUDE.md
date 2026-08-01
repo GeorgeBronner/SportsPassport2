@@ -31,8 +31,10 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
   whatever the image put there. Committed code assets belong next to the code that
   reads them — see `tests/test_venue_seed.py` for why.
 - **Compliance rules** (from `docs/SP3_data_sources.md` — do not violate): MLB Stats API is
-  sync-only, never bulk backfill (Retrosheet for that); throttle stats.nba.com; never
-  scrape Sports-Reference sites.
+  sync-only, never bulk backfill (Retrosheet for that); ESPN's hidden API (NBA sync,
+  team logos) is unofficial — throttled, descriptive User-Agent, never bulk; never
+  scrape Sports-Reference sites. nba.com is Akamai-blocked from our hosts and is no
+  longer used at all.
 
 ## Conventions
 - **Git**: feature branches (`feature-name`); merge to `main` when complete and tested. Commit messages concise; **never mention Claude/AI/code-generation tools**.

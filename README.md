@@ -18,8 +18,8 @@ Planning docs: [SP3_plan.md](docs/SP3_plan.md) · [SP3_data_sources.md](docs/SP3
   |--------|-----------|--------------|
   | CFB | CollegeFootballData.com (1990+) | CollegeFootballData.com |
   | MLB | Retrosheet game logs (1970+) | MLB Stats API |
-  | NFL | Kaggle/Spreadspoke CSV (1970+) | nflverse games.csv |
-  | NBA | stats.nba.com via nba_api (1970+) | nba_api |
+  | NFL | nflverse games.csv (1999+) | nflverse games.csv |
+  | NBA | Kaggle bulk CSV (1946+) | ESPN scoreboard |
   | NHL | Official NHL API (1970+) | Official NHL API |
 - **Attendance Tracking** — mark games attended, add personal notes
 - **Statistics Dashboard** — games by league/team/season, unique venues, states visited

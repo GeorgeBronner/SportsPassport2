@@ -5,7 +5,7 @@ the real Kaggle "historical-nba-data-and-player-box-scores" dataset on
 the live endpoint on 2026-08-01, when NBA sync moved off stats.nba.com).
 """
 import pytest
-from datetime import date
+from datetime import date, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 from sports_passport.models.game import Game
@@ -97,7 +97,7 @@ def _espn_event(**over):
         "season": {"year": 2026, "type": 2, "slug": "regular-season"},
         "competitions": [{
             "neutralSite": False,
-            "status": {"type": {"state": "post", "name": "STATUS_FINAL"}},
+            "status": {"type": {"state": "post", "name": "STATUS_FINAL", "completed": True}},
             "venue": {
                 "id": "3742",
                 "fullName": "Paycom Center",
@@ -127,7 +127,7 @@ ESPN_ALLSTAR_PAYLOAD = _payload(_espn_event(
     id="401810999",
     competitions=[{
         "neutralSite": True,
-        "status": {"type": {"state": "post"}},
+        "status": {"type": {"state": "post", "completed": True}},
         "competitors": [
             {"homeAway": "home", "score": "88", "team": {"displayName": "Team Stripes"}},
             {"homeAway": "away", "score": "84", "team": {"displayName": "Team Stars"}},
@@ -312,6 +312,131 @@ class TestNbaSync:
         assert db_session.query(Game).one().source_game_id == "22500001"
 
     @pytest.mark.asyncio
+    async def test_back_to_back_same_matchup_stays_two_games(self, adapter, db_session):
+        """The same pair meets on consecutive nights 294 times in the real
+        dataset (287 exactly 24.0h apart). An earlier +/-1 day window sat on
+        top of those, so syncing night 2 overwrote night 1 and the first game
+        silently ceased to exist."""
+        night1 = _espn_event(id="401000001", date="2025-11-02T01:00Z")
+        night2 = _espn_event(id="401000002", date="2025-11-03T01:00Z")
+
+        with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS):
+            await adapter.import_teams()
+        with patch.object(adapter, "_fetch_scoreboard",
+                          AsyncMock(side_effect=[_payload(night1), _payload(night2)])):
+            result = await adapter.sync_recent(since=date.today() - timedelta(days=1))
+
+        assert not result.errors
+        assert result.games_imported == 2
+        assert db_session.query(Game).count() == 2
+        assert {g.source_game_id for g in db_session.query(Game)} == {
+            "espn-401000001", "espn-401000002",
+        }
+
+    @pytest.mark.asyncio
+    async def test_ambiguous_match_errors_instead_of_guessing(self, adapter, db_session):
+        """Two candidates inside the window means the key cannot identify the
+        game. Guessing rewrites a real game's date and score -- and would drag
+        any attendance record with it -- so this must surface, not proceed."""
+        with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS):
+            await adapter.import_teams()
+
+        thunder = db_session.query(Team).filter(Team.nickname == "Thunder").one()
+        celtics = db_session.query(Team).filter(Team.nickname == "Celtics").one()
+        for i, hours in enumerate((-2, 2)):
+            db_session.add(Game(
+                source="nba-kaggle", source_game_id=f"2250000{i}",
+                league_id=thunder.league_id, home_team_id=thunder.id, away_team_id=celtics.id,
+                start_date=datetime(2025, 11, 2, 1, 0) + timedelta(hours=hours),
+                season=2025, season_type="regular", has_time=True, neutral_site=False,
+            ))
+        db_session.flush()
+
+        with patch.object(adapter, "_fetch_scoreboard", AsyncMock(return_value=ESPN_PAYLOAD)):
+            result = await adapter.sync_recent(since=date.today())
+
+        assert result.games_imported == 0 and result.games_updated == 0
+        assert any("more than one existing game" in e for e in result.errors)
+        assert db_session.query(Game).count() == 2   # nothing rewritten, nothing added
+
+    @pytest.mark.asyncio
+    async def test_adoption_refuses_when_two_synced_rows_match(self, adapter, db_session):
+        """Same guard on the bulk side: without it, two consecutive-night CSV
+        rows adopt each other's synced row and the games swap identities."""
+        # 22h apart: far enough to stay two distinct games, close enough that a
+        # bulk row landing between them is within one window of both.
+        night1 = _espn_event(id="401000001", date="2025-11-02T01:00Z")
+        night2 = _espn_event(id="401000002", date="2025-11-02T23:00Z")
+        with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS):
+            await adapter.import_teams()
+        with patch.object(adapter, "_fetch_scoreboard",
+                          AsyncMock(side_effect=[_payload(night1), _payload(night2)])):
+            await adapter.sync_recent(since=date.today() - timedelta(days=1))
+        assert db_session.query(Game).count() == 2
+
+        bulk = _row(
+            gameId="22500001",
+            hometeamCity="Oklahoma City", hometeamName="Thunder", hometeamId=SONICS_ID,
+            awayteamCity="Boston", awayteamName="Celtics", awayteamId=CELTICS_ID,
+            gameDate="2025-11-02 12:00:00",
+        )
+        with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS + [bulk]):
+            await adapter.import_historical(2025, 2025)
+
+        # neither espn row was hijacked; the bulk row landed as its own game
+        ids = {g.source_game_id for g in db_session.query(Game)}
+        assert {"espn-401000001", "espn-401000002", "22500001"} <= ids
+
+    @pytest.mark.asyncio
+    async def test_postponed_game_is_not_written_as_a_zero_zero_final(self, adapter, db_session):
+        """ESPN reports postponed games with state 'post' and score '0', so a
+        state-based check would invent a 0-0 final."""
+        postponed = _espn_event(competitions=[{
+            "neutralSite": False,
+            "status": {"type": {"state": "post", "name": "STATUS_POSTPONED",
+                                "completed": False}},
+            "venue": {"id": "3742", "fullName": "Paycom Center",
+                      "address": {"city": "Oklahoma City", "state": "OK"}},
+            "competitors": [
+                {"homeAway": "home", "score": "0", "team": {"displayName": "Oklahoma City Thunder"}},
+                {"homeAway": "away", "score": "0", "team": {"displayName": "Boston Celtics"}},
+            ],
+        }])
+        await self._sync(adapter, _payload(postponed))
+
+        game = db_session.query(Game).one()
+        assert (game.home_score, game.away_score) == (None, None)
+
+    @pytest.mark.asyncio
+    async def test_sync_does_not_flatten_the_cup_final_to_regular(self, adapter, db_session):
+        """ESPN reports the in-season tournament final as an ordinary
+        regular-season game; the bulk import's more specific classification
+        must survive a sync pass."""
+        with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS):
+            await adapter.import_historical(2023, 2023)
+        cup = db_session.query(Game).filter(Game.source_game_id == "62300001").one()
+        assert cup.season_type == "cup_final"
+
+        espn_cup = _espn_event(
+            id="401777777",
+            date="2023-12-10T01:30Z",
+            season={"year": 2024, "type": 2, "slug": "regular-season"},
+            competitions=[{
+                "neutralSite": True,
+                "status": {"type": {"state": "post", "completed": True}},
+                "competitors": [
+                    {"homeAway": "home", "score": "123", "team": {"displayName": "Los Angeles Lakers"}},
+                    {"homeAway": "away", "score": "109", "team": {"displayName": "Indiana Pacers"}},
+                ],
+            }],
+        )
+        with patch.object(adapter, "_fetch_scoreboard", AsyncMock(return_value=_payload(espn_cup))):
+            await adapter.sync_recent(since=date.today())
+
+        db_session.refresh(cup)
+        assert cup.season_type == "cup_final"
+
+    @pytest.mark.asyncio
     async def test_scheduled_game_does_not_blank_a_known_score(self, adapter, db_session):
         """A game already final in our DB must not be zeroed out by a later
         scoreboard fetch that still lists it as scheduled."""
@@ -319,7 +444,7 @@ class TestNbaSync:
 
         scheduled = _espn_event(competitions=[{
             "neutralSite": False,
-            "status": {"type": {"state": "pre"}},
+            "status": {"type": {"state": "pre", "completed": False}},
             "venue": {"id": "3742", "fullName": "Paycom Center",
                       "address": {"city": "Oklahoma City", "state": "OK"}},
             "competitors": [

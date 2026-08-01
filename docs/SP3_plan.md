@@ -117,7 +117,7 @@ sports_passport/
       cfb.py           # CollegeFootballData.com  (port of SP2 services/cfb_api.py)
       mlb.py           # Retrosheet bulk + MLB Stats API sync
       nfl.py           # Kaggle/Spreadspoke CSV bulk + nflverse games.csv sync
-      nba.py           # bulk CSV or nba_api backfill + stats.nba.com sync
+      nba.py           # Kaggle bulk CSV backfill + ESPN scoreboard sync
       nhl.py           # official NHL API (bulk + sync, same source)
     importer.py        # shared upsert/normalize logic (team matching, venue dedupe)
 ```
@@ -146,7 +146,8 @@ free APIs with tiny request counts.
 
 **Compliance guardrails (from research — enforce in code):**
 - MLB Stats API: *never* used for bulk backfill (terms are non-bulk). Retrosheet only.
-- stats.nba.com: rate-limited backfill with sleeps + retry/backoff; run once, cache result.
+- stats.nba.com: abandoned 2026-08-01, Akamai-blocked from every host we run on.
+  NBA sync uses ESPN instead — throttled, descriptive User-Agent, sync-only (never bulk).
 - No Sports-Reference scraping anywhere.
 - nflverse/Retrosheet/NHL API: no restrictions relevant to us.
 
