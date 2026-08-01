@@ -188,8 +188,8 @@ class NflAdapter(LeagueAdapter):
                     datetime.fromisoformat(f"{gameday}T{gametime}:00")
                 )
             # No kickoff time: the date itself is already the local game day,
-            # and the row goes in with has_time=False, so it stays at naive
-            # midnight rather than being shifted into the previous day.
-            return datetime.fromisoformat(gameday)
+            # and the row goes in with has_time=False, so it is parked
+            # date-only rather than being shifted into the previous day.
+            return local_time.date_only(datetime.fromisoformat(gameday))
         except ValueError:
             return None

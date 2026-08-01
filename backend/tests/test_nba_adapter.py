@@ -298,15 +298,16 @@ class TestNbaStartDateIsUtc:
     @pytest.mark.asyncio
     async def test_pre_1996_placeholder_times_are_dropped(self, adapter, db_session):
         """Seasons before 1996 carry one or two placeholder clock values for the
-        whole year, so the row keeps its local date at midnight with has_time
-        false rather than publishing a tip-off the source never had."""
+        whole year, so the row keeps its local date -- parked date-only at noon,
+        with has_time false -- rather than publishing a tip-off the source
+        never had."""
         row = _row(gameId="27000001", gameDate="1970-11-01 19:00:00")
         with patch.object(adapter, "_read_games_csv", return_value=[row]):
             await adapter.import_historical(1970, 1970)
 
         game = db_session.query(Game).filter(Game.source_game_id == "27000001").one()
         assert game.has_time is False
-        assert game.start_date == datetime(1970, 11, 1, 0, 0)
+        assert game.start_date == datetime(1970, 11, 1, 12, 0)
 
     @pytest.mark.asyncio
     async def test_international_game_converts_from_eastern_too(self, adapter, db_session):

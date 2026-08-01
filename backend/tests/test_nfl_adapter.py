@@ -150,16 +150,17 @@ class TestNflStartDateIsUtc:
         assert game.start_date == datetime(2016, 1, 10, 21, 40)
 
     @pytest.mark.asyncio
-    async def test_date_only_rows_stay_at_midnight(self, adapter, db_session):
+    async def test_date_only_rows_keep_their_day_at_noon(self, adapter, db_session):
         """No kickoff time means nothing to convert -- shifting the bare date
-        would roll it into the previous day, and has_time=False rows render
-        pinned to UTC."""
+        would roll it into the previous day. Date-only rows park at noon, which
+        reads as the right calendar day in every US timezone even if a consumer
+        forgets to pin has_time=False to UTC."""
         with patch.object(adapter, "_get_csv", _fake_get_csv()):
             await adapter.import_historical(1999, 1999)
 
         game = db_session.query(Game).filter(Game.source_game_id == "1999_01_STL_TEN").one()
         assert game.has_time is False
-        assert game.start_date == datetime(1999, 9, 12, 0, 0)
+        assert game.start_date == datetime(1999, 9, 12, 12, 0)
 
 
 class TestNflSync:

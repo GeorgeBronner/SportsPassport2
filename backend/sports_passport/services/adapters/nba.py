@@ -284,13 +284,13 @@ class NbaAdapter(LeagueAdapter):
         # The CSV publishes tip-off in US Eastern for every game, wherever it
         # is played (see local_time); start_date is UTC. Below the real-times
         # cutoff there is no tip-off to convert, so the row keeps its date at
-        # naive midnight — has_time=False rows render pinned to UTC, so
-        # shifting them would roll the calendar day.
+        # its local game day — has_time=False rows render pinned to UTC, so
+        # converting them would roll the calendar day.
         has_time = season >= FIRST_SEASON_WITH_REAL_TIMES
         if has_time:
             start_date = local_time.eastern_to_utc(eastern_start)
         else:
-            start_date = eastern_start.replace(hour=0, minute=0, second=0, microsecond=0)
+            start_date = local_time.date_only(eastern_start)
 
         attendance = int(row["attendance"]) if row.get("attendance", "").strip().isdigit() else None
         if attendance == 0:

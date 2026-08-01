@@ -37,6 +37,7 @@ from typing import Optional
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
+from sports_passport.services.adapters import local_time
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
 from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
 
@@ -173,7 +174,9 @@ class MlbAdapter(LeagueAdapter):
             return
 
         try:
-            start_date = datetime.strptime(row[F_DATE], "%Y%m%d")
+            # Gamelogs carry the local game day and no usable start time, so
+            # the row goes in date-only (has_time=False below).
+            start_date = local_time.date_only(datetime.strptime(row[F_DATE], "%Y%m%d"))
         except ValueError:
             result.errors.append(f"game {row[F_DATE]}: bad date")
             return

@@ -22,7 +22,7 @@ import tempfile
 import pytest
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HEAD = "c4d8e2a1f7b3"
+HEAD = "a9f2c7e4b8d1"
 
 # Revisions real databases have been found stamped at. None = empty database.
 # Each non-None case also gets the *current* full schema from create_all, which
