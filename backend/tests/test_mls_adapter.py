@@ -14,10 +14,12 @@ from sports_passport.models.game import Game
 from sports_passport.models.team import Team
 from sports_passport.models.venue import Venue
 from sports_passport.services.adapters.mls import (
+    STATE_CODES,
     MlsAdapter,
     _canonical_venue,
     _parse_kaggle_date,
     _season_type,
+    _state_code,
 )
 
 RBNY = "a2lqRX2Mr0"
@@ -282,7 +284,7 @@ class TestKaggleBackfill:
         the single venue row ASA already owns, not a second uncoordinated one."""
         stadia = ASA_STADIA + [{
             "stadium_id": "rfk0000000", "stadium_name": "RFK Stadium", "capacity": 45000,
-            "city": "Washington", "province": "D.C.", "country": "USA",
+            "city": "Washington", "province": "District of Columbia", "country": "USA",
             "latitude": 38.8897, "longitude": -76.9714,
         }]
 
@@ -401,6 +403,31 @@ class TestVenueNormalization:
 
         for name, row in venue_seed._mls_stadiums().items():
             assert len(row["state"]) == 2, f"{name} has non-code state {row['state']!r}"
+
+    def test_every_mapped_code_is_two_letters(self):
+        for province, code in STATE_CODES.items():
+            assert len(code) == 2 and code.isupper(), f"{province} -> {code!r}"
+
+    @pytest.mark.parametrize(
+        "province,expected",
+        [
+            ("New Jersey", "NJ"),          # the verified lookup
+            ("District of Columbia", "DC"),
+            ("D.C.", "DC"),                # punctuation stripped, no map entry needed
+            ("N.Y.", "NY"),
+            ("NJ", "NJ"),                  # already a code
+            (None, None),
+        ],
+    )
+    def test_province_normalization(self, province, expected):
+        assert _state_code(province, "Some Ground") == expected
+
+    def test_unmappable_province_is_kept_but_warned(self, caplog):
+        """Losing the value would be worse than keeping it, but it must not pass
+        silently — a split state is exactly the bug this normalization fixes."""
+        with caplog.at_level("WARNING"):
+            assert _state_code("Baja California", "Estadio Caliente") == "Baja California"
+        assert "Baja California" in caplog.text
 
 
 class TestSourceBoundary:

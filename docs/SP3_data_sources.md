@@ -495,10 +495,34 @@ are published** (every row's status is `FullTime`), so there are no upcoming fix
 — `matches.csv`, 7,289 rows, downloadable anonymously (no Kaggle auth needed).
 Fills the 17 seasons ASA does not reach.
 
-**Validated against ASA on the 2013-2022 overlap before being trusted**: per-season
-game counts match exactly (338/338, 357/357, 391/391, 408/408, 421/421, 324/324,
-472/472) and all 3,687 rows find an ASA twin on date ±1 + score. The game set and
-scores are sound. The metadata is not uniformly so, and the adapter compensates:
+**Validated against ASA on the 2013-2022 overlap before being trusted.** All ten
+overlapping seasons, Kaggle vs ASA:
+
+| | 2013 | 2014 | 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 | 2022 | total |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Kaggle | 338 | 338 | 357 | 357 | 391 | 408 | 421 | 324 | 472 | 281 | **3,687** |
+| ASA | 338 | 338 | 357 | 357 | 391 | 408 | 421 | 324 | 472 | 489 | 3,895 |
+
+Counts match exactly for 2013-2021, and **all 3,687 Kaggle rows find an ASA twin**
+on date ±1 + score. 2022 is the one gap, and it is a Kaggle limitation rather than
+a disagreement: the dataset stops mid-season at 281 of that year's 489 games. Since
+ASA owns every season from 2013 on, none of these rows are imported anyway — the
+overlap exists purely to establish whether the pre-2013 half can be trusted.
+
+How that reconciles with the 9,333 games actually imported:
+
+```
+7,289  rows in matches.csv
+-3,687  seasons 2013-2022, superseded by ASA
+=3,602  rows before 2013
+    -1  the 2004 All-Star game (an exhibition, not a club fixture)
+=3,601  imported from Kaggle
++5,732  imported from ASA (2013-2026)
+=9,333
+```
+
+The game set and scores are sound. The metadata is not uniformly so, and the
+adapter compensates:
 
 | Field | Coverage 1996-2012 | Handling |
 |---|---|---|

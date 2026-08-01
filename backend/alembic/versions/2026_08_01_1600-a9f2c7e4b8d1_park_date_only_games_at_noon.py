@@ -49,7 +49,19 @@ def _set_hour(hour: int) -> None:
 
     Done in SQL rather than row-by-row Python: this touches ~207k rows, and
     the whole point is that the date component is untouched, which
-    strftime expresses directly.
+    strftime expresses directly. SQLite-only, deliberately — `strftime` with
+    this signature is a SQLite function, and SQLite is the project's only
+    target (see CLAUDE.md; `database.py` configures WAL and busy_timeout on it
+    specifically).
+
+    Deliberately *not* guarded with `AND strftime(...) IS NOT NULL`. strftime
+    does return NULL on a value it cannot parse, but `games.start_date` is
+    NOT NULL, so such a row aborts the migration with an IntegrityError rather
+    than being silently blanked — verified against the real schema. Skipping
+    those rows instead would leave them at midnight with has_time=0, i.e.
+    quietly violating the very invariant this migration establishes, and
+    nobody would find out. Failing loudly on data that should not exist is the
+    same stance the guarded migrations take on downgrades (open issue #6).
     """
     op.get_bind().execute(
         sa.text(

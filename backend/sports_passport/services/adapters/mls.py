@@ -183,8 +183,11 @@ UNKNOWN_VENUES = {"Sin confirmar"}
 # directly by the attendance stats (`_attendance_stats` in routers/attendance.py
 # counts distinct states and games-per-state), so leaving both spellings in the
 # column splits one state across two buckets and inflates the states-visited
-# count. Covers every province ASA currently returns; anything unrecognized
-# passes through unchanged rather than being silently blanked.
+# count.
+#
+# These are the 25 values ASA actually returns, verified against /stadia — no
+# speculative entries, so the map doubles as a record of the real vocabulary.
+# `_state_code` handles anything outside it.
 STATE_CODES = {
     "British Columbia": "BC",
     "California": "CA",
@@ -222,6 +225,36 @@ MONTHS = {
         ]
     )
 }
+
+
+def _state_code(province: Optional[str], venue_name: str) -> Optional[str]:
+    """ASA's `province` -> the 2-letter code `venues.state` is defined to hold.
+
+    Three steps, so a source that changes its spelling can't silently reintroduce
+    the split-state bug STATE_CODES exists to prevent:
+
+    1. the verified lookup;
+    2. failing that, strip punctuation and whitespace — this catches the whole
+       family of abbreviation variants ("D.C." -> "DC") generically, rather than
+       guessing at map entries for spellings ASA does not currently emit;
+    3. failing that, keep the value (losing it would be worse) but warn, so the
+       gap shows up instead of quietly landing in the stats.
+    """
+    if not province:
+        return None
+    code = STATE_CODES.get(province)
+    if code:
+        return code
+    stripped = re.sub(r"[^A-Za-z]", "", province)
+    if len(stripped) == 2:
+        return stripped.upper()
+    logger.warning(
+        "MLS: province %r (venue %r) is not a 2-letter state code and is not in "
+        "STATE_CODES; attendance stats will treat it as its own state",
+        province,
+        venue_name,
+    )
+    return province
 
 
 def _canonical_venue(raw: str) -> Optional[str]:
@@ -376,14 +409,13 @@ class MlsAdapter(LeagueAdapter):
                 if seed:
                     latitude = float(seed["latitude"])
                     longitude = float(seed["longitude"])
-            province = row.get("province")
             venue, created = upsert_venue(
                 self.db,
                 source=self.source,
                 source_venue_id=row["stadium_id"],
                 name=name,
                 city=row.get("city"),
-                state=STATE_CODES.get(province, province),
+                state=_state_code(row.get("province"), name),
                 country=row.get("country"),
                 capacity=row.get("capacity"),
                 latitude=latitude,

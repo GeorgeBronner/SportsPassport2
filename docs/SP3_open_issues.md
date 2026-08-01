@@ -45,7 +45,10 @@ Harrison NJ). See `docs/SP3_data_sources.md` for the source research.
   era needed no hand-built seed.
 - **1996-2012: the Kaggle "Major League Soccer Dataset"** (josephvm) fills the
   17 seasons ASA does not reach. Validated against ASA on the 2013-2022 overlap:
-  per-season counts match exactly and all 3,687 rows find an ASA twin.
+  counts match exactly for 2013-2021 and all 3,687 Kaggle rows find an ASA twin
+  (2022 is partial in Kaggle — 281 of 489 — since the dataset stops mid-season).
+  Of the 3,602 rows left below 2013, one is the 2004 All-Star exhibition, giving
+  the 3,601 imported.
 
 Imported **9,333 games (3,601 Kaggle + 5,732 ASA), 33 teams, 75 venues, 0 errors**,
 seasons 1996-2026 continuous, **0 venues without coordinates**. Verified against a
