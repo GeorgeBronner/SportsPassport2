@@ -30,8 +30,8 @@ from sports_passport.services.adapters.base import ImportResult
 
 logger = logging.getLogger(__name__)
 
-# A single league's sync should never hang the whole nightly job (NBA's
-# stats.nba.com in particular is flaky) — cap each league's run.
+# A single league's sync should never hang the whole nightly job (these are
+# all third-party endpoints that can stall) — cap each league's run.
 PER_LEAGUE_TIMEOUT_SECONDS = 600
 
 _scheduler: Optional[AsyncIOScheduler] = None

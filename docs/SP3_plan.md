@@ -117,7 +117,7 @@ sports_passport/
       cfb.py           # CollegeFootballData.com  (port of SP2 services/cfb_api.py)
       mlb.py           # Retrosheet bulk + MLB Stats API sync
       nfl.py           # Kaggle/Spreadspoke CSV bulk + nflverse games.csv sync
-      nba.py           # bulk CSV or nba_api backfill + stats.nba.com sync
+      nba.py           # Kaggle bulk CSV backfill + ESPN scoreboard sync
       nhl.py           # official NHL API (bulk + sync, same source)
     importer.py        # shared upsert/normalize logic (team matching, venue dedupe)
 ```
@@ -141,12 +141,13 @@ free APIs with tiny request counts.
 | **CFB** | CFBD `/teams/fbs` (API key, same as SP2) | CFBD `/games?year=` 1990→now (port SP2 code) | CFBD `/games?year={current}` |
 | **MLB** | Retrosheet `CurrentNames.csv` (franchise-linked team-identity eras, back to 1871) | **Retrosheet game logs** ZIP, fetched live per season (1970+; has date, teams, score, park code, attendance, day/night). Park code → venue via `parkcode.txt` (has real city/state). Regular season only — see §5 Phase 3 scope note | **MLB Stats API** `/api/v1/schedule?startDate=&endDate=` — team resolved via its `teamCode` field, which matches Retrosheet's codes exactly, so sync rows land on the same games the bulk import created |
 | **NFL** | nflverse `teams.csv` + franchise ids derived from `games.csv` team abbreviations | **nflverse `games.csv`** raw GitHub URL — plain HTTP GET, no key, auto-updated. 1999+ only (see §5 Phase 3 decision — Kaggle Spreadspoke would extend to 1966 but now needs a login/paid tier) | Same `games.csv` fetch, filtered by date |
-| **NBA** | Derived from `Games.csv` itself (distinct team-identity eras seen in the data) | **Kaggle `Games.csv`** (`backend/data/raw/nba/Games.csv`, manually downloaded — `stats.nba.com` is unreachable from the dev sandbox, see §5 Phase 4 status). Venue only available for the dataset's current season; historical venues still need the planned `nba_arenas.csv` seed (not built) | `stats.nba.com/stats/scoreboardv2` — written, **unverified** (same unreachable-host issue) |
+| **NBA** | Derived from `Games.csv` itself (distinct team-identity eras seen in the data) | **Kaggle `Games.csv`** (`backend/data/raw/nba/Games.csv`, manually downloaded — `stats.nba.com` is unreachable from the dev sandbox, see §5 Phase 4 status). Venue only available for the dataset's current season; historical venues come from the `nba_arenas.csv` seed (built 2026-07-27) | **ESPN scoreboard** `site.api.espn.com/.../basketball/nba/scoreboard?dates=` — replaced `stats.nba.com/scoreboardv2` on 2026-08-01, which is Akamai-blocked from every host this app runs on (see Phase 4). Reconciles onto bulk rows by natural key, since ESPN carries no NBA `gameId` |
 | **NHL** | NHL API `/v1/standings` + team endpoints | **Official NHL API** schedule endpoints, season-by-season 1970→now (keyless, official — no bulk concern) | Same NHL API, `/v1/score/{date}` |
 
 **Compliance guardrails (from research — enforce in code):**
 - MLB Stats API: *never* used for bulk backfill (terms are non-bulk). Retrosheet only.
-- stats.nba.com: rate-limited backfill with sleeps + retry/backoff; run once, cache result.
+- stats.nba.com: abandoned 2026-08-01, Akamai-blocked from every host we run on.
+  NBA sync uses ESPN instead — throttled, descriptive User-Agent, sync-only (never bulk).
 - No Sports-Reference scraping anywhere.
 - nflverse/Retrosheet/NHL API: no restrictions relevant to us.
 
@@ -251,11 +252,11 @@ then CFB (port of known-working SP2 code = validates parity with SP2).
 **Status:** the historical-import path is written, tested, and verified against the
 real local data file for both a single season and the full 1946-2025 range (and, as
 of the Phase 9 production backfill below, actually loaded into the live dev database
-too — 73,272 games, exact match). The live-sync path is written and its parsing logic
-fixed (two real bugs found via test-driven review) but still **unverified end-to-end**
-(network-blocked in this dev sandbox — see below); this is the one open item left in
-this phase. The venue seed file is deferred to Phase 7, not blocking. Everything else
-committed in `4065c9a`.
+too — 73,272 games, exact match). The live-sync path was the last open item in this
+phase and **closed 2026-08-01**: `stats.nba.com` turned out to be unreachable from
+every network this app runs on, so sync moved to ESPN and was verified end-to-end
+against the live endpoint (see the resolved item below). The venue seed file was
+deferred to Phase 7 and has since been built. Original work committed in `4065c9a`.
 
 - [x] **Blocker discovered and resolved:** `stats.nba.com` (both the API and the plain
       web page) is unreachable from this dev environment — it hangs on what looks like
@@ -321,11 +322,31 @@ committed in `4065c9a`.
       game would've landed as a duplicate row instead of updating the historical
       one (the exact cross-source alignment problem the MLB adapter solved via
       `teamCode`). Fixed by stripping the 2-char prefix before both calls.
-  - [ ] Still needs a real end-to-end run against `stats.nba.com` from a network
-        that can reach it (not this sandbox) to confirm the response shape itself
-        hasn't drifted — the parsing logic is now correct against the documented
-        shape, but "documented" and "current" aren't the same thing for an
-        unofficial endpoint.
+  - [x] **Resolved 2026-08-01 by abandoning `stats.nba.com` entirely.** The
+        "try it from a network that can reach it" plan had no such network:
+        every nba.com host (`stats.` *and* `cdn.`) returns an Akamai
+        `Access Denied` from the Oracle production host and from a residential
+        connection alike, with and without browser-shaped headers. The
+        cloud-IP hypothesis was wrong — this endpoint is unreachable from
+        anywhere this app runs. `sync_recent` moved to ESPN's scoreboard,
+        which `SP3_data_sources.md` already lists as NBA's backup update
+        source, and which also carries the venue data `scoreboardv2` never
+        returned. Because ESPN has no NBA `gameId`, the adapter reconciles on
+        (league, home, away, start ±12h) so synced rows and bulk rows converge
+        instead of duplicating — in both directions, and the match must be
+        unique or it is reported as an error rather than guessed. The window
+        started at ±1 day and was narrowed after review: the same matchup
+        recurs within 24h **294 times** in the loaded data (287 at exactly
+        24.0h, tightest genuine modern gap 22h), so a day-wide window
+        overwrote one real game with another. 12h clears the 8h max
+        UTC-vs-local skew between the two sources and stays inside that 22h
+        separation.
+        **Verified live 2026-08-01:** 34 real events over four dates —
+        including both halves of a consecutive-night pair and All-Star
+        weekend — gave 30 updates, 0 inserts, 0 errors and 4 correctly-named
+        skips; the games matched their existing Kaggle rows exactly (scores,
+        season, canonical 8-char ids) and the back-to-back pair resolved to
+        two distinct rows.
 - [x] **Full backfill run (2026-07-12):** `import_historical(1946, 2025)` against
       the real local `Games.csv` — **73,272 games imported, zero errors.** The
       7-game gap vs. the CSV's 73,279 rows is exactly the intentionally-excluded

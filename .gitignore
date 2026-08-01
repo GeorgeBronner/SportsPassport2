@@ -22,13 +22,17 @@ backend/data/raw/
 # Team logos (scraped from ESPN, not committed)
 backend/data/logos/
 
+# Nominatim response cache written by scripts/geocode_venues.py
+backend/data/geocode_cache.json
+
 # Frontend
 node_modules/
 frontend/dist/
 backend/static/*
 !backend/static/.gitkeep
 
-# Runtime data volume (repo-root only — not backend/data/seed, which is committed)
+# Runtime data volume (repo-root only). Venue seed CSVs are committed under
+# backend/sports_passport/data/seed/ — inside the package, never in this volume.
 /data/
 
 # OS

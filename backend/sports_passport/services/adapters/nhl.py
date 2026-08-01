@@ -107,7 +107,7 @@ class NhlAdapter(LeagueAdapter):
         home_tricode = game.get("homeTeam", {}).get("abbrev")
         seed = venue_seed.lookup_nhl_arena(home_tricode, season) if home_tricode else None
         if seed:
-            # Keyed by team + season era (data/seed/nhl_arenas.csv), not by the
+            # Keyed by team + season era (sports_passport/data/seed/nhl_arenas.csv), not by the
             # display name the API happens to report today — naming-rights
             # renames (frequent in this league) just update `name` on the same
             # row instead of silently creating an unlocated new venue.

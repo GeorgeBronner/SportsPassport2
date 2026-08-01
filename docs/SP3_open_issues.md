@@ -261,3 +261,41 @@ copy, then upgraded `e2f5b8c3d4a1 → f3a9d4b6c281`. Row counts, per-user
 attendance, `integrity_check` and `foreign_key_check` all identical afterwards;
 the only changes are the version stamp and the new unique index. Backup kept at
 `backend/sports_passport.pre-f3a9d4b6c281.db` (gitignored).
+
+## 7. NBA `start_date` mixes local and UTC in one column — open
+
+Raised by CodeRabbit on PR #9 and confirmed against the loaded database
+2026-08-01. `games.start_date` is documented as UTC (`SP3_plan.md` §3), and
+the ESPN sync path writes true UTC. The Kaggle bulk path does not: it writes
+the CSV's naive **local** tip-off straight into the same column.
+
+Confirmed on a real row — game `22500795` (Pacers @ Wizards) stores
+`2026-02-19 19:00:00` while ESPN reports the same game at
+`2026-02-20T00:00Z`, i.e. 7:00pm ET. The stored value is local, not UTC.
+**66,319 NBA rows carry `has_time = 1`**, so this is the normal case, not an
+edge one.
+
+Consequences:
+
+- `core/serializers.py` stamps a UTC offset on serialization and the frontend
+  renders `has_time = true` rows in the viewer's timezone (see issue #5), so
+  bulk-imported NBA games display their tip-off roughly 5–8 hours early. The
+  calendar date — which is what the UI actually leads with — stays correct for
+  US viewers, which is why this went unnoticed; a viewer east of UTC could see
+  a late game roll to the wrong day.
+- A game touched by `sync_recent` gets rewritten to true UTC, so the same
+  column holds both conventions, and a later `Games.csv` re-import flips that
+  row back. `NATURAL_KEY_WINDOW` is 12h precisely so reconciliation survives
+  this, so matching is unaffected either way.
+
+**Not fixed** because the correct fix needs per-venue timezone data, which the
+app does not have — the same limitation already recorded at the end of issue
+#5. Options, in rough order of cost: derive an offset per team from the seed
+CSVs' city/state (cheap, wrong for neutral-site games); add a real timezone
+column to `venues` and normalize on import (correct, and would let issue #5's
+remaining edge case close too); or leave bulk rows local and set
+`has_time = false` for them so the UI stops implying a precise time it does
+not have.
+
+The same question applies to any other adapter reading naive local times out
+of a bulk file — worth checking MLB/NFL before picking a fix.
