@@ -252,11 +252,11 @@ then CFB (port of known-working SP2 code = validates parity with SP2).
 **Status:** the historical-import path is written, tested, and verified against the
 real local data file for both a single season and the full 1946-2025 range (and, as
 of the Phase 9 production backfill below, actually loaded into the live dev database
-too — 73,272 games, exact match). The live-sync path is written and its parsing logic
-fixed (two real bugs found via test-driven review) but still **unverified end-to-end**
-(network-blocked in this dev sandbox — see below); this is the one open item left in
-this phase. The venue seed file is deferred to Phase 7, not blocking. Everything else
-committed in `4065c9a`.
+too — 73,272 games, exact match). The live-sync path was the last open item in this
+phase and **closed 2026-08-01**: `stats.nba.com` turned out to be unreachable from
+every network this app runs on, so sync moved to ESPN and was verified end-to-end
+against the live endpoint (see the resolved item below). The venue seed file was
+deferred to Phase 7 and has since been built. Original work committed in `4065c9a`.
 
 - [x] **Blocker discovered and resolved:** `stats.nba.com` (both the API and the plain
       web page) is unreachable from this dev environment — it hangs on what looks like
@@ -332,11 +332,21 @@ committed in `4065c9a`.
         which `SP3_data_sources.md` already lists as NBA's backup update
         source, and which also carries the venue data `scoreboardv2` never
         returned. Because ESPN has no NBA `gameId`, the adapter reconciles on
-        (league, home, away, date ±1 day) so synced rows and bulk rows
-        converge instead of duplicating — in both directions.
-        **Verified live 2026-08-01:** all 11 real games on 2026-03-01 parsed,
-        matched their existing Kaggle rows exactly (scores, season 2025,
-        canonical 8-char ids), 0 duplicates / 0 errors / 0 skips.
+        (league, home, away, start ±12h) so synced rows and bulk rows converge
+        instead of duplicating — in both directions, and the match must be
+        unique or it is reported as an error rather than guessed. The window
+        started at ±1 day and was narrowed after review: the same matchup
+        recurs within 24h **294 times** in the loaded data (287 at exactly
+        24.0h, tightest genuine modern gap 22h), so a day-wide window
+        overwrote one real game with another. 12h clears the 8h max
+        UTC-vs-local skew between the two sources and stays inside that 22h
+        separation.
+        **Verified live 2026-08-01:** 34 real events over four dates —
+        including both halves of a consecutive-night pair and All-Star
+        weekend — gave 30 updates, 0 inserts, 0 errors and 4 correctly-named
+        skips; the games matched their existing Kaggle rows exactly (scores,
+        season, canonical 8-char ids) and the back-to-back pair resolved to
+        two distinct rows.
 - [x] **Full backfill run (2026-07-12):** `import_historical(1946, 2025)` against
       the real local `Games.csv` — **73,272 games imported, zero errors.** The
       7-game gap vs. the CSV's 73,279 rows is exactly the intentionally-excluded

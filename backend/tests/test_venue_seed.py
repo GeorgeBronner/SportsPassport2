@@ -70,13 +70,29 @@ def test_lookups_return_usable_rows_from_an_unrelated_cwd(tmp_path, monkeypatch)
     assert isinstance(fields["longitude"], float)
 
 
-def test_every_seed_row_carries_coordinates():
+def test_every_seed_row_carries_usable_coordinates():
     """These seeds exist to put venues on the map; a row without coords is a
-    silently invisible dot, so the CSVs are the wrong place to be lenient."""
+    silently invisible dot, so the CSVs are the wrong place to be lenient.
+
+    Parsed rather than merely checked for presence: `venue_fields` runs both
+    values through `float()`, so a malformed one survives a truthiness test
+    and raises mid-sync instead.
+    """
     rows = list(venue_seed.nfl_stadiums().values())
     for by_key in (venue_seed._nba_arenas_by_team(), venue_seed._nhl_arenas_by_tricode()):
         for group in by_key.values():
             rows.extend(group)
 
-    missing = [r for r in rows if not r.get("latitude") or not r.get("longitude")]
-    assert not missing, f"seed rows without coordinates: {missing}"
+    bad = []
+    for row in rows:
+        try:
+            fields = venue_seed.venue_fields(row)
+        except (TypeError, ValueError):
+            bad.append(row)
+            continue
+        if fields["latitude"] is None or fields["longitude"] is None:
+            bad.append(row)
+        elif not (-90 <= fields["latitude"] <= 90 and -180 <= fields["longitude"] <= 180):
+            bad.append(row)
+
+    assert not bad, f"seed rows with missing or unusable coordinates: {bad}"

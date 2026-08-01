@@ -22,6 +22,9 @@ backend/data/raw/
 # Team logos (scraped from ESPN, not committed)
 backend/data/logos/
 
+# Nominatim response cache written by scripts/geocode_venues.py
+backend/data/geocode_cache.json
+
 # Frontend
 node_modules/
 frontend/dist/
