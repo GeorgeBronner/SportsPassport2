@@ -34,8 +34,12 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
   the previous day anywhere west of Greenwich if a consumer forgets to pin the row
   to UTC. Use the helper rather than restating the hour; see `SP3_open_issues.md` #8.
   MLS is the one league on two sources, split at a hard season boundary: the ASA
-  API owns 2013+ and sync, a Kaggle bulk file owns 1996–2012, and neither is
-  consulted outside its range (`FIRST_ASA_SEASON`).
+  API owns 2013+ and sync, a Kaggle bulk file owns 1996–2012, and neither supplies
+  *games* outside its range (`FIRST_ASA_SEASON`). ASA's `/stadia` is the one
+  crossover — the Kaggle era reads it so a ground both eras used lands on one venue
+  row — and is allowed to fail so a pre-2013 import stays a local CSV read.
+  `venues.state` is a **2-letter code** in every league; the attendance stats group
+  on it directly, so long-form names split a state into two buckets.
   These live **inside the package**, not under `settings.data_dir`: `data_dir` is the
   Docker bind-mount volume (database, logos, `raw/` bulk files), and a mount shadows
   whatever the image put there. Committed code assets belong next to the code that

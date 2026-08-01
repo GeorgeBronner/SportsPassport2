@@ -19,7 +19,10 @@ the same game:
   trustworthy. Its metadata is not uniformly so — see the caveats below.
 
 The boundary is enforced in both directions (`FIRST_ASA_SEASON`): ASA is never
-asked for a season before 2013, and Kaggle rows at or after it are skipped.
+asked for a *season* before 2013, and Kaggle rows at or after it are skipped.
+`/stadia` is the one exception — the Kaggle era fetches it too, so a ground both
+eras used lands on a single venue row instead of one per era. That fetch is
+allowed to fail, since the pre-2013 import is otherwise a purely local CSV read.
 
 Kaggle caveats, all handled here:
 
@@ -41,7 +44,18 @@ Kaggle caveats, all handled here:
 Compliance: ASA publishes no formal terms, but maintains the MIT-licensed
 `itscalledsoccer` Python and R clients against this same API, so programmatic
 use is plainly intended. Treated like ESPN elsewhere in this project —
-descriptive User-Agent, and a backfill that is 14 requests rather than a crawl.
+descriptive User-Agent, and a full 1996-2026 backfill that is 16 requests
+(`/teams`, `/stadia`, and one per ASA season) rather than a crawl.
+
+Two known limitations, both left as-is:
+
+- `KAGGLE_VENUE_ALIASES` maps onto ASA's *current* stadium names, so when ASA
+  picks up the next naming-rights change the alias target stops matching and a
+  re-import mints a separate `kaggle-` row for that building. Keying on a stable
+  physical-venue id would avoid it, the way nhl_arenas.csv keys on team+era —
+  but neither MLS source publishes one, which is why the name is the key.
+- `neutral_site` is always False for the ASA era: ASA has no such field. The
+  Kaggle era detects it from the venue string, where it marks 4 games.
 """
 import csv
 import logging
@@ -49,6 +63,8 @@ import os
 import re
 from datetime import date, datetime
 from typing import Any, Optional
+
+import httpx
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
@@ -162,6 +178,41 @@ KAGGLE_VENUE_ALIASES = {
 # Spanish for "unconfirmed" — a placeholder, not a ground.
 UNKNOWN_VENUES = {"Sin confirmar"}
 
+# ASA spells `province` out in full ("New Jersey"); every other adapter, and
+# mls_stadiums.csv, stores the two-letter code. `venues.state` is grouped on
+# directly by the attendance stats (`_attendance_stats` in routers/attendance.py
+# counts distinct states and games-per-state), so leaving both spellings in the
+# column splits one state across two buckets and inflates the states-visited
+# count. Covers every province ASA currently returns; anything unrecognized
+# passes through unchanged rather than being silently blanked.
+STATE_CODES = {
+    "British Columbia": "BC",
+    "California": "CA",
+    "Colorado": "CO",
+    "Connecticut": "CT",
+    "District of Columbia": "DC",
+    "Florida": "FL",
+    "Georgia": "GA",
+    "Illinois": "IL",
+    "Kansas": "KS",
+    "Maryland": "MD",
+    "Massachusetts": "MA",
+    "Minnesota": "MN",
+    "Missouri": "MO",
+    "New Jersey": "NJ",
+    "New York": "NY",
+    "North Carolina": "NC",
+    "Ohio": "OH",
+    "Ontario": "ON",
+    "Oregon": "OR",
+    "Pennsylvania": "PA",
+    "Quebec": "QC",
+    "Tennessee": "TN",
+    "Texas": "TX",
+    "Utah": "UT",
+    "Washington": "WA",
+}
+
 MONTHS = {
     m: i + 1
     for i, m in enumerate(
@@ -201,6 +252,10 @@ def _season_type(part_of_competition: str) -> str:
         return "preseason"
     if "regular season" in label:
         return "regular"
+    # Everything left in the real file is a playoff round. The fallback is safe
+    # because the source is a frozen 1996-2022 export — all 41 of its distinct
+    # labels were checked — but a label like "US Open Cup" in a refreshed file
+    # would land here wrongly rather than erroring.
     return "postseason"
 
 
@@ -287,10 +342,30 @@ class MlsAdapter(LeagueAdapter):
 
         The second mapping lets the Kaggle era reuse a venue row ASA already
         owns when both refer to the same building.
+
+        Fetched once per import run and threaded through, rather than per
+        season: the stadia list is small, static across a backfill, and one
+        request per season would turn a 14-request backfill into 30 while
+        re-upserting all ~56 rows each time.
         """
         by_stadium_id: dict[str, int] = {}
         stadium_id_by_name: dict[str, str] = {}
-        for row in await self._get("/stadia"):
+        try:
+            rows = await self._get("/stadia")
+        except httpx.HTTPError as exc:
+            # The Kaggle backfill is otherwise a purely local CSV read, so a
+            # transient ASA outage should not take it down with a 500. The cost
+            # of continuing is that a pre-2013 ground ASA also knows cannot be
+            # matched to ASA's row and gets its own `kaggle-` venue instead, so
+            # say so plainly rather than failing silently.
+            result.errors.append(
+                f"ASA /stadia unavailable ({exc}); venues for this run fall back to "
+                "the local seed and may duplicate rows ASA already owns"
+            )
+            logger.warning("MLS: /stadia fetch failed, continuing without it: %s", exc)
+            return by_stadium_id, stadium_id_by_name
+
+        for row in rows:
             name = row.get("stadium_name")
             if not name:
                 continue
@@ -301,13 +376,14 @@ class MlsAdapter(LeagueAdapter):
                 if seed:
                     latitude = float(seed["latitude"])
                     longitude = float(seed["longitude"])
+            province = row.get("province")
             venue, created = upsert_venue(
                 self.db,
                 source=self.source,
                 source_venue_id=row["stadium_id"],
                 name=name,
                 city=row.get("city"),
-                state=row.get("province"),
+                state=STATE_CODES.get(province, province),
                 country=row.get("country"),
                 capacity=row.get("capacity"),
                 latitude=latitude,
@@ -319,10 +395,11 @@ class MlsAdapter(LeagueAdapter):
                 result.venues_imported += 1
         return by_stadium_id, stadium_id_by_name
 
-    async def _import_asa_season(self, season: int, result: ImportResult) -> None:
+    async def _import_asa_season(
+        self, season: int, result: ImportResult, venues: dict[str, int]
+    ) -> None:
         league = get_league(self.db, self.league_code)
         teams = self._teams_by_source_id(league.id)
-        venues, _ = await self._asa_venues(result)
 
         for row in await self._get(f"/games?season_name={season}"):
             home_id = teams.get(row.get("home_team_id"))
@@ -363,6 +440,16 @@ class MlsAdapter(LeagueAdapter):
 
     def _read_matches_csv(self) -> list[dict]:
         path = os.path.join(settings.data_dir, "raw", "mls", "matches.csv")
+        if not os.path.isfile(path):
+            raise FileNotFoundError(
+                f"MLS bulk file not found at {path}. Download the Kaggle "
+                '"Major League Soccer Dataset" (josephvm) and extract matches.csv '
+                "there:\n"
+                "  curl -L -o mls.zip https://www.kaggle.com/api/v1/datasets/download/"
+                "josephvm/major-league-soccer-dataset\n"
+                "Only seasons before "
+                f"{FIRST_ASA_SEASON} need it; later seasons come from the ASA API."
+            )
         with open(path, newline="", encoding="utf-8-sig") as f:
             return list(csv.DictReader(f))
 
@@ -396,15 +483,25 @@ class MlsAdapter(LeagueAdapter):
         if created:
             result.venues_imported += 1
             if not seed:
-                result.errors.append(f"venue {canonical!r}: no coordinates in seed")
+                # Not an error — the venue and its games import fine, it just
+                # won't plot on the map. `result.errors` drives the sync status
+                # light, and it is only populated on create, so it would also
+                # vanish on re-import.
+                logger.warning("MLS: venue %r has no coordinates in the seed", canonical)
         cache[canonical] = venue.id
         return venue.id
 
-    async def _import_kaggle(self, start_season: int, end_season: int, result: ImportResult) -> None:
+    async def _import_kaggle(
+        self,
+        start_season: int,
+        end_season: int,
+        result: ImportResult,
+        asa_venues: dict[str, int],
+        stadium_id_by_name: dict[str, str],
+    ) -> None:
         league = get_league(self.db, self.league_code)
         by_name = self._teams_by_name(league.id)
         by_source_id = self._teams_by_source_id(league.id)
-        asa_venues, stadium_id_by_name = await self._asa_venues(result)
         venue_cache: dict[str, Optional[int]] = {}
 
         def resolve_team(raw: str) -> Optional[int]:
@@ -477,22 +574,40 @@ class MlsAdapter(LeagueAdapter):
     # ------------------------------------------------------------- Contract
 
     async def import_historical(self, start_season: int, end_season: int) -> ImportResult:
+        # Teams first, like every other adapter: both import paths resolve
+        # games against existing team rows, so on a fresh database this would
+        # otherwise report success having imported nothing but errors.
         result = ImportResult(league=self.league_code)
+        result.merge(await self.import_teams())
+
+        asa_venues, stadium_id_by_name = await self._asa_venues(result)
 
         if start_season < FIRST_ASA_SEASON:
-            await self._import_kaggle(start_season, end_season, result)
+            await self._import_kaggle(
+                start_season, end_season, result, asa_venues, stadium_id_by_name
+            )
 
         for season in range(max(start_season, FIRST_ASA_SEASON), end_season + 1):
-            await self._import_asa_season(season, result)
+            await self._import_asa_season(season, result, asa_venues)
 
         return result
 
     async def sync_recent(self, since: date) -> ImportResult:
         """Re-pull the seasons `since` touches. ASA publishes completed games
-        only, so this fills in results rather than announcing fixtures."""
+        only, so this fills in results rather than announcing fixtures.
+
+        Teams are refreshed first because MLS expands most years (San Diego FC
+        in 2025, St. Louis in 2023, Charlotte in 2022). Without it, the first
+        night a new club plays would log one error per game, which leaves the
+        league's sync status stuck red — `last_success_at` never advances on an
+        errored run, so the window widens every night thereafter.
+        """
         result = ImportResult(league=self.league_code)
+        result.merge(await self.import_teams())
+
+        asa_venues, _ = await self._asa_venues(result)
         for season in range(max(since.year, FIRST_ASA_SEASON), date.today().year + 1):
-            await self._import_asa_season(season, result)
+            await self._import_asa_season(season, result, asa_venues)
         return result
 
 

@@ -28,7 +28,14 @@ tip-off times, which is why the rows are has_time=False in the first place.
 from alembic import op
 import sqlalchemy as sa
 
-from sports_passport.services.adapters.local_time import DATE_ONLY_HOUR
+# Deliberately a literal, not an import of local_time.DATE_ONLY_HOUR. An applied
+# migration is a historical record of what was done to the database; if it read
+# the live constant, changing that constant later would silently redefine what
+# this already-stamped revision means, and two databases migrated either side of
+# the change would diverge under the same version stamp. It also keeps
+# `alembic upgrade head` — which the Dockerfile runs at every container start —
+# from importing the whole adapters package just to migrate the schema.
+NOON = 12
 
 # revision identifiers, used by Alembic.
 revision = 'a9f2c7e4b8d1'
@@ -54,7 +61,7 @@ def _set_hour(hour: int) -> None:
 
 
 def upgrade() -> None:
-    _set_hour(DATE_ONLY_HOUR)
+    _set_hour(NOON)
 
 
 def downgrade() -> None:

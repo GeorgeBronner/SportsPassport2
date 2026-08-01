@@ -202,7 +202,6 @@ class TestKaggleBackfill:
     async def _run(self, adapter, rows, start=1996, end=1996):
         with patch.object(adapter, "_get", _fake_get()), \
              patch.object(adapter, "_read_matches_csv", return_value=rows):
-            await adapter.import_teams()
             return await adapter.import_historical(start, end)
 
     @pytest.mark.asyncio
@@ -251,7 +250,7 @@ class TestKaggleBackfill:
 
     @pytest.mark.asyncio
     async def test_all_star_game_is_skipped(self, adapter, db_session):
-        await self._run(
+        result = await self._run(
             adapter,
             [_kaggle_row(home="East All-Stars", away="West All-Stars", year="2004",
                          date="7/31/2004")],
@@ -259,6 +258,10 @@ class TestKaggleBackfill:
             2004,
         )
         assert db_session.query(Game).count() == 0
+        # Dropping it as an *unmatched team* would also leave 0 games, so the
+        # count alone proves nothing. The point of the exclusion is that an
+        # exhibition is skipped deliberately and quietly.
+        assert result.errors == []
 
     @pytest.mark.asyncio
     async def test_shootout_recorded_and_missing_venue_tolerated(self, adapter, db_session):
@@ -314,6 +317,90 @@ class TestKaggleBackfill:
         assert db_session.query(Game).count() == 1
         assert result.games_imported == 0
         assert result.games_updated == 1
+
+
+class TestImportContract:
+    """Behaviours the other six adapters already guarantee."""
+
+    @pytest.mark.asyncio
+    async def test_historical_imports_teams_itself(self, adapter, db_session):
+        """On a fresh database nothing has created teams yet, so an import that
+        assumed they existed would report success having stored only errors."""
+        with patch.object(adapter, "_get", _fake_get({2015: [ASA_GAME]})):
+            result = await adapter.import_historical(2015, 2015)
+
+        assert result.errors == []
+        assert result.teams_imported == len(ASA_TEAMS) + 2
+        assert db_session.query(Game).count() == 1
+
+    @pytest.mark.asyncio
+    async def test_sync_refreshes_teams_first(self, adapter, db_session):
+        """MLS expands most years; a club that appears in a game before it
+        appears in `teams` would error every night and pin the league red."""
+        with patch.object(adapter, "_get", _fake_get({date.today().year: []})):
+            result = await adapter.sync_recent(date.today())
+
+        assert result.teams_imported == len(ASA_TEAMS) + 2
+        assert result.errors == []
+
+    @pytest.mark.asyncio
+    async def test_stadia_fetched_once_per_run_not_per_season(self, adapter):
+        """A 14-season backfill should stay a 14-request backfill."""
+        fake = _fake_get({y: [] for y in range(2013, 2027)})
+        with patch.object(adapter, "_get", fake):
+            await adapter.import_historical(2013, 2026)
+
+        paths = [c.args[0] for c in fake.call_args_list]
+        assert paths.count("/stadia") == 1
+
+    @pytest.mark.asyncio
+    async def test_kaggle_backfill_survives_asa_being_unreachable(self, adapter, db_session):
+        """The pre-2013 import is a local CSV read; an ASA outage should not
+        turn it into a 500."""
+        import httpx
+
+        async def _get(path):
+            if path == "/teams":
+                return ASA_TEAMS
+            if path == "/stadia":
+                raise httpx.ConnectError("boom")
+            return []
+
+        with patch.object(adapter, "_get", AsyncMock(side_effect=_get)), \
+             patch.object(adapter, "_read_matches_csv", return_value=[_kaggle_row()]):
+            result = await adapter.import_historical(1996, 1996)
+
+        assert db_session.query(Game).count() == 1
+        assert any("/stadia unavailable" in e for e in result.errors)
+
+    @pytest.mark.asyncio
+    async def test_missing_bulk_file_explains_itself(self, adapter):
+        """data/raw is gitignored, so it is absent on a fresh deploy."""
+        with patch.object(adapter, "_get", _fake_get()), \
+             patch("os.path.isfile", return_value=False):
+            with pytest.raises(FileNotFoundError, match="Major League Soccer Dataset"):
+                await adapter.import_historical(1996, 1996)
+
+
+class TestVenueNormalization:
+    @pytest.mark.asyncio
+    async def test_asa_province_is_stored_as_a_two_letter_code(self, adapter, db_session):
+        """`venues.state` is grouped on directly by the attendance stats, so a
+        long-form 'New Jersey' next to the seed's 'NJ' would split one state
+        into two buckets and inflate the states-visited count."""
+        with patch.object(adapter, "_get", _fake_get({2015: [ASA_GAME]})):
+            await adapter.import_historical(2015, 2015)
+
+        assert db_session.query(Venue).filter(Venue.name == "Red Bull Arena").one().state == "NJ"
+        assert db_session.query(Venue).filter(Venue.state == "New Jersey").count() == 0
+
+    @pytest.mark.asyncio
+    async def test_every_seeded_state_is_already_a_code(self):
+        """The seed CSV and the ASA path must agree on the format."""
+        from sports_passport.services.adapters import venue_seed
+
+        for name, row in venue_seed._mls_stadiums().items():
+            assert len(row["state"]) == 2, f"{name} has non-code state {row['state']!r}"
 
 
 class TestSourceBoundary:

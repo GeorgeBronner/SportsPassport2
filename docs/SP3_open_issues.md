@@ -70,6 +70,17 @@ Three things worth knowing about the result:
   ESPN does carry MLS fixtures if this ever matters; a rolling ~30-day window would
   be a legitimately non-bulk use of it.
 
+Two limitations accepted rather than fixed, both recorded in `mls.py`'s docstring:
+
+- **Venue aliases key on ASA's current stadium name.** `KAGGLE_VENUE_ALIASES` maps
+  e.g. `"Rio Tinto Stadium" -> "America First Field"`, so the next naming-rights
+  change makes the target stop matching and a re-import mints a separate `kaggle-`
+  row for that building. Keying on a stable physical-venue id would prevent it —
+  the way `nhl_arenas.csv` keys on team+era — but neither MLS source publishes one,
+  which is exactly why the name is the key.
+- **`neutral_site` is always False for 2013+**, because ASA has no such field. The
+  Kaggle era detects it from the venue string, where it marks 4 games.
+
 ### 1c. MLB spring training (row 2)
 
 - Neither data path covers spring training: Retrosheet game logs are regular season
