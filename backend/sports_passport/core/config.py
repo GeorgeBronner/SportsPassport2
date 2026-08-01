@@ -27,9 +27,14 @@ class Settings(BaseSettings):
     mlb_api_url: str = "https://statsapi.mlb.com/api/v1"
     nhl_api_url: str = "https://api-web.nhle.com/v1"
     nflverse_games_url: str = "https://github.com/nflverse/nfldata/raw/master/data/games.csv"
-    nba_stats_api_url: str = "https://stats.nba.com/stats"
+    # NBA sync runs on ESPN, not stats.nba.com: every nba.com host (stats. and
+    # cdn.) answers Akamai "Access Denied" from both the Oracle production host
+    # and a residential connection, with or without browser-shaped headers, so
+    # the originally-planned scoreboardv2 sync could never run anywhere.
+    # SP3_data_sources.md already lists ESPN as NBA's backup update source.
+    espn_api_url: str = "https://site.api.espn.com/apis/site/v2/sports"
 
-    # Directory holding bulk historical files (Retrosheet, Kaggle CSVs, seeds)
+    # Directory holding bulk historical files (Retrosheet, Kaggle CSVs)
     data_dir: str = "data"
 
     # Application

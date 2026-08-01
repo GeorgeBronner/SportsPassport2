@@ -1,7 +1,8 @@
 """
 Tests for the NBA adapter using mocked Games.csv rows (shape verified against
 the real Kaggle "historical-nba-data-and-player-box-scores" dataset on
-2026-07-11/12) and a mocked stats.nba.com scoreboardv2 payload.
+2026-07-11/12) and a mocked ESPN scoreboard payload (shape verified against
+the live endpoint on 2026-08-01, when NBA sync moved off stats.nba.com).
 """
 import pytest
 from datetime import date
@@ -87,23 +88,52 @@ ROW_CUP_FINAL_2023 = _row(
 
 ALL_ROWS = [ROW_SONICS_2005, ROW_THUNDER_2023, ROW_CUP_FINAL_2023]
 
-SCOREBOARD_PAYLOAD = {
-    "resultSets": [
-        {
-            "name": "GameHeader",
-            "headers": ["GAME_ID", "GAME_DATE_EST", "HOME_TEAM_ID", "VISITOR_TEAM_ID"],
-            "rowSet": [["0022300500", "2023-11-15T00:00:00", int(SONICS_ID), int(CELTICS_ID)]],
-        },
-        {
-            "name": "LineScore",
-            "headers": ["GAME_ID", "TEAM_ID", "PTS"],
-            "rowSet": [
-                ["0022300500", int(SONICS_ID), 110],
-                ["0022300500", int(CELTICS_ID), 105],
+def _espn_event(**over):
+    """ESPN scoreboard event; shape verified live against the real endpoint
+    on 2026-08-01 (site.api.espn.com/.../basketball/nba/scoreboard)."""
+    event = {
+        "id": "401810723",
+        "date": "2025-11-02T01:00Z",
+        "season": {"year": 2026, "type": 2, "slug": "regular-season"},
+        "competitions": [{
+            "neutralSite": False,
+            "status": {"type": {"state": "post", "name": "STATUS_FINAL"}},
+            "venue": {
+                "id": "3742",
+                "fullName": "Paycom Center",
+                "address": {"city": "Oklahoma City", "state": "OK"},
+            },
+            "competitors": [
+                {"homeAway": "home", "score": "110",
+                 "team": {"id": "25", "displayName": "Oklahoma City Thunder"}},
+                {"homeAway": "away", "score": "105",
+                 "team": {"id": "2", "displayName": "Boston Celtics"}},
             ],
-        },
-    ]
-}
+        }],
+    }
+    event.update(over)
+    return event
+
+
+def _payload(*events):
+    return {"events": list(events)}
+
+
+ESPN_PAYLOAD = _payload(_espn_event())
+
+# All-Star weekend: real ESPN output, fielding non-franchise squads. The bulk
+# import excludes All-Star games too, so these must be skipped, not errored.
+ESPN_ALLSTAR_PAYLOAD = _payload(_espn_event(
+    id="401810999",
+    competitions=[{
+        "neutralSite": True,
+        "status": {"type": {"state": "post"}},
+        "competitors": [
+            {"homeAway": "home", "score": "88", "team": {"displayName": "Team Stripes"}},
+            {"homeAway": "away", "score": "84", "team": {"displayName": "Team Stars"}},
+        ],
+    }],
+))
 
 
 @pytest.fixture
@@ -194,22 +224,111 @@ class TestNbaImportHistorical:
 
 
 class TestNbaSync:
-    @pytest.mark.asyncio
-    async def test_sync_recent_resolves_active_identity_and_kaggle_id(self, adapter, db_session):
+    async def _sync(self, adapter, payload):
         with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS):
             await adapter.import_teams()
+        with patch.object(adapter, "_fetch_scoreboard", AsyncMock(return_value=payload)):
+            return await adapter.sync_recent(since=date.today())
 
-        with patch.object(adapter, "_fetch_scoreboard", AsyncMock(return_value=SCOREBOARD_PAYLOAD)):
-            result = await adapter.sync_recent(since=date.today())
+    @pytest.mark.asyncio
+    async def test_sync_recent_imports_espn_event(self, adapter, db_session):
+        result = await self._sync(adapter, ESPN_PAYLOAD)
 
         assert not result.errors
         assert result.games_imported == 1
         game = db_session.query(Game).one()
-        # 10-char scoreboardv2 GAME_ID ("00" + 8-char kaggle id) must be
-        # normalized to the same id form the bulk import uses
-        assert game.source_game_id == "22300500"
-        assert game.season == 2023
+        assert game.source_game_id == "espn-401810723"
+        # ESPN labels 2025-26 as year 2026; this app keys seasons by start year
+        assert game.season == 2025
+        assert game.season_type == "regular"
         assert (game.home_score, game.away_score) == (110, 105)
+        assert game.has_time is True
         # resolves onto the Thunder (active identity), not the retired Sonics row
         thunder = db_session.query(Team).filter(Team.nickname == "Thunder").one()
         assert game.home_team_id == thunder.id
+
+    @pytest.mark.asyncio
+    async def test_sync_resolves_venue_via_seed_not_a_second_row(self, adapter, db_session):
+        """Seed lookup keeps synced games on the same venue row the bulk
+        import and backfill script use, so the map gets one dot per arena."""
+        await self._sync(adapter, ESPN_PAYLOAD)
+
+        game = db_session.query(Game).one()
+        assert game.venue_id is not None
+        venue = db_session.get(Venue, game.venue_id)
+        assert venue.source_venue_id.startswith("seed-")
+        assert venue.latitude is not None and venue.longitude is not None
+
+    @pytest.mark.asyncio
+    async def test_allstar_events_are_skipped_without_error(self, adapter, db_session):
+        result = await self._sync(adapter, ESPN_ALLSTAR_PAYLOAD)
+
+        assert not result.errors
+        assert result.games_imported == 0
+        assert db_session.query(Game).count() == 0
+
+    @pytest.mark.asyncio
+    async def test_sync_updates_the_bulk_row_instead_of_duplicating(self, adapter, db_session):
+        """ESPN has no NBA gameId, so without natural-key reconciliation the
+        synced game would land beside the bulk row rather than on it."""
+        bulk = _row(
+            gameId="22500001",
+            hometeamCity="Oklahoma City", hometeamName="Thunder", hometeamId=SONICS_ID,
+            awayteamCity="Boston", awayteamName="Celtics", awayteamId=CELTICS_ID,
+            homeScore="1", awayScore="1",          # stale placeholder scores
+            gameDate="2025-11-01 19:00:00",
+        )
+        with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS + [bulk]):
+            await adapter.import_historical(2025, 2025)
+        assert db_session.query(Game).count() == 1
+
+        with patch.object(adapter, "_fetch_scoreboard", AsyncMock(return_value=ESPN_PAYLOAD)):
+            result = await adapter.sync_recent(since=date.today())
+
+        assert result.games_imported == 0
+        assert result.games_updated == 1
+        game = db_session.query(Game).one()          # still exactly one row
+        assert game.source_game_id == "22500001"     # keeps the canonical id
+        assert (game.home_score, game.away_score) == (110, 105)   # scores refreshed
+
+    @pytest.mark.asyncio
+    async def test_later_bulk_import_adopts_the_synced_row(self, adapter, db_session):
+        """The other direction: sync sees a game first, then a refreshed
+        Games.csv covers it. The row must be re-keyed, not duplicated."""
+        await self._sync(adapter, ESPN_PAYLOAD)
+        assert db_session.query(Game).one().source_game_id == "espn-401810723"
+
+        bulk = _row(
+            gameId="22500001",
+            hometeamCity="Oklahoma City", hometeamName="Thunder", hometeamId=SONICS_ID,
+            awayteamCity="Boston", awayteamName="Celtics", awayteamId=CELTICS_ID,
+            homeScore="110", awayScore="105",
+            gameDate="2025-11-01 19:00:00",
+        )
+        with patch.object(adapter, "_read_games_csv", return_value=ALL_ROWS + [bulk]):
+            await adapter.import_historical(2025, 2025)
+
+        assert db_session.query(Game).count() == 1
+        assert db_session.query(Game).one().source_game_id == "22500001"
+
+    @pytest.mark.asyncio
+    async def test_scheduled_game_does_not_blank_a_known_score(self, adapter, db_session):
+        """A game already final in our DB must not be zeroed out by a later
+        scoreboard fetch that still lists it as scheduled."""
+        await self._sync(adapter, ESPN_PAYLOAD)
+
+        scheduled = _espn_event(competitions=[{
+            "neutralSite": False,
+            "status": {"type": {"state": "pre"}},
+            "venue": {"id": "3742", "fullName": "Paycom Center",
+                      "address": {"city": "Oklahoma City", "state": "OK"}},
+            "competitors": [
+                {"homeAway": "home", "score": "", "team": {"displayName": "Oklahoma City Thunder"}},
+                {"homeAway": "away", "score": "", "team": {"displayName": "Boston Celtics"}},
+            ],
+        }])
+        with patch.object(adapter, "_fetch_scoreboard", AsyncMock(return_value=_payload(scheduled))):
+            await adapter.sync_recent(since=date.today())
+
+        game = db_session.query(Game).one()
+        assert (game.home_score, game.away_score) == (110, 105)

@@ -141,7 +141,7 @@ free APIs with tiny request counts.
 | **CFB** | CFBD `/teams/fbs` (API key, same as SP2) | CFBD `/games?year=` 1990→now (port SP2 code) | CFBD `/games?year={current}` |
 | **MLB** | Retrosheet `CurrentNames.csv` (franchise-linked team-identity eras, back to 1871) | **Retrosheet game logs** ZIP, fetched live per season (1970+; has date, teams, score, park code, attendance, day/night). Park code → venue via `parkcode.txt` (has real city/state). Regular season only — see §5 Phase 3 scope note | **MLB Stats API** `/api/v1/schedule?startDate=&endDate=` — team resolved via its `teamCode` field, which matches Retrosheet's codes exactly, so sync rows land on the same games the bulk import created |
 | **NFL** | nflverse `teams.csv` + franchise ids derived from `games.csv` team abbreviations | **nflverse `games.csv`** raw GitHub URL — plain HTTP GET, no key, auto-updated. 1999+ only (see §5 Phase 3 decision — Kaggle Spreadspoke would extend to 1966 but now needs a login/paid tier) | Same `games.csv` fetch, filtered by date |
-| **NBA** | Derived from `Games.csv` itself (distinct team-identity eras seen in the data) | **Kaggle `Games.csv`** (`backend/data/raw/nba/Games.csv`, manually downloaded — `stats.nba.com` is unreachable from the dev sandbox, see §5 Phase 4 status). Venue only available for the dataset's current season; historical venues still need the planned `nba_arenas.csv` seed (not built) | `stats.nba.com/stats/scoreboardv2` — written, **unverified** (same unreachable-host issue) |
+| **NBA** | Derived from `Games.csv` itself (distinct team-identity eras seen in the data) | **Kaggle `Games.csv`** (`backend/data/raw/nba/Games.csv`, manually downloaded — `stats.nba.com` is unreachable from the dev sandbox, see §5 Phase 4 status). Venue only available for the dataset's current season; historical venues come from the `nba_arenas.csv` seed (built 2026-07-27) | **ESPN scoreboard** `site.api.espn.com/.../basketball/nba/scoreboard?dates=` — replaced `stats.nba.com/scoreboardv2` on 2026-08-01, which is Akamai-blocked from every host this app runs on (see Phase 4). Reconciles onto bulk rows by natural key, since ESPN carries no NBA `gameId` |
 | **NHL** | NHL API `/v1/standings` + team endpoints | **Official NHL API** schedule endpoints, season-by-season 1970→now (keyless, official — no bulk concern) | Same NHL API, `/v1/score/{date}` |
 
 **Compliance guardrails (from research — enforce in code):**
@@ -321,11 +321,21 @@ committed in `4065c9a`.
       game would've landed as a duplicate row instead of updating the historical
       one (the exact cross-source alignment problem the MLB adapter solved via
       `teamCode`). Fixed by stripping the 2-char prefix before both calls.
-  - [ ] Still needs a real end-to-end run against `stats.nba.com` from a network
-        that can reach it (not this sandbox) to confirm the response shape itself
-        hasn't drifted — the parsing logic is now correct against the documented
-        shape, but "documented" and "current" aren't the same thing for an
-        unofficial endpoint.
+  - [x] **Resolved 2026-08-01 by abandoning `stats.nba.com` entirely.** The
+        "try it from a network that can reach it" plan had no such network:
+        every nba.com host (`stats.` *and* `cdn.`) returns an Akamai
+        `Access Denied` from the Oracle production host and from a residential
+        connection alike, with and without browser-shaped headers. The
+        cloud-IP hypothesis was wrong — this endpoint is unreachable from
+        anywhere this app runs. `sync_recent` moved to ESPN's scoreboard,
+        which `SP3_data_sources.md` already lists as NBA's backup update
+        source, and which also carries the venue data `scoreboardv2` never
+        returned. Because ESPN has no NBA `gameId`, the adapter reconciles on
+        (league, home, away, date ±1 day) so synced rows and bulk rows
+        converge instead of duplicating — in both directions.
+        **Verified live 2026-08-01:** all 11 real games on 2026-03-01 parsed,
+        matched their existing Kaggle rows exactly (scores, season 2025,
+        canonical 8-char ids), 0 duplicates / 0 errors / 0 skips.
 - [x] **Full backfill run (2026-07-12):** `import_historical(1946, 2025)` against
       the real local `Games.csv` — **73,272 games imported, zero errors.** The
       7-game gap vs. the CSV's 73,279 rows is exactly the intentionally-excluded

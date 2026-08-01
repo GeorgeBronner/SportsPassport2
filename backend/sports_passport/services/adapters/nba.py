@@ -1,19 +1,26 @@
-"""NBA adapter — Kaggle bulk CSV (historical) + stats.nba.com (sync).
+"""NBA adapter — Kaggle bulk CSV (historical) + ESPN scoreboard (sync).
 
-stats.nba.com is unreachable in dev (hangs on an Akamai anti-bot TLS
-challenge, not just a rate limit — confirmed 2026-07-11), and its
-documented fallback, a Kaggle bulk CSV, needs a Kaggle login same as the
-NFL Spreadspoke dataset. The user grabbed it manually (free account, no
-payment) — see backend/data/raw/nba/Games.csv (eoinamoore's "NBA Dataset:
-Box Scores and Stats" on Kaggle). Unlike the other four adapters,
-`import_historical` therefore parses a local file rather than fetching
-live; there's no other free live bulk source to fall back to.
+The Kaggle bulk CSV needs a Kaggle login, same as the NFL Spreadspoke
+dataset. The user grabbed it manually (free account, no payment) — see
+backend/data/raw/nba/Games.csv (eoinamoore's "NBA Dataset: Box Scores and
+Stats" on Kaggle). Unlike the other four adapters, `import_historical`
+therefore parses a local file rather than fetching live; there's no other
+free live bulk source to fall back to.
 
-`sync_recent` still targets stats.nba.com's `scoreboardv2` endpoint per
-the original plan (small "since date" queries are exactly its intended
-free use) — implemented but **not live-verified**, since this dev
-environment can't reach it at all. A home/production network may well
-succeed where this sandbox's egress is blocked; verify after deploy.
+`sync_recent` originally targeted stats.nba.com's `scoreboardv2`. That was
+abandoned 2026-08-01: every nba.com host (stats. and cdn. alike) answers
+an Akamai "Access Denied" — verified from the Oracle production host *and*
+from a residential connection, with and without browser-shaped headers.
+The Phase 4 hypothesis that a non-cloud IP would get through is disproved,
+so there is no network this app runs on where that endpoint works. Sync now
+uses ESPN's scoreboard, which SP3_data_sources.md already designates as
+NBA's backup update source, and which additionally carries venue data that
+scoreboardv2 never returned.
+
+ESPN cannot supply the NBA's own 8-char gameId, so synced rows cannot share
+`source_game_id` with the bulk import. `_find_by_natural_key` reconciles the
+two on (league, home, away, date +/- 1 day) so that re-downloading Games.csv
+later updates the synced row instead of duplicating it.
 
 Team identity: NBA's numeric team id is stable across every relocation/
 rename in league history (id 1610612760 is both the Seattle SuperSonics
@@ -37,6 +44,7 @@ over time) — historical rows arrive with no arena data at all. For those,
 (team → arena → season range, 1990-present); older-still games remain
 venue_id = NULL.
 """
+import asyncio
 import csv
 import logging
 import os
@@ -46,6 +54,7 @@ from typing import Optional
 import httpx
 
 from sports_passport.core.config import settings
+from sports_passport.models.game import Game
 from sports_passport.models.team import Team
 from sports_passport.services.adapters import venue_seed
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
@@ -75,15 +84,23 @@ FIRST_SEASON_WITH_REAL_TIMES = 1969
 
 ONE_DAY = timedelta(days=1)
 
-NBA_STATS_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "en-US,en;q=0.9",
-    "x-nba-stats-origin": "stats",
-    "x-nba-stats-token": "true",
-    "Referer": "https://www.nba.com/",
-    "Origin": "https://www.nba.com",
+ESPN_HEADERS = {
+    "User-Agent": "SportsPassport/0.2 (personal game-attendance tracker)",
+    "Accept": "application/json",
 }
+
+# ESPN's season.type on the NBA scoreboard. Anything else (4 = off-season /
+# All-Star) is not a countable game and is skipped.
+ESPN_SEASON_TYPES = {1: "preseason", 2: "regular", 3: "postseason"}
+
+# Polite spacing between ESPN scoreboard calls; a sync window is a handful of days.
+ESPN_THROTTLE_SECONDS = 0.5
+
+# Widen the natural-key match by a day in each direction: ESPN timestamps are
+# UTC, so a 7pm Pacific tip-off lands on the next UTC calendar day, while the
+# Kaggle bulk rows carry a naive local game date. A given pair of teams never
+# plays twice within a day, so the window cannot collide.
+NATURAL_KEY_WINDOW = timedelta(days=1)
 
 
 def _season_from_game_id(game_id: str) -> int:
@@ -96,11 +113,19 @@ def _team_key(team_id: str, city: str, name: str) -> str:
     return f"{team_id}:{city}:{name}"
 
 
+def _int_or_none(value) -> Optional[int]:
+    """ESPN reports scores as strings, and as '' for a game not yet played."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 class NbaAdapter(LeagueAdapter):
     league_code = "NBA"
     source = "nba-kaggle"
 
-    http_client_kwargs = {"headers": NBA_STATS_HEADERS, "follow_redirects": True}
+    http_client_kwargs = {"headers": ESPN_HEADERS, "follow_redirects": True}
 
     def _read_games_csv(self) -> list[dict]:
         path = os.path.join(settings.data_dir, "raw", "nba", "Games.csv")
@@ -222,6 +247,12 @@ class NbaAdapter(LeagueAdapter):
         if attendance == 0:
             attendance = None
 
+        # A game ESPN synced before this CSV covered it lives under an
+        # "espn-<event id>" source id. Adopt that row rather than inserting a
+        # second one for the same game — the NBA gameId is the better key, so
+        # it wins, and the natural-key duplicate disappears for good.
+        self._adopt_synced_row(league_id, home_id, away_id, start_date, row["gameId"])
+
         _, created = upsert_game(
             self.db,
             source=self.source,
@@ -265,109 +296,248 @@ class NbaAdapter(LeagueAdapter):
         logger.info("NBA import: %s games imported, %s updated", result.games_imported, result.games_updated)
         return result
 
+    # ------------------------------------------------------------------
+    # Sync (ESPN)
+    # ------------------------------------------------------------------
+
     async def _fetch_scoreboard(self, day: date) -> dict:
         response = await self.http.get(
-            f"{settings.nba_stats_api_url}/scoreboardv2",
-            params={"GameDate": day.strftime("%m/%d/%Y"), "LeagueID": "00", "DayOffset": 0},
+            f"{settings.espn_api_url}/basketball/nba/scoreboard",
+            params={"dates": day.strftime("%Y%m%d")},
         )
         response.raise_for_status()
         return response.json()
 
-    def _active_team_lookup(self, league_id: int) -> dict[str, int]:
-        """franchise_id (== NBA's numeric team id) -> db id, active era only.
+    def _active_team_by_name(self, league_id: int) -> dict[str, int]:
+        """ESPN displayName -> db team id, active era only.
 
-        Sync only ever deals with recent/current games, so resolution must
-        land on each franchise's *current* identity row, not an arbitrary
-        historical era sharing the same team id (e.g. Seattle SuperSonics
-        vs. OKC Thunder).
+        Sync only ever sees current games, so resolution must land on each
+        franchise's present-day identity row rather than an arbitrary
+        historical era sharing the same NBA team id (Seattle SuperSonics
+        vs. OKC Thunder). Matched on name because the Kaggle bulk import
+        leaves `abbreviation` NULL — verified live that all 30 of ESPN's
+        displayNames equal our team names exactly.
         """
-        teams = self.db.query(Team).filter(Team.league_id == league_id, Team.last_season.is_(None)).all()
-        return {str(t.franchise_id): t.id for t in teams}
+        teams = self.db.query(Team).filter(
+            Team.league_id == league_id, Team.last_season.is_(None)
+        ).all()
+        return {t.name: t.id for t in teams}
+
+    def _adopt_synced_row(
+        self, league_id: int, home_id: int, away_id: int, start: datetime, game_id: str
+    ) -> None:
+        """Re-key an ESPN-synced row onto its real NBA gameId, if one exists.
+
+        Only touches rows this adapter synced (source id prefixed "espn-"),
+        and only when the canonical id is not already present -- so it can
+        never merge two legitimately distinct games.
+        """
+        existing = self.db.query(Game).filter(
+            Game.source == self.source,
+            Game.source_game_id == game_id,
+        ).first()
+        if existing:
+            return
+
+        synced = self.db.query(Game).filter(
+            Game.league_id == league_id,
+            Game.source == self.source,
+            Game.source_game_id.like("espn-%"),
+            Game.home_team_id == home_id,
+            Game.away_team_id == away_id,
+            Game.start_date >= start - NATURAL_KEY_WINDOW,
+            Game.start_date <= start + NATURAL_KEY_WINDOW,
+        ).first()
+        if synced:
+            synced.source_game_id = game_id
+            self.db.flush()
+
+    def _find_by_natural_key(
+        self, league_id: int, home_id: int, away_id: int, start: datetime
+    ) -> Optional[Game]:
+        """The existing row for this matchup, whatever source id it carries.
+
+        ESPN cannot supply the NBA's own 8-char gameId, so a synced row and
+        the Kaggle bulk row for the same game have different source ids and
+        would otherwise coexist as duplicates. Matching on
+        (league, home, away, date +/- 1) lets the two paths converge.
+        """
+        return self.db.query(Game).filter(
+            Game.league_id == league_id,
+            Game.home_team_id == home_id,
+            Game.away_team_id == away_id,
+            Game.start_date >= start - NATURAL_KEY_WINDOW,
+            Game.start_date <= start + NATURAL_KEY_WINDOW,
+        ).first()
 
     async def sync_recent(self, since: date) -> ImportResult:
         result = ImportResult(league=self.league_code)
         league = get_league(self.db, self.league_code)
-        active_by_team_id = self._active_team_lookup(league.id)
+        by_name = self._active_team_by_name(league.id)
+        venue_cache: dict[str, int] = {}
+        skipped = 0
 
         day = since
         today = date.today()
+        first = True
         while day <= today:
+            if not first:
+                await asyncio.sleep(ESPN_THROTTLE_SECONDS)
+            first = False
             try:
                 payload = await self._fetch_scoreboard(day)
-            except httpx.HTTPError as e:
-                result.errors.append(f"{day.isoformat()}: fetch failed ({e})")
+            except (httpx.HTTPError, ValueError) as e:
+                result.errors.append(f"{day.isoformat()}: fetch failed ({e!r})")
                 day += ONE_DAY
                 continue
 
-            result_sets = {rs["name"]: rs for rs in payload.get("resultSets", [])}
-            games = result_sets.get("GameHeader")
-            lines = result_sets.get("LineScore")
-            if games and lines:
-                line_by_game_team = {
-                    (row[lines["headers"].index("GAME_ID")], row[lines["headers"].index("TEAM_ID")]): row
-                    for row in lines["rowSet"]
-                }
-                headers = games["headers"]
-                for row in games["rowSet"]:
-                    game = dict(zip(headers, row))
-                    self._upsert_scoreboard_game(
-                        league.id, game, lines["headers"], line_by_game_team, active_by_team_id, result
-                    )
-
+            for event in payload.get("events", []):
+                if not self._upsert_espn_event(league.id, event, by_name, venue_cache, result):
+                    skipped += 1
             day += ONE_DAY
 
         self.db.commit()
+        if skipped:
+            # Expected every February: All-Star weekend fields "Team Stars",
+            # "Team Stripes" and "World", which are not franchises and are
+            # excluded from the bulk import too. Logged rather than raised so
+            # the sync does not report failure for correctly ignoring them.
+            logger.info("NBA sync: skipped %s event(s) with unrecognized teams", skipped)
         return result
 
-    def _upsert_scoreboard_game(
-        self, league_id: int, game: dict, line_headers: list, line_by_game_team: dict,
-        active_by_team_id: dict, result: ImportResult,
-    ) -> None:
-        game_id = game["GAME_ID"]
-        # scoreboardv2's GAME_ID is 10 chars ("00" league prefix + the same
-        # type/season/game-number digits the Kaggle bulk CSV uses as its
-        # 8-char gameId) — strip the prefix so sync rows land on the exact
-        # source_game_id the historical import created, and so
-        # _season_from_game_id (calibrated for the 8-char form) parses the
-        # season digits correctly instead of reading the league prefix.
-        kaggle_id = game_id[2:] if len(game_id) == 10 else game_id
-        home_line = line_by_game_team.get((game_id, game["HOME_TEAM_ID"]))
-        away_line = line_by_game_team.get((game_id, game["VISITOR_TEAM_ID"]))
-        if not home_line or not away_line:
-            result.errors.append(f"game {game_id}: missing line score")
-            return
+    def _espn_venue_id(
+        self, competition: dict, home_franchise_id: Optional[str], season: int,
+        venue_cache: dict, result: ImportResult,
+    ) -> Optional[int]:
+        """Resolve the arena, preferring the seed so rows stay deduplicated.
 
-        def li(row, field):
-            return row[line_headers.index(field)]
+        The seed (team + season era) is the same lookup the bulk import and
+        scripts/backfill_venue_seeds.py use, so a synced game lands on the
+        existing venue row -- with the hand-verified coordinates the map needs
+        -- instead of minting a second row for the same building. ESPN's own
+        venue is the fallback, and the only option for neutral-site games,
+        where the home team's usual arena would be plain wrong.
+        """
+        neutral = bool(competition.get("neutralSite"))
+        seed = None
+        if not neutral and home_franchise_id:
+            seed = venue_seed.lookup_nba_arena(home_franchise_id, season)
 
-        home_id = active_by_team_id.get(str(game["HOME_TEAM_ID"]))
-        away_id = active_by_team_id.get(str(game["VISITOR_TEAM_ID"]))
+        if seed:
+            key = f"seed-{seed['arena']}"
+            if key not in venue_cache:
+                venue, created = upsert_venue(
+                    self.db, source=self.source, source_venue_id=key,
+                    name=seed["arena"], **venue_seed.venue_fields(seed),
+                )
+                self.db.flush()
+                venue_cache[key] = venue.id
+                if created:
+                    result.venues_imported += 1
+            return venue_cache[key]
+
+        espn_venue = competition.get("venue") or {}
+        if not espn_venue.get("fullName"):
+            return None
+        key = f"espn-{espn_venue.get('id') or espn_venue['fullName']}"
+        if key not in venue_cache:
+            address = espn_venue.get("address") or {}
+            venue, created = upsert_venue(
+                self.db, source=self.source, source_venue_id=key,
+                name=espn_venue["fullName"],
+                city=address.get("city"), state=address.get("state"), country=None,
+            )
+            self.db.flush()
+            venue_cache[key] = venue.id
+            if created:
+                result.venues_imported += 1
+        return venue_cache[key]
+
+    def _upsert_espn_event(
+        self, league_id: int, event: dict, by_name: dict, venue_cache: dict,
+        result: ImportResult,
+    ) -> bool:
+        """Returns False when the event was skipped (not an error)."""
+        competitions = event.get("competitions") or []
+        if not competitions:
+            return False
+        competition = competitions[0]
+
+        season_info = event.get("season") or {}
+        season_type = ESPN_SEASON_TYPES.get(season_info.get("type"))
+        if not season_type:
+            return False
+        # ESPN labels a season by its ending year (2025-26 -> 2026); this app
+        # keys seasons by the starting year, matching the NBA gameId encoding
+        # the bulk import derives its season from.
+        espn_year = season_info.get("year")
+        if not espn_year:
+            return False
+        season = int(espn_year) - 1
+
+        home = away = None
+        for competitor in competition.get("competitors", []):
+            if competitor.get("homeAway") == "home":
+                home = competitor
+            elif competitor.get("homeAway") == "away":
+                away = competitor
+        if not home or not away:
+            return False
+
+        home_id = by_name.get((home.get("team") or {}).get("displayName"))
+        away_id = by_name.get((away.get("team") or {}).get("displayName"))
         if home_id is None or away_id is None:
-            result.errors.append(f"game {game_id}: unmatched team")
-            return
+            return False
 
         try:
-            start_date = datetime.strptime(game["GAME_DATE_EST"][:10], "%Y-%m-%d")
+            start_date = datetime.strptime(event["date"], "%Y-%m-%dT%H:%MZ")
         except (KeyError, ValueError):
-            result.errors.append(f"game {game_id}: bad date")
-            return
+            result.errors.append(f"event {event.get('id')}: bad date {event.get('date')!r}")
+            return True
 
-        _, created = upsert_game(
-            self.db,
-            source=self.source,
-            source_game_id=kaggle_id,
-            league_id=league_id,
+        state = ((competition.get("status") or {}).get("type") or {}).get("state")
+        if state == "pre":
+            home_score = away_score = None      # scheduled, not yet played
+        else:
+            home_score = _int_or_none(home.get("score"))
+            away_score = _int_or_none(away.get("score"))
+
+        home_franchise = self.db.get(Team, home_id)
+        venue_id = self._espn_venue_id(
+            competition,
+            str(home_franchise.franchise_id) if home_franchise and home_franchise.franchise_id else None,
+            season, venue_cache, result,
+        )
+
+        fields = dict(
             home_team_id=home_id,
             away_team_id=away_id,
-            home_score=li(home_line, "PTS"),
-            away_score=li(away_line, "PTS"),
+            home_score=home_score,
+            away_score=away_score,
             start_date=start_date,
-            has_time=False,
-            season=_season_from_game_id(kaggle_id),
-            season_type=GAME_TYPES.get("Regular Season"),
-            neutral_site=False,
+            has_time=True,
+            season=season,
+            season_type=season_type,
+            venue_id=venue_id,
+            neutral_site=bool(competition.get("neutralSite")),
         )
-        if created:
-            result.games_imported += 1
-        else:
+
+        existing = self._find_by_natural_key(league_id, home_id, away_id, start_date)
+        if existing:
+            for key, value in fields.items():
+                # Never blank an already-known score with a not-yet-played null.
+                if value is None and key in ("home_score", "away_score", "venue_id"):
+                    continue
+                setattr(existing, key, value)
             result.games_updated += 1
+            return True
+
+        upsert_game(
+            self.db,
+            source=self.source,
+            source_game_id=f"espn-{event['id']}",
+            league_id=league_id,
+            **fields,
+        )
+        result.games_imported += 1
+        return True
