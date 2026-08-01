@@ -35,8 +35,8 @@ up during MLS-expansion research.
 
 **Data floor:** 1970 for the four pro leagues (sources support earlier — importers take a
 `start_season` parameter so we can deepen later), 1990 for CFB (matches SP2 / CFBD coverage).
-**Exception:** NFL ships with a 1999 floor (see §5 Phase 3) — the free nflverse source only
-goes back that far; pre-1999 needs a Kaggle-gated dataset, deferred to Phase 7.
+~~**Exception:** NFL ships with a 1999 floor~~ — closed 2026-08-01 (Phase 11): the Kaggle
+Spreadspoke file is freely downloadable again and now backs NFL 1970–1998.
 
 ---
 
@@ -142,7 +142,7 @@ free APIs with tiny request counts.
 |--------|----------------|-------------------------------|------------------------|
 | **CFB** | CFBD `/teams/fbs` (API key, same as SP2) | CFBD `/games?year=` 1990→now (port SP2 code) | CFBD `/games?year={current}` |
 | **MLB** | Retrosheet `CurrentNames.csv` (franchise-linked team-identity eras, back to 1871) | **Retrosheet game logs** ZIP, fetched live per season (1970+; has date, teams, score, park code, attendance, day/night). Park code → venue via `parkcode.txt` (has real city/state). Regular season only — see §5 Phase 3 scope note | **MLB Stats API** `/api/v1/schedule?startDate=&endDate=` — team resolved via its `teamCode` field, which matches Retrosheet's codes exactly, so sync rows land on the same games the bulk import created |
-| **NFL** | nflverse `teams.csv` + franchise ids derived from `games.csv` team abbreviations | **nflverse `games.csv`** raw GitHub URL — plain HTTP GET, no key, auto-updated. 1999+ only (see §5 Phase 3 decision — Kaggle Spreadspoke would extend to 1966 but now needs a login/paid tier) | Same `games.csv` fetch, filtered by date |
+| **NFL** | nflverse `teams.csv` + franchise ids derived from `games.csv` team abbreviations, plus 7 pre-1999 identities hard-coded in the adapter (`HISTORICAL_TEAMS`) | **nflverse `games.csv`** raw GitHub URL for 1999+ — plain HTTP GET, no key, auto-updated — and the **Kaggle "Spreadspoke" CSV** (`backend/data/raw/nfl/spreadspoke_scores.csv`) for 1970–1998, split at `FIRST_NFLVERSE_SEASON` (see §5 Phase 11) | Same `games.csv` fetch, filtered by date — nflverse only |
 | **NBA** | Derived from `Games.csv` itself (distinct team-identity eras seen in the data) | **Kaggle `Games.csv`** (`backend/data/raw/nba/Games.csv`, manually downloaded — `stats.nba.com` is unreachable from the dev sandbox, see §5 Phase 4 status). Venue only available for the dataset's current season; historical venues come from the `nba_arenas.csv` seed (built 2026-07-27) | **ESPN scoreboard** `site.api.espn.com/.../basketball/nba/scoreboard?dates=` — replaced `stats.nba.com/scoreboardv2` on 2026-08-01, which is Akamai-blocked from every host this app runs on (see Phase 4). Reconciles onto bulk rows by natural key, since ESPN carries no NBA `gameId` |
 | **NHL** | NHL API `/v1/standings` + team endpoints | **Official NHL API** schedule endpoints, season-by-season 1970→now (keyless, official — no bulk concern) | Same NHL API, `/v1/score/{date}` |
 
@@ -227,6 +227,8 @@ then CFB (port of known-working SP2 code = validates parity with SP2).
   original research pass) — not a plain HTTP fetch. User chose to ship NFL on nflverse alone
   (auth-free, auto-updated) with a **1999 floor** instead of blocking on Kaggle access;
   1970–1998 backfill is deferred, revisit if a free source appears (Phase 7 candidate).
+- **Superseded (2026-08-01):** re-checked, and the dataset's public download API serves it
+  unauthenticated again. The 1999 floor is gone — see Phase 11 below.
 - **Verified (NFL, live nflverse fetch 2026-07-11):** 1999 season = **259 games exact** (248
   regular + 11 postseason, 1999's single-bye 31-team format); 2020 = **269 exact** (256 + 13,
   expanded playoff format); 2023 = **285 exact** (272 + 13, 17-game regular season). Franchise
@@ -553,6 +555,50 @@ league, and the first built on **two sources split at a hard season boundary** �
 
 - Known limitation: ASA publishes results only (every row is `FullTime`), so MLS has
   no upcoming fixtures, unlike CFB/CBB/NHL.
+
+### Phase 11 — NFL 1970–1998 backfill ✅ DONE 2026-08-01
+Closes the 1999 floor the Phase 3 decision accepted. The blocker was access, not data:
+re-checked on 2026-08-01 and the Kaggle "NFL scores and betting data" dataset
+(`tobycrabtree`) serves `spreadspoke_scores.csv` over its public download API with no
+login. NFL becomes the **second two-source league**, split at
+`FIRST_NFLVERSE_SEASON = 1999` on the *season* (not the date), so the January-1999
+playoffs of the 1998 season stay with their own season.
+- [x] Source validated before writing any adapter code: on the **1999–2024 overlap
+      Spreadspoke and nflverse agree exactly — 6,991 games each, zero per-season
+      variance**. The 1970–1998 slice has no null date/score/stadium, no unparseable
+      date and no duplicate `(date, home, away)` key, and its per-season counts
+      reproduce the 1982 strike (141), the 1987 strike (177), the 1978 16-game
+      expansion (233) and 1993's 18-week season.
+- [x] **One real defect found and fixed**: Arizona Cardinals home games 1994–98 are
+      stamped "University of Phoenix Stadium", which opened in 2006 — they played at
+      Sun Devil Stadium. Confirmed independently on the overlap, where 55 rows under
+      that name resolve to `PHO99`. Overridden on import.
+- [x] Venue crosswalk derived **empirically from the overlap** (matched on date + both
+      scores + home team) rather than by hand: **31 of the 64 pre-1999 stadiums are
+      buildings nflverse also knows**, so those games join the existing venue rows and
+      the map keeps one pin per building — Three Rivers now spans 1970–2000, Lambeau
+      1970–2026. 29 new `hist-`-prefixed rows added to `nfl_stadiums.csv` for grounds
+      nflverse never saw; 4 names are aliases onto rows that already existed.
+- [x] 7 pre-1999 team identities minted (`HISTORICAL_TEAMS`), each because the obvious
+      abbreviation belongs to a modern club: Baltimore Colts, St. Louis Cardinals,
+      Houston/Tennessee Oilers, LA Raiders, Phoenix Cardinals, Boston Patriots.
+      `franchise_id` points at the modern successor, so the passport reads
+      Oilers→Titans as one franchise. This is why `_team_lookup` had to be re-keyed
+      from `abbreviation` to `source_team_id` — the Oilers really were "HOU", and the
+      old lookup would have shadowed the Texans.
+- [x] **Final counts, live import, zero errors:**
+
+  | Source | Games | Seasons | Notes |
+  |--------|-------|---------|-------|
+  | Spreadspoke | 6,367 | 1970–1998 | date-only (`has_time=False`); no attendance or OT column |
+  | nflverse | 7,548 | 1999–2026 | real kickoff times, converted from US Eastern |
+  | **Total** | **13,915** | **1970–2026** | 42 teams, 91 venues, **0 games without a venue** |
+
+  Re-running the full range imports 0 and updates 13,915, so the seam is idempotent.
+- Known limitation: a team's era is one `(first_season, last_season)` span, so an
+  identity used in two separate stretches reads as continuous — visible now for OAK
+  (Oakland 1970–81 and 1995–2019) and CLE (the 1996–98 hiatus). Games are attributed
+  correctly; only the summary span overreaches. Narrowing it needs a schema change.
 
 **Total estimate: ~7–10 working days** for the first draft (Phases 0–6).
 

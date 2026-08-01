@@ -99,6 +99,27 @@ weather, playoff flags. One free CSV download that fully covers 1970+. Also avai
 from [Spreadspoke](https://spreadspoke.com/data.html). Sourced from ESPN/NFL.com/Pro Football
 Reference.
 
+**Access status (re-checked 2026-08-01): freely downloadable, no login.** A 2026-07-11 check
+concluded this file had moved behind a Kaggle account or a paid tier, which is why the NFL
+adapter shipped with a 1999 floor. That is no longer the case — the public download API
+serves it anonymously:
+
+```bash
+curl -L -o nfl.zip https://www.kaggle.com/api/v1/datasets/download/tobycrabtree/nfl-scores-and-betting-data
+```
+
+Note that **only `GET` works** — a `HEAD` probe against that URL returns 404, which is an easy
+way to wrongly conclude the dataset is gone. This is the same access pattern the MLS Kaggle
+file uses. It now backs NFL 1970–1998 (SP3_plan.md Phase 11); nflverse still owns 1999+.
+
+**Quality, measured rather than assumed** (see Phase 11 for the full write-up): on the
+1999–2024 overlap it agrees with nflverse exactly — 6,991 games each, zero per-season
+variance. Its 1970–1998 slice has no null date/score/stadium and no duplicate natural key.
+Caveats: **no kickoff times at all** (the era imports date-only), no attendance, no overtime
+column, and its `stadium` field names the *building* rather than the name it carried at the
+time. One genuine defect — Cardinals home games 1994–98 are attributed to a stadium that
+opened in 2006 — is corrected on import.
+
 ### Suggested Free (Ongoing): nflverse
 [nflverse](https://github.com/nflverse) is the community-maintained NFL data ecosystem. The
 [`games.csv`](https://github.com/nflverse/nfldata/blob/master/data/games.csv) file (Lee Sharpe's
@@ -116,8 +137,8 @@ non-commercial hobbyist use.
 
 | # | Source | Coverage | Cost | Notes |
 |---|--------|----------|------|-------|
-| 1 | [Kaggle NFL scores (Spreadspoke)](https://www.kaggle.com/datasets/tobycrabtree/nfl-scores-and-betting-data) | 1966–present | Free | One CSV, includes stadium + weather; ideal bulk load |
-| 2 | [nflverse `games.csv`](https://github.com/nflverse/nfldata/blob/master/data/games.csv) | 1999–present | Free | Auto-updated; raw-URL fetch; ideal ongoing sync |
+| 1 | [Kaggle NFL scores (Spreadspoke)](https://www.kaggle.com/datasets/tobycrabtree/nfl-scores-and-betting-data) | 1966–present | Free (no login — `GET` only, `HEAD` 404s) | **In use for 1970–1998.** One CSV, includes stadium + weather; ideal bulk load |
+| 2 | [nflverse `games.csv`](https://github.com/nflverse/nfldata/blob/master/data/games.csv) | 1999–present | Free | **In use for 1999+ and all sync.** Auto-updated; raw-URL fetch |
 | 3 | [Spreadspoke direct download](https://spreadspoke.com/data.html) | 1966–2025 | Free | Same data as #1 without a Kaggle account |
 | 4 | [ESPN hidden API](https://gist.github.com/nntrn/ee26cb2a0716de0947a0a4e9a157bc1c) | Recent decades | Free (unofficial) | `scoreboard?dates=YYYY` endpoints; good backup |
 | 5 | [Big Balls Data](https://bigballsdata.com/nfl-api) | nflverse-backed | Free tier (1,000 req/day) | REST wrapper over nflverse if you prefer an API to CSVs |
