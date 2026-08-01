@@ -1,7 +1,7 @@
 // Fixed league display order and color slots (colorblind-validated palette).
 // Colors resolve through CSS vars so light/dark variants swap automatically.
 
-export const LEAGUE_ORDER = ['CFB', 'MLB', 'NFL', 'NBA', 'NHL', 'CBB'] as const;
+export const LEAGUE_ORDER = ['CFB', 'MLB', 'NFL', 'NBA', 'NHL', 'CBB', 'MLS'] as const;
 
 export type LeagueCode = (typeof LEAGUE_ORDER)[number];
 

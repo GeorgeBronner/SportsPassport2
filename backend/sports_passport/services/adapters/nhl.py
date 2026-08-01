@@ -22,7 +22,7 @@ from typing import Any, Optional
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
-from sports_passport.services.adapters import venue_seed
+from sports_passport.services.adapters import local_time, venue_seed
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
 from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
 
@@ -238,7 +238,11 @@ class NhlAdapter(LeagueAdapter):
         raw_date = game.get("gameDate")
         if raw_date:
             try:
-                return datetime.fromisoformat(raw_date), False
+                # No usable start time, so this is a date-only row. It has to go
+                # through date_only() like every other such path — sync re-upserts
+                # games in place, so a midnight value here would quietly undo the
+                # noon migration for these rows on the next nightly run.
+                return local_time.date_only(datetime.fromisoformat(raw_date)), False
             except ValueError:
                 pass
         return None, False

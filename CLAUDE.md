@@ -1,7 +1,7 @@
 # SportsPassport2 — Multi-League Game Tracker
 
-App for tracking games attended across **CFB, MLB, NFL, NBA, NHL, and CBB** (D-I men's college
-basketball; extensible to MLS etc.).
+App for tracking games attended across **CFB, MLB, NFL, NBA, NHL, CBB** (D-I men's college
+basketball) **and MLS**.
 Evolution of the original college football tracker (preserved at `../cfb-tracker`). Personal/family
 use, Docker-deployed.
 
@@ -23,12 +23,23 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
   Adding a league = one adapter module + one seed row.
 - Bulk files for historical backfill live in `backend/data/raw/<league>/` (gitignored).
   Hand-built venue location lookups (city/state/lat-lon) for leagues whose live
-  source doesn't carry them — `backend/sports_passport/data/seed/{nfl_stadiums,nhl_arenas,nba_arenas}.csv`,
+  source doesn't carry them — `backend/sports_passport/data/seed/{nfl_stadiums,nhl_arenas,nba_arenas,mls_stadiums}.csv`,
   loaded via `services/adapters/venue_seed.py` — are committed and wired into
   their adapters; see `docs/SP3_plan.md` Phase 4/7 for scope notes.
   `games.start_date` is **always UTC**; the NBA (Kaggle) and NFL (nflverse) bulk
   files publish US Eastern instead, and are converted on import via
   `services/adapters/local_time.py` — see `docs/SP3_open_issues.md` #7.
+  Games with a known date but no real start time (`has_time=False`) are parked at
+  **noon** UTC via `local_time.date_only()`, never midnight — midnight renders as
+  the previous day anywhere west of Greenwich if a consumer forgets to pin the row
+  to UTC. Use the helper rather than restating the hour; see `SP3_open_issues.md` #8.
+  MLS is the one league on two sources, split at a hard season boundary: the ASA
+  API owns 2013+ and sync, a Kaggle bulk file owns 1996–2012, and neither supplies
+  *games* outside its range (`FIRST_ASA_SEASON`). ASA's `/stadia` is the one
+  crossover — the Kaggle era reads it so a ground both eras used lands on one venue
+  row — and is allowed to fail so a pre-2013 import stays a local CSV read.
+  `venues.state` is a **2-letter code** in every league; the attendance stats group
+  on it directly, so long-form names split a state into two buckets.
   These live **inside the package**, not under `settings.data_dir`: `data_dir` is the
   Docker bind-mount volume (database, logos, `raw/` bulk files), and a mount shadows
   whatever the image put there. Committed code assets belong next to the code that
@@ -36,8 +47,10 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
 - **Compliance rules** (from `docs/SP3_data_sources.md` — do not violate): MLB Stats API is
   sync-only, never bulk backfill (Retrosheet for that); ESPN's hidden API (NBA sync,
   team logos) is unofficial — throttled, descriptive User-Agent, never bulk; never
-  scrape Sports-Reference sites. nba.com is Akamai-blocked from our hosts and is no
-  longer used at all.
+  scrape Sports-Reference sites (this includes **FBref**, for MLS). nba.com is
+  Akamai-blocked from our hosts and is no longer used at all. The ASA API (MLS)
+  publishes no formal terms but ships first-party MIT clients, so it gets the same
+  posture as ESPN — descriptive User-Agent and polite pacing.
 
 ## Conventions
 - **Git**: feature branches (`feature-name`); merge to `main` when complete and tested. Commit messages concise; **never mention Claude/AI/code-generation tools**.

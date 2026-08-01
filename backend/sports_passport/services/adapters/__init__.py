@@ -12,6 +12,7 @@ from sports_passport.services.adapters.nfl import NflAdapter
 from sports_passport.services.adapters.mlb import MlbAdapter
 from sports_passport.services.adapters.nba import NbaAdapter
 from sports_passport.services.adapters.cbb import CbbAdapter
+from sports_passport.services.adapters.mls import MlsAdapter
 
 ADAPTERS: dict[str, type[LeagueAdapter]] = {
     CfbAdapter.league_code: CfbAdapter,
@@ -20,6 +21,7 @@ ADAPTERS: dict[str, type[LeagueAdapter]] = {
     MlbAdapter.league_code: MlbAdapter,
     NbaAdapter.league_code: NbaAdapter,
     CbbAdapter.league_code: CbbAdapter,
+    MlsAdapter.league_code: MlsAdapter,
 }
 
 

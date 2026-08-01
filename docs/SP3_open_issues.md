@@ -13,8 +13,10 @@ game in the DB except these 2, which have no `games` row to attach attendance to
 
 | # | Date | Game | Venue | Final | Blocker |
 |---|------|------|-------|-------|---------|
-| 1 | 2015-05-10 | New York City FC @ New York Red Bulls | Red Bull Arena | Red Bulls 2, NYCFC 1 | MLS league not in DB |
+| 1 | 2015-05-10 | New York City FC @ New York Red Bulls | Red Bull Arena | Red Bulls 2, NYCFC 1 | ~~MLS league not in DB~~ — **resolved 2026-08-01, see 1b** |
 | 2 | 2025-03-23 | Tampa Bay Rays @ New York Yankees — **spring training** | George M. Steinbrenner Field | — | No spring-training data |
+
+Row 1 is now logged; **row 2 is the only remaining unloggable attended game.**
 
 ### 1a. MLB postseason games — **RESOLVED 2026-07-15**
 
@@ -28,16 +30,59 @@ postseason gamelogs in the same fixed-field CSV format as the season files
 Pre-1970 postseason (back to the 1903 World Series) is available in the same
 files if regular-season coverage is ever extended earlier.
 
-### 1b. MLS not supported (row 1)
+### 1b. MLS not supported (row 1) — **RESOLVED 2026-08-01**
 
-- `leagues` contains only CFB, MLB, NFL, NBA, NHL, CBB. There is no MLS seed row,
-  no MLS adapter, and no MLS teams/games.
-- **Fix** (per the architecture in CLAUDE.md, adding a league = one adapter module +
-  one seed row): seed an `MLS` league, build an adapter in
-  `services/adapters/`, register it in `adapters/__init__.py`, then import at least
-  the 2015 season and log attendance for user_id 2 on the game above.
-- Only one attended MLS game exists, so this is low priority; it mainly matters for
-  venue/stamp completeness (Red Bull Arena).
+Seeded an `MLS` league and built `services/adapters/mls.py` on two sources split at
+a hard season boundary, then logged attendance for user_id 2 on the game above
+(attendance id 238, game id 500952 — NYCFC @ NY Red Bulls 1-2 at Red Bull Arena,
+Harrison NJ). See `docs/SP3_data_sources.md` for the source research.
+
+- **2013-present: American Soccer Analysis** (`app.americansocceranalysis.com`,
+  free, keyless) is authoritative for teams, venues, games and sync. One request
+  per season returns the complete slate, `date_time_utc` is genuinely UTC
+  (cross-checked against ESPN), and `stadia` carries latitude/longitude directly —
+  the only source in this project that supplies venue coordinates, so the modern
+  era needed no hand-built seed.
+- **1996-2012: the Kaggle "Major League Soccer Dataset"** (josephvm) fills the
+  17 seasons ASA does not reach. Validated against ASA on the 2013-2022 overlap:
+  counts match exactly for 2013-2021 and all 3,687 Kaggle rows find an ASA twin
+  (2022 is partial in Kaggle — 281 of 489 — since the dataset stops mid-season).
+  Of the 3,602 rows left below 2013, one is the 2004 All-Star exhibition, giving
+  the 3,601 imported.
+
+Imported **9,333 games (3,601 Kaggle + 5,732 ASA), 33 teams, 75 venues, 0 errors**,
+seasons 1996-2026 continuous, **0 venues without coordinates**. Verified against a
+pre-import backup (`sports_passport.pre-mls.db`, gitignored): no pre-existing game
+or attendance row changed, `integrity_check` and `foreign_key_check` clean.
+
+Three things worth knowing about the result:
+
+- **The Kaggle era is date-only** (`has_time=False`, 3,601 rows). Its `time (utc)`
+  column is present on only 73% of rows and, where present, agrees with ASA exactly
+  80.6% of the time — the remainder scatters ±30-210 minutes, which is noise, not a
+  timezone offset. Its `date` column is the *local* game day, confirmed because
+  93.5% of games kicking off 00:00-05:59 UTC carry a Kaggle date one day earlier;
+  reading it as UTC would have shifted every late kickoff forward a day, the bug
+  class of issues #5 and #7.
+- **474 games have no venue** — 453 from 2001-2003, where the Kaggle file carries
+  almost none (2002 has zero). ESPN has the identical hole, suggesting a common
+  origin, so it is not fixable from either source. Those games are still logged and
+  searchable; they just contribute nothing to venue stamps or the map.
+- **No upcoming fixtures.** Every ASA game has status `FullTime` — ASA publishes
+  results, not schedules. So MLS shows completed games only, unlike CFB/CBB/NHL.
+  ESPN does carry MLS fixtures if this ever matters; a rolling ~30-day window would
+  be a legitimately non-bulk use of it.
+
+Two limitations accepted rather than fixed, both recorded in `mls.py`'s docstring:
+
+- **Venue aliases key on ASA's current stadium name.** `KAGGLE_VENUE_ALIASES` maps
+  e.g. `"Rio Tinto Stadium" -> "America First Field"`, so the next naming-rights
+  change makes the target stop matching and a re-import mints a separate `kaggle-`
+  row for that building. Keying on a stable physical-venue id would prevent it —
+  the way `nhl_arenas.csv` keys on team+era — but neither MLS source publishes one,
+  which is exactly why the name is the key.
+- **`neutral_site` is always False for 2013+**, because ASA has no such field. The
+  Kaggle era detects it from the venue string, where it marks 4 games.
 
 ### 1c. MLB spring training (row 2)
 
@@ -368,3 +413,49 @@ Two smaller things deliberately left alone:
   for every other pre-1996 season, so the Kaggle source may carry partially
   real times for those two years. They fall below the 1996 cutoff and are
   treated as time-less like the rest.
+
+## 8. Date-only games sat at midnight, one bug away from displaying a day early — **RESOLVED 2026-08-01**
+
+A `has_time=False` row carries a calendar game day and no real kickoff, so its
+time-of-day is a storage detail. Midnight was the wrong default for it.
+
+Midnight UTC only ever displayed correctly because the frontend pins
+`has_time=False` rows to UTC (`displayTimeZone` in `frontend/src/utils/format.ts`).
+That pin is one line, and *every* consumer has to remember it: a new component, a
+CSV export, a chart, a third-party reader of the API. Forget it anywhere and
+midnight UTC renders as the **previous calendar day** everywhere west of
+Greenwich — which is the entire United States. The data was correct; it was
+correct by convention rather than by construction, and the convention had no
+enforcement.
+
+**Fix**: `local_time.date_only()` parks date-only games at **noon** UTC
+(`DATE_ONLY_HOUR = 12`), which lands on the right calendar day for every offset
+from UTC-11 through UTC+11. A consumer that forgets the pin now gets the right
+answer anyway. The helper is shared, so the choice lives in one place rather than
+being restated in each adapter — MLB, NFL, NBA and CBB all call it, and MLS was
+built on it.
+
+Migration `a9f2c7e4b8d1` moved every existing date-only row. It cannot change a
+displayed date by construction: it only rewrites the time *within* each row's
+existing UTC date, and those rows render on that UTC date. Verified against a
+pre-migration backup of the live database (496,412 games / 237 attendance rows):
+
+| Check | Result |
+|---|---|
+| Games whose UTC calendar date changed | **0** |
+| Games whose `has_time` changed | **0** |
+| `has_time=True` rows whose instant moved | **0** |
+| Date-only rows now at `12:00:00` | 206,990 of 206,990 |
+
+Row counts, attendance, `integrity_check` and `foreign_key_check` all identical
+afterwards. Backup at `backend/sports_passport.pre-a9f2c7e4b8d1.db` (gitignored).
+
+The downgrade returns every date-only row to midnight uniformly. That is exact
+for all but 15 CBB rows, which sat at 17:00 rather than midnight — CBBD noon-ET
+placeholders on `startTimeTbd` games. They were never real tip-off times, which
+is why those rows are `has_time=False` to begin with.
+
+**Note this does not close issue #5's edge case**, which is about `has_time=True`
+rows and is unaffected: a game crossing midnight in the *viewer's* timezone still
+displays on the following day. Closing that still means rendering in the venue's
+timezone.

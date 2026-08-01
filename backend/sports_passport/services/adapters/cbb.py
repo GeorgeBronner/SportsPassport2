@@ -42,6 +42,7 @@ from typing import Any, Dict, Optional
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
+from sports_passport.services.adapters import local_time
 from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
 from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
 
@@ -187,6 +188,13 @@ class CbbAdapter(LeagueAdapter):
             result.errors.append(f"game {row.get('id')}: bad date {row.get('startDate')!r}")
             return
 
+        # startTimeTbd rows carry a CBBD placeholder rather than a real tip-off
+        # (a noon-ET one, in practice), so park them date-only on the same
+        # calendar day they already display on.
+        has_time = not row.get("startTimeTbd", False)
+        if not has_time:
+            start_date = local_time.date_only(start_date)
+
         venue_id = None
         venue_name = row.get("venue")
         if row.get("venueId") is not None and venue_name:
@@ -217,7 +225,7 @@ class CbbAdapter(LeagueAdapter):
             home_score=row.get("homePoints"),
             away_score=row.get("awayPoints"),
             start_date=start_date,
-            has_time=not row.get("startTimeTbd", False),
+            has_time=has_time,
             season=row["season"] - 1,
             season_type=season_type,
             venue_id=venue_id,

@@ -446,13 +446,134 @@ ongoing-update layer** (one adapter, four leagues) while historical loads stay p
 - **Kaggle datasets**: community-maintained; verify row counts and recency at import time,
   and treat them as the *initial* load only — updates come from the league APIs.
 
-## Future League Expansion (MLS etc.)
+## Future League Expansion (WNBA, CFL etc.)
 
-- ESPN hidden API and TheSportsDB both already carry MLS (and most other leagues), so the
+- ESPN hidden API and TheSportsDB both already carry most leagues, so the
   ongoing-update adapter pattern extends naturally.
-- MLS began in 1996, so "back to 1970" is moot; ESPN/TheSportsDB coverage plus a Kaggle or
-  [FBref](https://fbref.com/)-derived historical file would follow the same
-  bulk-load-then-sync pattern. (FBref is a Sports-Reference property — same scraping
-  restrictions apply.)
-- Same pattern works for WNBA, CFL, etc. — the per-league adapter +
-  common `games` schema is the design decision that makes this cheap.
+- The per-league adapter + common `games` schema is the design decision that makes
+  this cheap. MLS was the first test of that claim — see the section below.
+
+---
+
+## MLS
+
+Research date: August 2026, driven by the one attended MLS game blocking
+`SP3_open_issues.md` #1b. **Built 2026-08-01**
+(`backend/sports_passport/services/adapters/mls.py`). Unlike the original passes
+above, every candidate here was tested against a live endpoint before being
+ranked — the CBB research already showed how far docs-only conclusions can drift.
+
+### TL;DR — Recommended Pick
+
+| League | Historical Load (one-time) | Ongoing Updates (free) | Paid Fallback |
+|--------|---------------------------|------------------------|---------------|
+| MLS | ASA API 2013+, Kaggle `matches.csv` for 1996-2012 | ASA `/mls/games` | SportsDataIO / Sportmonks |
+
+### Suggested Free (Historical + Ongoing): American Soccer Analysis
+
+[American Soccer Analysis](https://app.americansocceranalysis.com/api/v1/__docs__/)
+(`app.americansocceranalysis.com/api/v1/mls`) — free, keyless, and the best-fitting
+source for this app of any league researched in this document. Live-verified
+2026-08-01:
+
+- **5,732 games, 2013-2026**, one request per season. Zero unresolved team ids,
+  zero null scores, zero null dates. 2013 is a hard floor; 2012 and earlier return `[]`.
+- **`date_time_utc` is genuinely UTC**, cross-checked against ESPN on a real game.
+  So MLS needs none of the Eastern→UTC conversion that issue #7 forced on NBA/NFL.
+- **`/mls/stadia` carries latitude, longitude, city, province and capacity** —
+  the *only* source in this project that supplies venue coordinates directly. NFL,
+  NHL and NBA all needed hand-built seed CSVs; MLS's modern era needed none.
+- `/mls/teams` includes defunct clubs (Chivas USA), and games carry `attendance`
+  and a `knockout_game` flag that maps straight onto `season_type`.
+
+Two limitations, both real: **coverage starts at 2013**, and **only completed games
+are published** (every row's status is `FullTime`), so there are no upcoming fixtures.
+
+### Suggested Free (1996-2012 gap): Kaggle "Major League Soccer Dataset"
+
+[josephvm's dataset](https://www.kaggle.com/datasets/josephvm/major-league-soccer-dataset)
+— `matches.csv`, 7,289 rows, downloadable anonymously (no Kaggle auth needed).
+Fills the 17 seasons ASA does not reach.
+
+**Validated against ASA on the 2013-2022 overlap before being trusted.** All ten
+overlapping seasons, Kaggle vs ASA:
+
+| | 2013 | 2014 | 2015 | 2016 | 2017 | 2018 | 2019 | 2020 | 2021 | 2022 | total |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Kaggle | 338 | 338 | 357 | 357 | 391 | 408 | 421 | 324 | 472 | 281 | **3,687** |
+| ASA | 338 | 338 | 357 | 357 | 391 | 408 | 421 | 324 | 472 | 489 | 3,895 |
+
+Counts match exactly for 2013-2021, and **all 3,687 Kaggle rows find an ASA twin**
+on date ±1 + score. 2022 is the one gap, and it is a Kaggle limitation rather than
+a disagreement: the dataset stops mid-season at 281 of that year's 489 games. Since
+ASA owns every season from 2013 on, none of these rows are imported anyway — the
+overlap exists purely to establish whether the pre-2013 half can be trusted.
+
+How that reconciles with the 9,333 games actually imported:
+
+```
+7,289  rows in matches.csv
+-3,687  seasons 2013-2022, superseded by ASA
+=3,602  rows before 2013
+    -1  the 2004 All-Star game (an exhibition, not a club fixture)
+=3,601  imported from Kaggle
++5,732  imported from ASA (2013-2026)
+=9,333
+```
+
+The game set and scores are sound. The metadata is not uniformly so, and the
+adapter compensates:
+
+| Field | Coverage 1996-2012 | Handling |
+|---|---|---|
+| Scores | 100% | used as-is |
+| Venue | 87% | 2001-03 is nearly empty; those games get a null venue |
+| Kickoff time | 73%, and only **80.6% accurate** where present | discarded — era imports date-only |
+| Attendance | 43% | used where present |
+| Stable `id` | 73% | natural key `(date, home, away)`, verified unique |
+
+Two traps worth recording. The `time (utc)` column's errors scatter ±30-210 minutes
+rather than forming a timezone offset, so it is noise, not a fixable shift. And the
+`date` column is the **local** game day, not UTC — 93.5% of games kicking off
+00:00-05:59 UTC carry a Kaggle date one day earlier. Reading it as UTC would have
+shifted every late kickoff forward a day, the exact bug class of issues #5 and #7.
+
+### Rejected: ESPN for the historical load
+
+Tempting, since ESPN is already wired in for NBA sync and logos, and its MLS
+scoreboard does reach back to 2001. Two disqualifiers:
+
+- **No venue before 2004.** Live sweep by year: June 2001 returned 30 events with
+  **1** venue name; 2002 and 2003 returned **zero**; 2004 onward is ~100%. Venue is
+  the field this app exists for. (The Kaggle file has the same 2001-03 hole, which
+  suggests a shared origin.)
+- **It would be a bulk crawl** — ~250 monthly requests for 2004-2026 — against this
+  project's own rule that ESPN's hidden API is *never* used in bulk. ASA's entire
+  backfill is 14 requests to an API built to serve them.
+
+ESPN also reports venues under their *current* name ("Sports Illustrated Stadium"
+for a 2015 game at Red Bull Arena), which reads worse on a venue-stamp page.
+
+### All MLS sources found
+
+| # | Source | Coverage | Cost | Notes |
+|---|--------|----------|------|-------|
+| 1 | [American Soccer Analysis](https://app.americansocceranalysis.com/api/v1/__docs__/) | 2013–present | Free, keyless | **The pick.** UTC-native, coordinates included, complete slate per season |
+| 2 | [Kaggle MLS Dataset (josephvm)](https://www.kaggle.com/datasets/josephvm/major-league-soccer-dataset) | 1996–2022 (2022 partial) | Free | **The gap-filler.** Validated against #1; stale since 2022, so historical use only |
+| 3 | [ESPN hidden API](https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard) | 2001–present; venues 2004+ | Free (unofficial) | Rejected for backfill (see above); does carry future fixtures if those are ever wanted |
+| 4 | [openfootball/world](https://github.com/openfootball/world) | 2005–2025 | Free, public domain | Football.TXT format, clean licensing, but **no venue data** — nothing #1+#2 don't do better |
+| 5 | [TheSportsDB](https://www.thesportsdb.com/) | Fixtures/results, thin history | Free / ~$9 Patreon | Fine for logos/metadata; not a historical backbone |
+| 6 | [Sportmonks MLS](https://www.sportmonks.com/football-api/mls-api/) | Deep | Paid | Commercial-grade |
+| 7 | [SportsDataIO Soccer](https://sportsdata.io/soccer-api) | Deep | Paid, contact sales | The standing paid fallback across this doc |
+| 8 | [Enetpulse MLS](https://enetpulse.com/mls-api/) | Deep | Paid | Commercial-grade |
+| 9 | [Statorium MLS](https://statorium.com/major-league-soccer-api) | Varies | Freemium | Nothing over #1 |
+| 10 | [FBref](https://fbref.com/) | 1996–present | Free to browse; **no bulk/scrape** | **Off limits** — a Sports-Reference property, same project-wide prohibition |
+
+### Compliance note
+
+ASA publishes **no formal terms of service or license** — the OpenAPI spec carries
+`license: None` and `termsOfService: None`. Mitigating that, ASA themselves maintain
+the MIT-licensed [`itscalledsoccer`](https://pypi.org/project/itscalledsoccer/)
+Python and R clients against this same API, so programmatic access is plainly
+intended. Treated with the same posture as ESPN: descriptive User-Agent, polite
+pacing, and a backfill that is 14 requests rather than a crawl.

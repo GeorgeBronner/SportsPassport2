@@ -19,6 +19,21 @@ names in particular change on every naming-rights deal — keying by team+era
 means a rename just updates the `name` on the existing venue row instead of
 silently orphaning a new, uncoordinated one. NFL is keyed by nflverse's own
 stadium_id, which is already stable across renames.
+
+MLS is keyed by canonical venue name, because its two sources identify a venue
+only by name: the ASA API's `stadia` endpoint carries coordinates for most
+modern grounds but not all, and the Kaggle bulk file (1996-2012) has no venue
+IDs at all. mls.py canonicalizes the raw name first — collapsing naming-rights
+eras and spelling variants onto one building — and looks the result up here.
+Coordinates were geocoded via Nominatim rather than hand-entered.
+
+Several MLS entries are demolished grounds whose coordinates resolve to the
+successor stadium built on or beside the same site (Foxboro Stadium/Gillette,
+Mile High Stadium/Empower Field, Houlihan's Stadium/Raymond James, Giants
+Stadium/Meadowlands). They stay separate venue rows — they are genuinely
+different buildings, and a venue someone attended should not be silently
+merged into its replacement — so a handful of pairs share coordinates to
+within a few hundred metres. That is well inside the precision this map needs.
 """
 import csv
 from functools import lru_cache
@@ -84,6 +99,22 @@ def _nba_arenas_by_name() -> dict[str, dict]:
 
 def lookup_nba_arena_by_name(arena: str) -> Optional[dict]:
     return _nba_arenas_by_name().get(arena)
+
+
+@lru_cache(maxsize=1)
+def _mls_stadiums() -> dict[str, dict]:
+    """Canonical venue name -> seed row."""
+    with open(_seed_path("mls_stadiums.csv"), newline="", encoding="utf-8") as f:
+        return {row["name"]: row for row in csv.DictReader(f)}
+
+
+def lookup_mls_stadium(name: str) -> Optional[dict]:
+    """Coordinates for an MLS ground, keyed by its canonical name.
+
+    Covers both what ASA omits (8 of its 56 stadia carry no lat/lon) and the
+    pre-2013 grounds the Kaggle bulk file references but ASA never lists.
+    """
+    return _mls_stadiums().get(name)
 
 
 @lru_cache(maxsize=1)
