@@ -1,8 +1,17 @@
 """Hand-built venue location lookups for leagues whose live source doesn't
 carry city/state (NFL, NHL) or is historically sparse for venue info (NBA,
-pre-current-season) — see backend/data/seed/*.csv. Coordinates are supplied
-directly (arena/stadium-level precision) rather than routing through
+pre-current-season) — see sports_passport/data/seed/*.csv. Coordinates are
+supplied directly (arena/stadium-level precision) rather than routing through
 scripts/geocode_venues.py, since these are small, finite, hand-verified lists.
+
+These CSVs live *inside the package*, not under `settings.data_dir`. They are
+small, committed, and versioned in lockstep with the adapters that read them —
+code assets, not runtime state. `data_dir` is the Docker bind-mount volume
+(database, scraped logos, bulk `raw/` downloads); anything placed there by the
+image is shadowed by the mount at runtime, which is exactly how an earlier
+`data_dir`-relative version of this module shipped a `FileNotFoundError` into
+the nightly NFL/NHL/NBA sync. Resolving from `__file__` keeps one source of
+truth that works identically in a dev checkout and in the container.
 
 NHL and NBA are keyed by (team, season-range) rather than by venue name/id,
 since neither source gives a stable physical-venue identifier and NHL arena
@@ -12,15 +21,15 @@ silently orphaning a new, uncoordinated one. NFL is keyed by nflverse's own
 stadium_id, which is already stable across renames.
 """
 import csv
-import os
 from functools import lru_cache
+from pathlib import Path
 from typing import Optional
 
-from sports_passport.core.config import settings
+SEED_DIR = Path(__file__).resolve().parents[2] / "data" / "seed"
 
 
-def _seed_path(filename: str) -> str:
-    return os.path.join(settings.data_dir, "seed", filename)
+def _seed_path(filename: str) -> Path:
+    return SEED_DIR / filename
 
 
 @lru_cache(maxsize=1)

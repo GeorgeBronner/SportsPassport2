@@ -1,4 +1,4 @@
-"""One-off backfill: apply the NFL/NHL/NBA venue seeds (data/seed/*.csv) onto
+"""One-off backfill: apply the NFL/NHL/NBA venue seeds (sports_passport/data/seed/*.csv) onto
 an already-populated database, without re-running the (slow, network-bound)
 adapters. Fixes the gaps those seeds were built for:
 
@@ -8,7 +8,7 @@ adapters. Fixes the gaps those seeds were built for:
   current season) get linked to a seed-derived venue where the team+season
   falls in the seed's 1990-present coverage.
 - NHL: every game gets re-resolved onto the seed's team+season-keyed venue
-  (data/seed/nhl_arenas.csv), replacing the old name-keyed venue link — this
+  (sports_passport/data/seed/nhl_arenas.csv), replacing the old name-keyed venue link — this
   is what makes future naming-rights renames non-breaking (see nhl.py). Old
   name-keyed venue rows are left in place (harmless, just unreferenced) once
   their games are repointed.

@@ -33,7 +33,7 @@ Venue caveat: Games.csv only carries arena/city/state/attendance for the
 dataset's most recent season as of this writing (the dataset's own
 description says older entries are being backfilled by its maintainer
 over time) — historical rows arrive with no arena data at all. For those,
-`_upsert_row` falls back to the hand-built `data/seed/nba_arenas.csv`
+`_upsert_row` falls back to the hand-built `sports_passport/data/seed/nba_arenas.csv`
 (team → arena → season range, 1990-present); older-still games remain
 venue_id = NULL.
 """
@@ -200,7 +200,7 @@ class NbaAdapter(LeagueAdapter):
         else:
             # Games.csv only carries arena data for its most recent season (see
             # module docstring) — for everything older, fall back to the hand-built
-            # team -> arena seed (data/seed/nba_arenas.csv, covers 1990-present).
+            # team -> arena seed (sports_passport/data/seed/nba_arenas.csv, covers 1990-present).
             seed = venue_seed.lookup_nba_arena(row["hometeamId"], season)
             if seed:
                 cache_key = f"seed:{seed['arena']}"
