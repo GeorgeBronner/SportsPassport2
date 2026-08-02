@@ -186,14 +186,21 @@ they may have an additional wrinkle (e.g. import ran against older source data).
 3. Verify the four rows above, and confirm era-scoped rows with `last_season` set
    render correctly (they should, since they don't participate in the "latest era" sort).
 
-## 4. Ruff B008: `Depends()` in argument defaults (admin router) — deferred
+## 4. Ruff B008: `Depends()` in argument defaults (admin router) — **RESOLVED 2026-08-01**
 
 CodeRabbit's PR #3 review flagged `Depends(get_db)` / `Depends(get_current_admin_user)`
-as function-call-in-default-argument (Ruff B008) on the `sync-all` endpoint. Left as-is:
-it's the existing pattern across every endpoint in `admin.py` (and the other routers),
-not something newly introduced by that PR, so fixing it there alone would be
-inconsistent without a codebase-wide pass. Worth a dedicated cleanup pass across all
-routers if it's ever enforced in CI.
+as function-call-in-default-argument (Ruff B008) on the `sync-all` endpoint. Left as-is
+at the time: it's the existing pattern across every endpoint in `admin.py` (and the
+other routers), not something newly introduced by that PR, so fixing it there alone
+would be inconsistent without a codebase-wide pass.
+
+Resolved by configuring the rule rather than rewriting the routers, when ruff was
+adopted. `Depends()`-in-defaults *is* FastAPI's dependency-injection design, so the
+finding was a false positive on every endpoint in the app — the codebase-wide pass
+would have been churn that made the code less idiomatic. `pyproject.toml` now sets
+`[tool.ruff.lint.flake8-bugbear] extend-immutable-calls` for `fastapi.Depends`,
+`Query`, `Path`, `Body`, `Header`, `File` and `Form`, which silences those callables
+specifically while B008 stays on for genuine mutable-default bugs elsewhere.
    (e.g. Florida Marlins `FLO`, St. Louis Browns `SLA`) are untouched.
 
 ## 5. CFB (and other late-kickoff) games displaying a day late — **RESOLVED 2026-07-17**
@@ -500,3 +507,53 @@ Closing this needs a `team_seasons`-style table holding multiple ranges per team
 which no other league currently needs. `nfl.py`'s `import_teams` clamps
 `first_season` so it only ever moves earlier — without that, re-importing a range
 nflverse owns would silently reset the 31 clubs the backfill widened.
+
+## 10. `alembic check` reports drift on `sync_state` — open (local databases only)
+
+Noticed 2026-08-01 while adding ruff/pyright. `uv run alembic check` against a
+long-lived local `backend/sports_passport.db` fails with:
+
+```
+Detected removed unique constraint 'uq_sync_state_league' on 'sync_state'
+Detected changed index 'ix_sync_state_league_id' on 'sync_state': unique=False to unique=True
+```
+
+**This is not a migration/model mismatch, and nothing needs fixing in the code.**
+A database built by `alembic upgrade head` matches the models exactly — verified by
+running `alembic check` against a freshly migrated file ("No new upgrade operations
+detected"), and pinned continuously by `tests/test_migrations.py`.
+
+The two shapes both enforce uniqueness on `league_id`; they differ only in how it is
+spelled:
+
+| | `sync_state.league_id` uniqueness |
+|---|---|
+| Models + migration `d1f3a7c9e5b2` | `CREATE UNIQUE INDEX ix_sync_state_league_id` |
+| Old local dev databases | `CONSTRAINT uq_sync_state_league UNIQUE (league_id)` plus a **non**-unique index |
+
+The second form is residue of issue #6: those files were built by the `create_all()`
+that used to run at startup, from a model revision that declared the constraint in
+`__table_args__`. `d1f3a7c9e5b2` is guarded with `has_table('sync_state')`, so it
+returns early on exactly those databases and never restates the index — which is
+deliberate (rewriting it would rebuild the table on a live database to no functional
+end), and is why the old spelling survives.
+
+Consequences, all minor:
+
+- `alembic check` is not usable as a pre-commit/CI gate until every developer
+  database is reset or migrated past this. Use `tests/test_migrations.py` instead —
+  it asserts the same property and is not affected.
+- `--autogenerate` run against such a database emits a spurious
+  drop-constraint/recreate-index pair. Delete it from the generated migration.
+
+To tell which shape a given database has:
+
+```sql
+SELECT sql FROM sqlite_master WHERE name = 'ix_sync_state_league_id';
+-- "CREATE UNIQUE INDEX ..." = current;  "CREATE INDEX ..." = the old shape
+```
+
+To clear it locally, rebuild from migrations (`rm backend/sports_passport.db &&
+uv run alembic upgrade head`, then re-import). The production volume predates the
+`create_all()` removal, so assume it has the old shape until that query says
+otherwise — check it there before ever trusting `alembic check` in CI.
