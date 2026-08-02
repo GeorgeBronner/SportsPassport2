@@ -1,6 +1,6 @@
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
 
     # CollegeFootballData.com API (CFB league adapter)
-    cfb_api_key: Optional[str] = None
+    cfb_api_key: str | None = None
     cfb_api_url: str = "https://api.collegefootballdata.com"
 
     # CollegeBasketballData.com API (CBB league adapter) — same maintainer/auth
@@ -78,7 +78,7 @@ class Settings(BaseSettings):
     sync_lookback_days: int = 3      # window when the last run was recent / on first run
 
     # Sentry
-    sentry_dsn: Optional[str] = None
+    sentry_dsn: str | None = None
     sentry_environment: str = "production"
     sentry_traces_sample_rate: float = 0.1
 
@@ -93,4 +93,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
 
 
-settings = Settings()
+# secret_key is deliberately given no default so a missing SECRET_KEY fails at
+# import rather than silently signing tokens with a guessable value.
+# pydantic-settings supplies it from the environment / .env, which a type
+# checker can't see — hence the ignore on the otherwise-argumentless call.
+settings = Settings()  # pyright: ignore[reportCallIssue]

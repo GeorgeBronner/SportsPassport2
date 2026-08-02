@@ -17,6 +17,7 @@ resolve to the installed Alembic library instead. ``env.py`` already imports
 from ``sports_passport``, so this path is guaranteed to work.
 """
 import sqlalchemy as sa
+
 from alembic import op
 
 

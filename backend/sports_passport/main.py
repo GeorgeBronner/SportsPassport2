@@ -1,24 +1,24 @@
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import sentry_sdk
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
+
 from sports_passport.core.config import settings
 from sports_passport.core.limiter import limiter
 from sports_passport.db.database import SessionLocal
 from sports_passport.db.seed import seed_leagues
-from sports_passport.routers import auth, games, attendance, admin, teams, leagues, password_reset
-from sports_passport.services.scheduler import start_scheduler, shutdown_scheduler
-import os
-from pathlib import Path
+from sports_passport.routers import admin, attendance, auth, games, leagues, password_reset, teams
+from sports_passport.services.scheduler import shutdown_scheduler, start_scheduler
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,12 @@ Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 # Rate limiting (forgot/reset-password endpoints)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# slowapi types its handler more narrowly than Starlette's ExceptionHandler
+# protocol (concrete RateLimitExceeded vs. Exception); correct at runtime.
+app.add_exception_handler(
+    RateLimitExceeded,
+    _rate_limit_exceeded_handler,  # pyright: ignore[reportArgumentType]
+)
 
 # Configure CORS. Explicit origins, never "*": with allow_credentials the
 # wildcard makes Starlette echo back whatever Origin asked, so any site could

@@ -38,13 +38,13 @@ month (November) and the tournament-heavy month (March).
 """
 import logging
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
 from sports_passport.services.adapters import local_time
-from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
-from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
+from sports_passport.services.adapters.base import ImportResult, LeagueAdapter
+from sports_passport.services.importer import get_league, upsert_game, upsert_team, upsert_venue
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class CbbAdapter(LeagueAdapter):
         if settings.cfb_api_key:
             self.headers["Authorization"] = f"Bearer {settings.cfb_api_key}"
 
-    async def _get(self, endpoint: str, params: Dict[str, Any] = None) -> Any:
+    async def _get(self, endpoint: str, params: dict[str, Any] | None = None) -> Any:
         response = await self.http.get(
             f"{self.base_url}{endpoint}",
             headers=self.headers,
@@ -125,12 +125,12 @@ class CbbAdapter(LeagueAdapter):
 
     def _team_lookup(self, league_id: int) -> dict[str, int]:
         teams = self.db.query(Team).filter(Team.league_id == league_id).all()
-        return {t.source_team_id: t.id for t in teams}
+        return {t.source_team_id: t.id for t in teams if t.source_team_id}
 
     def _resolve_team(
-        self, league_id: int, source_id: Optional[int], conference: Optional[str],
+        self, league_id: int, source_id: int | None, conference: str | None,
         registry_by_id: dict, by_source_id: dict, result: ImportResult,
-    ) -> Optional[int]:
+    ) -> int | None:
         if source_id is None:
             return None
         key = str(source_id)
@@ -174,10 +174,20 @@ class CbbAdapter(LeagueAdapter):
             return
 
         home_id = self._resolve_team(
-            league_id, row.get("homeTeamId"), row.get("homeConference"), registry_by_id, by_source_id, result
+            league_id,
+            row.get("homeTeamId"),
+            row.get("homeConference"),
+            registry_by_id,
+            by_source_id,
+            result,
         )
         away_id = self._resolve_team(
-            league_id, row.get("awayTeamId"), row.get("awayConference"), registry_by_id, by_source_id, result
+            league_id,
+            row.get("awayTeamId"),
+            row.get("awayConference"),
+            registry_by_id,
+            by_source_id,
+            result,
         )
         if home_id is None or away_id is None:
             result.errors.append(f"game {row.get('id')}: unmatched team")
@@ -253,9 +263,13 @@ class CbbAdapter(LeagueAdapter):
         for season in range(start_season, end_season + 1):
             logger.info("CBB import: season %s", season)
             for start, end in self._month_chunks(season):
-                rows = await self._get("/games", params={"startDateRange": start, "endDateRange": end})
+                rows = await self._get(
+                    "/games", params={"startDateRange": start, "endDateRange": end}
+                )
                 for row in rows:
-                    self._upsert_game_row(league.id, row, registry_by_id, by_source_id, venue_cache, result)
+                    self._upsert_game_row(
+                        league.id, row, registry_by_id, by_source_id, venue_cache, result
+                    )
             self.db.commit()
 
         return result
@@ -278,7 +292,7 @@ class CbbAdapter(LeagueAdapter):
         return result
 
     @staticmethod
-    def _parse_date(raw: Optional[str]) -> Optional[datetime]:
+    def _parse_date(raw: str | None) -> datetime | None:
         if not raw:
             return None
         try:

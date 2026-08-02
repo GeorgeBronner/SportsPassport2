@@ -1,18 +1,19 @@
 from datetime import date, timedelta
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List, Optional
+from sqlalchemy.orm import Session
+
+from sports_passport.core.dependencies import get_current_admin_user
 from sports_passport.db.database import get_db
-from sports_passport.models.user import User
 from sports_passport.models.game import Game
-from sports_passport.models.team import Team
 from sports_passport.models.league import League
 from sports_passport.models.sync_state import SyncState
+from sports_passport.models.team import Team
+from sports_passport.models.user import User
 from sports_passport.schemas.user import UserResponse
-from sports_passport.core.dependencies import get_current_admin_user
-from sports_passport.services.adapters import get_adapter, ADAPTERS
+from sports_passport.services.adapters import ADAPTERS, get_adapter
 from sports_passport.services.scheduler import (
     get_or_create_sync_state,
     run_sync_all_background,
@@ -141,7 +142,9 @@ def set_sync_enabled(
     """Enable/disable a league in the nightly auto-sync (Admin only)."""
     league = db.query(League).filter(League.code == league_code.upper()).first()
     if league is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown league: {league_code}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Unknown league: {league_code}"
+        )
     state = get_or_create_sync_state(db, league)
     state.enabled = body.enabled
     db.commit()
@@ -159,9 +162,12 @@ def data_status(
     for league in db.query(League).order_by(League.code).all():
         game_count = db.query(func.count(Game.id)).filter(Game.league_id == league.id).scalar()
         team_count = db.query(func.count(Team.id)).filter(Team.league_id == league.id).scalar()
+        # Aggregates always yield exactly one row (both values NULL when the
+        # league has no games), so .one() is total here and keeps the result
+        # non-Optional for the subscripts below.
         season_range = db.query(
             func.min(Game.season), func.max(Game.season)
-        ).filter(Game.league_id == league.id).first()
+        ).filter(Game.league_id == league.id).one()
         state = sync_by_league_id.get(league.id)
         rows.append({
             "league": league.code,
@@ -181,7 +187,7 @@ def data_status(
     return rows
 
 
-@router.get("/users", response_model=List[UserResponse])
+@router.get("/users", response_model=list[UserResponse])
 def list_all_users(
     skip: int = 0,
     limit: int = 100,

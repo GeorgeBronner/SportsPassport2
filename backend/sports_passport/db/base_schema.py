@@ -21,8 +21,8 @@ unique index. Each of those belongs to the later revision that introduced it,
 and later revisions run after this one either way.
 """
 import sqlalchemy as sa
-from alembic import op
 
+from alembic import op
 from sports_passport.db.migration_guards import has_table
 
 

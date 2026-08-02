@@ -1,12 +1,13 @@
 """
 Tests for the shared importer helpers and multi-league behavior.
 """
-import pytest
 from datetime import datetime
 
-from sports_passport.models.team import Team
+import pytest
+
 from sports_passport.models.game import Game
-from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
+from sports_passport.models.team import Team
+from sports_passport.services.importer import get_league, upsert_game, upsert_team, upsert_venue
 
 
 class TestUpserts:

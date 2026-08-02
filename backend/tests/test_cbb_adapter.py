@@ -3,13 +3,13 @@ Tests for the CBB adapter using mocked CollegeBasketballData.com (CBBD)
 payloads (shapes verified against the live API on 2026-07-12, using the
 existing CFBD key — confirmed to work unmodified as a CBBD bearer token).
 """
-import pytest
 from datetime import date
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 from sports_passport.models.game import Game
 from sports_passport.models.team import Team
-from sports_passport.models.venue import Venue
 from sports_passport.services.adapters.cbb import CbbAdapter
 
 ARIZONA = {

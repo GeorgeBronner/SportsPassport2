@@ -33,16 +33,21 @@ import io
 import logging
 import zipfile
 from datetime import date, datetime
-from typing import Optional
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
 from sports_passport.services.adapters import local_time
-from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
-from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
+from sports_passport.services.adapters.base import ImportResult, LeagueAdapter
+from sports_passport.services.importer import get_league, upsert_game, upsert_team, upsert_venue
 
 # MLB Stats API gameType -> our season_type; spring training/exhibition/all-star skipped
-STATSAPI_GAME_TYPES = {"R": "regular", "F": "postseason", "D": "postseason", "L": "postseason", "W": "postseason"}
+STATSAPI_GAME_TYPES = {
+    "R": "regular",
+    "F": "postseason",
+    "D": "postseason",
+    "L": "postseason",
+    "W": "postseason",
+}
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +74,7 @@ def _franchise_id(code: str) -> int:
     return int.from_bytes(code.encode("ascii"), "big")
 
 
-def _parse_mdy(raw: str) -> Optional[date]:
+def _parse_mdy(raw: str) -> date | None:
     if not raw:
         return None
     try:
@@ -78,7 +83,7 @@ def _parse_mdy(raw: str) -> Optional[date]:
         return None
 
 
-def _parse_mdy_year(raw: str) -> Optional[int]:
+def _parse_mdy_year(raw: str) -> int | None:
     parsed = _parse_mdy(raw)
     return parsed.year if parsed else None
 
@@ -293,7 +298,7 @@ class MlbAdapter(LeagueAdapter):
     def _upsert_statsapi_game(
         self, league_id: int, game: dict, by_code: dict, venue_cache: dict, result: ImportResult,
     ) -> None:
-        season_type = STATSAPI_GAME_TYPES.get(game.get("gameType"))
+        season_type = STATSAPI_GAME_TYPES.get(game.get("gameType") or "")
         if season_type is None:  # spring training / exhibition / all-star
             return
 
@@ -304,7 +309,9 @@ class MlbAdapter(LeagueAdapter):
         away_id = by_code.get(vis_code)
         home_id = by_code.get(home_code)
         if away_id is None or home_id is None:
-            result.errors.append(f"game {game.get('gamePk')}: unmatched team {vis_code}@{home_code}")
+            result.errors.append(
+                f"game {game.get('gamePk')}: unmatched team {vis_code}@{home_code}"
+            )
             return
 
         official_date = (game.get("officialDate") or "").replace("-", "")
@@ -312,7 +319,9 @@ class MlbAdapter(LeagueAdapter):
         source_game_id = f"{official_date}_{vis_code}_{home_code}_{game_number}"
 
         try:
-            start_date = datetime.fromisoformat(game["gameDate"].replace("Z", "+00:00")).replace(tzinfo=None)
+            start_date = datetime.fromisoformat(
+                game["gameDate"].replace("Z", "+00:00")
+            ).replace(tzinfo=None)
         except (KeyError, ValueError):
             result.errors.append(f"game {game.get('gamePk')}: bad date")
             return

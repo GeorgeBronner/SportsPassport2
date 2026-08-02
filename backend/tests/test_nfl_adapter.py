@@ -2,9 +2,10 @@
 Tests for the NFL adapter using mocked nflverse CSV payloads (shapes verified
 against the live games.csv/teams.csv on 2026-07-11).
 """
-import pytest
 from datetime import date, datetime
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from sports_passport.models.game import Game
 from sports_passport.models.team import Team
@@ -515,7 +516,8 @@ class TestNflSpreadspokeMaps:
 
     def test_historical_teams_are_all_reachable_from_the_alias_map(self):
         from sports_passport.services.adapters.nfl import (
-            HISTORICAL_TEAMS, SPREADSPOKE_TEAM_ALIASES,
+            HISTORICAL_TEAMS,
+            SPREADSPOKE_TEAM_ALIASES,
         )
         assert set(HISTORICAL_TEAMS) <= set(SPREADSPOKE_TEAM_ALIASES.values())
 
@@ -524,7 +526,7 @@ class TestNflSpreadspokeMaps:
         would want is taken, so none may equal a live nflverse code."""
         from sports_passport.services.adapters.nfl import HISTORICAL_TEAMS
 
-        live = {a for a in TEAM_ABBREVS_1999_PLUS}
+        live = set(TEAM_ABBREVS_1999_PLUS)
         assert not (set(HISTORICAL_TEAMS) & live)
 
     @pytest.mark.parametrize("raw,expected", [
@@ -548,7 +550,8 @@ class TestNflSpreadspokeMaps:
         """source_game_id is a natural key built from slugged team names, so a
         slug collision between two clubs would merge two real games."""
         from sports_passport.services.adapters.nfl import (
-            SPREADSPOKE_TEAM_ALIASES, _slug,
+            SPREADSPOKE_TEAM_ALIASES,
+            _slug,
         )
         names = list(SPREADSPOKE_TEAM_ALIASES)
         assert len({_slug(n) for n in names}) == len(names)

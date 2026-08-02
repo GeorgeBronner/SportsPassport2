@@ -124,6 +124,8 @@ def _dedupe_nba_venues(db, league, dry_run: bool) -> int:
         .all()
     ):
         seed = venue_seed.lookup_nba_arena_by_name(stale[venue_id])
+        if seed is None:  # `stale` only holds names that resolve; belt and braces
+            continue
         target = venue_cache.get(seed["arena"])
         if target is None:
             if dry_run:
@@ -169,8 +171,11 @@ def backfill_nhl(db, dry_run: bool) -> int:
                 venue_id = -1
             else:
                 venue, _ = upsert_venue(
-                    db, source="nhl", source_venue_id=f"nhl-{seed['tricode']}-{seed['start_season']}",
-                    name=seed["arena"], **venue_seed.venue_fields(seed),
+                    db,
+                    source="nhl",
+                    source_venue_id=f"nhl-{seed['tricode']}-{seed['start_season']}",
+                    name=seed["arena"],
+                    **venue_seed.venue_fields(seed),
                 )
                 db.flush()
                 venue_id = venue.id
@@ -187,7 +192,9 @@ BACKFILLS = {"NFL": backfill_nfl, "NBA": backfill_nba, "NHL": backfill_nhl}
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Backfill NFL/NHL/NBA venue seeds onto existing data")
+    parser = argparse.ArgumentParser(
+        description="Backfill NFL/NHL/NBA venue seeds onto existing data"
+    )
     parser.add_argument("--league", choices=sorted(BACKFILLS), help="single league code")
     parser.add_argument("--dry-run", action="store_true", help="report counts without writing")
     args = parser.parse_args()

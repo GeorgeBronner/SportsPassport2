@@ -1,7 +1,7 @@
 """
 Tests for change-password and forgot/reset-password endpoints.
 """
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sports_passport.models.password_reset_token import PasswordResetToken
 from sports_passport.routers.password_reset import _hash_token
@@ -92,7 +92,7 @@ class TestResetPassword:
 
     def _create_token(self, db_session, user, *, used=False, expired=False):
         raw_token = "raw-test-token"
-        expires_at = datetime.now(timezone.utc) + (
+        expires_at = datetime.now(UTC) + (
             timedelta(minutes=-5) if expired else timedelta(minutes=15)
         )
         token = PasswordResetToken(

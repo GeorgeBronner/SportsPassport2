@@ -1,27 +1,25 @@
+from collections import defaultdict
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
-from typing import List
-from collections import defaultdict
+
+from sports_passport.core.dependencies import get_current_user
 from sports_passport.db.database import get_db
 from sports_passport.models.attendance import UserGameAttendance
 from sports_passport.models.game import Game
-from sports_passport.models.team import Team
-from sports_passport.models.venue import Venue
 from sports_passport.models.user import User
 from sports_passport.schemas.attendance import (
     AttendanceCreate,
-    AttendanceUpdate,
     AttendanceResponse,
     AttendanceStats,
+    AttendanceUpdate,
     AttendanceVenueCount,
     AttendanceVenuePoint,
     AttendanceVenuesResponse,
     BulkAttendanceRequest,
-    BulkAttendanceResponse
+    BulkAttendanceResponse,
 )
-from sports_passport.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
 
@@ -96,7 +94,7 @@ def mark_game_attended(
     return attendance
 
 
-@router.get("/", response_model=List[AttendanceResponse])
+@router.get("/", response_model=list[AttendanceResponse])
 def list_attended_games(
     skip: int = 0,
     limit: int = 10000,  # High default limit to return all games for personal/family use
@@ -202,8 +200,8 @@ def get_attendance_stats(
         games_by_league=dict(sorted(games_by_league.items())),
         games_by_team=dict(sorted(games_by_team.items(), key=lambda x: x[1], reverse=True)),
         games_by_season=dict(sorted(games_by_season.items())),
-        stadiums_visited=sorted(list(stadiums)),
-        states_visited=sorted(list(states)),
+        stadiums_visited=sorted(stadiums),
+        states_visited=sorted(states),
         games_by_state=dict(sorted(games_by_state.items())),
         venues=venues,
         first_game_date=first_date,

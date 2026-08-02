@@ -1,17 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from sports_passport.db.database import get_db
-from sports_passport.core.limiter import limiter
-from sports_passport.models.user import User
-from sports_passport.schemas.user import UserCreate, UserResponse, Token, ChangePasswordRequest
-from sports_passport.core.security import (
-    verify_password,
-    get_password_hash,
-    create_access_token,
-    validate_password,
-)
+
 from sports_passport.core.dependencies import get_current_user
+from sports_passport.core.limiter import limiter
+from sports_passport.core.security import (
+    create_access_token,
+    get_password_hash,
+    validate_password,
+    verify_password,
+)
+from sports_passport.db.database import get_db
+from sports_passport.models.user import User
+from sports_passport.schemas.user import ChangePasswordRequest, Token, UserCreate, UserResponse
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 

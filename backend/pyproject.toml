@@ -2,7 +2,7 @@
 name = "sports-passport"
 version = "0.1.0"
 description = "SportsPassport2 multi-league game attendance tracker API"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.104",
     "uvicorn[standard]>=0.24",
@@ -28,6 +28,8 @@ dependencies = [
 dev = [
     "pytest>=7.4",
     "pytest-asyncio>=0.21",
+    "ruff>=0.16.1",
+    "pyright>=1.1.411",
 ]
 
 [build-system]
@@ -36,9 +38,54 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "pyright>=1.1.411",
     "pytest>=7.4",
     "pytest-asyncio>=0.21",
+    "ruff>=0.16.1",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's whole dependency-injection design is function calls in argument
+# defaults, so B008 is noise on every endpoint. Whitelisting the callables
+# keeps the rule useful for genuine mutable-default bugs.
+# See docs/SP3_open_issues.md #4.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Header",
+    "fastapi.File",
+    "fastapi.Form",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests lean on long literal fixtures and pytest's assert-rewriting idioms.
+"tests/**" = ["E501"]
+
+[tool.pyright]
+include = ["sports_passport", "scripts", "tests"]
+exclude = ["**/__pycache__", "alembic/versions"]
+pythonVersion = "3.13"
+typeCheckingMode = "basic"
+venvPath = "."
+venv = ".venv"
 
 [tool.pytest.ini_options]
 filterwarnings = [

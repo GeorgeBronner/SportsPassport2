@@ -243,7 +243,7 @@ class TestAttendanceStats:
         assert isinstance(games_by_team, dict)
         assert len(games_by_team) == 3
         # Each team should have at least one game
-        for team, count in games_by_team.items():
+        for count in games_by_team.values():
             assert count > 0
 
     def test_get_stats_games_by_season(self, client, sample_attendance, auth_headers):

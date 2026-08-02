@@ -5,9 +5,8 @@ The scheduler itself (APScheduler) is not started in tests (conftest sets
 SCHEDULER_ENABLED=false); these exercise the sync *logic* — adaptive lookback,
 per-league state recording, enable/disable — with a mocked adapter.
 """
-import pytest
 from datetime import date, datetime, timedelta
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from sports_passport.models.sync_state import SyncState
 from sports_passport.services import scheduler

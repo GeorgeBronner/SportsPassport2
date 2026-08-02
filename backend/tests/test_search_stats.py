@@ -3,9 +3,9 @@ from datetime import datetime
 
 import pytest
 
-from sports_passport.models.team import Team
-from sports_passport.models.game import Game
 from sports_passport.models.attendance import UserGameAttendance
+from sports_passport.models.game import Game
+from sports_passport.models.team import Team
 
 
 @pytest.fixture

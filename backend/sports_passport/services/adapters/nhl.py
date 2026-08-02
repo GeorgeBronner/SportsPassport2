@@ -18,13 +18,13 @@ seasonId is f"{year}{year+1}". gameType: 1=preseason, 2=regular, 3=postseason.
 import asyncio
 import logging
 from datetime import date, datetime, timedelta
-from typing import Any, Optional
+from typing import Any, Literal, overload
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
 from sports_passport.services.adapters import local_time, venue_seed
-from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
-from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
+from sports_passport.services.adapters.base import ImportResult, LeagueAdapter
+from sports_passport.services.importer import get_league, upsert_game, upsert_team, upsert_venue
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,15 @@ class NhlAdapter(LeagueAdapter):
     league_code = "NHL"
     source = "nhl"
 
-    async def _get(self, url: str, ok_404: bool = False) -> Optional[Any]:
+    # None comes back only on the ok_404 path, so callers that don't opt into
+    # it get a non-Optional payload and needn't guard a branch that can't happen.
+    @overload
+    async def _get(self, url: str, ok_404: Literal[False] = False) -> Any: ...
+
+    @overload
+    async def _get(self, url: str, ok_404: Literal[True]) -> Any | None: ...
+
+    async def _get(self, url: str, ok_404: bool = False) -> Any | None:
         response = await self.http.get(url)
         if ok_404 and response.status_code == 404:
             return None
@@ -72,7 +80,7 @@ class NhlAdapter(LeagueAdapter):
         by_abbrev = {t.abbreviation: t.id for t in teams if t.abbreviation}
         return by_source_id, by_abbrev
 
-    def _resolve_team(self, payload: dict, by_source_id: dict, by_abbrev: dict) -> Optional[int]:
+    def _resolve_team(self, payload: dict, by_source_id: dict, by_abbrev: dict) -> int | None:
         team_id = by_source_id.get(str(payload.get("id")))
         if team_id is None:
             team_id = by_abbrev.get(payload.get("abbrev"))
@@ -90,7 +98,8 @@ class NhlAdapter(LeagueAdapter):
         if home_id is None or away_id is None:
             result.errors.append(
                 f"game {game.get('id')}: unmatched team "
-                f"{game.get('awayTeam', {}).get('abbrev')} @ {game.get('homeTeam', {}).get('abbrev')}"
+                f"{game.get('awayTeam', {}).get('abbrev')} @ "
+                f"{game.get('homeTeam', {}).get('abbrev')}"
             )
             return
 
@@ -160,7 +169,10 @@ class NhlAdapter(LeagueAdapter):
             result.games_updated += 1
 
     async def _season_tricodes(self, season_start_year: int) -> list[str]:
-        """Abbreviations of teams in the standings for a season (empty if no season, e.g. 2004-05)."""
+        """Abbreviations of teams in the standings for a season.
+
+        Empty when the season was never played, e.g. the 2004-05 lockout.
+        """
         standings = await self._get(
             f"{settings.nhl_api_url}/standings/{season_start_year + 1}-04-01", ok_404=True
         )
@@ -215,7 +227,9 @@ class NhlAdapter(LeagueAdapter):
         day = since
         today = date.today()
         while day <= today:
-            payload = await self._get(f"{settings.nhl_api_url}/score/{day.isoformat()}", ok_404=True)
+            payload = await self._get(
+                f"{settings.nhl_api_url}/score/{day.isoformat()}", ok_404=True
+            )
             if payload:
                 for game in payload.get("games", []):
                     # /score/{date} includes surrounding days; only take the target date
@@ -228,11 +242,14 @@ class NhlAdapter(LeagueAdapter):
         return result
 
     @staticmethod
-    def _parse_start(game: dict) -> tuple[Optional[datetime], bool]:
+    def _parse_start(game: dict) -> tuple[datetime | None, bool]:
         raw_utc = game.get("startTimeUTC")
         if raw_utc:
             try:
-                return datetime.fromisoformat(raw_utc.replace("Z", "+00:00")).replace(tzinfo=None), True
+                return (
+                    datetime.fromisoformat(raw_utc.replace("Z", "+00:00")).replace(tzinfo=None),
+                    True,
+                )
             except ValueError:
                 pass
         raw_date = game.get("gameDate")

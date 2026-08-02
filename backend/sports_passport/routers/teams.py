@@ -1,22 +1,23 @@
 from collections import Counter
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_, func
-from typing import List, Optional
+
+from sports_passport.core.dependencies import get_current_user
 from sports_passport.core.queries import LIKE_ESCAPE, contains_pattern
 from sports_passport.db.database import get_db
-from sports_passport.models.team import Team
-from sports_passport.models.league import League
-from sports_passport.models.game import Game
 from sports_passport.models.attendance import UserGameAttendance
+from sports_passport.models.game import Game
+from sports_passport.models.league import League
+from sports_passport.models.team import Team
+from sports_passport.models.user import User
 from sports_passport.schemas.team import (
+    TeamAttendanceStats,
     TeamResponse,
     TeamSearchResult,
-    TeamAttendanceStats,
     TeamVenueCount,
 )
-from sports_passport.core.dependencies import get_current_user
-from sports_passport.models.user import User
 
 router = APIRouter(prefix="/api/teams", tags=["teams"])
 
@@ -39,13 +40,13 @@ def _attended_counts(db: Session, user_id: int, team_ids: list[int]) -> Counter:
     return counts
 
 
-@router.get("/", response_model=List[TeamResponse])
+@router.get("/", response_model=list[TeamResponse])
 def list_teams(
-    league: Optional[str] = None,
-    conference: Optional[str] = None,
-    search: Optional[str] = None,
-    classification: Optional[str] = None,
-    franchise_id: Optional[int] = None,
+    league: str | None = None,
+    conference: str | None = None,
+    search: str | None = None,
+    classification: str | None = None,
+    franchise_id: int | None = None,
     active_only: bool = False,
     skip: int = 0,
     limit: int = 500,
@@ -88,10 +89,10 @@ def list_teams(
     return teams
 
 
-@router.get("/search", response_model=List[TeamSearchResult])
+@router.get("/search", response_model=list[TeamSearchResult])
 def search_teams(
     q: str = Query(..., min_length=2),
-    league: Optional[str] = None,
+    league: str | None = None,
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)

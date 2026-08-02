@@ -14,7 +14,6 @@ The scheduler is started/stopped from the FastAPI lifespan and is guarded by
 import asyncio
 import logging
 from datetime import date, datetime, timedelta
-from typing import Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -25,7 +24,7 @@ from sports_passport.core.config import settings
 from sports_passport.db.database import SessionLocal
 from sports_passport.models.league import League
 from sports_passport.models.sync_state import SyncState
-from sports_passport.services.adapters import get_adapter, ADAPTERS
+from sports_passport.services.adapters import ADAPTERS, get_adapter
 from sports_passport.services.adapters.base import ImportResult
 
 logger = logging.getLogger(__name__)
@@ -34,7 +33,7 @@ logger = logging.getLogger(__name__)
 # all third-party endpoints that can stall) — cap each league's run.
 PER_LEAGUE_TIMEOUT_SECONDS = 600
 
-_scheduler: Optional[AsyncIOScheduler] = None
+_scheduler: AsyncIOScheduler | None = None
 
 # Single-owner guard for the admin "run now" background job (see trigger_sync_all).
 _sync_all_in_progress = False
@@ -55,8 +54,12 @@ def get_or_create_sync_state(db: Session, league: League) -> SyncState:
     try:
         db.commit()
     except IntegrityError:
+        # A concurrent caller inserted the row between our lookup and this
+        # commit. league_id is unique, so it is there now — .one() rather than
+        # .first() so a genuinely missing row raises instead of returning None
+        # to a caller whose signature promises a SyncState.
         db.rollback()
-        state = db.query(SyncState).filter(SyncState.league_id == league.id).first()
+        state = db.query(SyncState).filter(SyncState.league_id == league.id).one()
     else:
         db.refresh(state)
     return state
@@ -82,7 +85,7 @@ def compute_since(state: SyncState, today: date, lookback_days: int) -> date:
 async def run_sync_for_league(
     db: Session,
     league_code: str,
-    since: Optional[date] = None,
+    since: date | None = None,
 ) -> ImportResult:
     """Sync one league and record the outcome on its SyncState row.
 
@@ -97,7 +100,11 @@ async def run_sync_for_league(
         raise KeyError(f"Unknown league: {league_code}")
 
     state = get_or_create_sync_state(db, league)
-    window_start = since if since is not None else compute_since(state, date.today(), settings.sync_lookback_days)
+    window_start = (
+        since
+        if since is not None
+        else compute_since(state, date.today(), settings.sync_lookback_days)
+    )
 
     state.last_status = "running"
     db.commit()
@@ -111,7 +118,7 @@ async def run_sync_for_league(
             adapter.sync_recent(since=window_start),
             timeout=PER_LEAGUE_TIMEOUT_SECONDS,
         )
-    except asyncio.TimeoutError:
+    except TimeoutError:
         db.rollback()  # discard any partial work left by the cancelled coroutine
         result.errors.append(f"timed out after {PER_LEAGUE_TIMEOUT_SECONDS}s")
         logger.warning("Sync for %s timed out", league_code)

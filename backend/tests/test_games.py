@@ -1,7 +1,6 @@
 """
 Tests for games endpoints.
 """
-import pytest
 
 
 class TestListGames:
@@ -259,8 +258,9 @@ class TestListTeamGames:
     ):
         """attended_only surfaces old attended games the 100-recent window drops."""
         from datetime import datetime, timedelta
-        from sports_passport.models.game import Game
+
         from sports_passport.models.attendance import UserGameAttendance
+        from sports_passport.models.game import Game
 
         team_id = sample_teams[0].id
         opponent_id = sample_teams[1].id

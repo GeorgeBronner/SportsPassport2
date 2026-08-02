@@ -1,8 +1,19 @@
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
+from typing import overload
 
 
-def naive_utc_isoformat(value: Optional[datetime]) -> Optional[str]:
+# A datetime in yields a str out; only a None input produces a None output.
+# Spelled as overloads so callers serializing a required field don't have to
+# widen their own return type to str | None to satisfy a type checker.
+@overload
+def naive_utc_isoformat(value: datetime) -> str: ...
+
+
+@overload
+def naive_utc_isoformat(value: None) -> None: ...
+
+
+def naive_utc_isoformat(value: datetime | None) -> str | None:
     """Serialize a datetime for JSON, marking naive values as UTC explicitly.
 
     Game timestamps (start_date, first/last_game_date) are stored naive but
@@ -15,5 +26,5 @@ def naive_utc_isoformat(value: Optional[datetime]) -> Optional[str]:
     if value is None:
         return None
     if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
+        value = value.replace(tzinfo=UTC)
     return value.isoformat()

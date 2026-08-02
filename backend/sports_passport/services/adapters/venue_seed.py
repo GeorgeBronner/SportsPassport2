@@ -38,7 +38,6 @@ within a few hundred metres. That is well inside the precision this map needs.
 import csv
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
 SEED_DIR = Path(__file__).resolve().parents[2] / "data" / "seed"
 
@@ -62,7 +61,7 @@ def _load_by_key(filename: str, key_column: str) -> dict[str, list[dict]]:
     return by_key
 
 
-def _lookup_by_season(rows_by_key: dict[str, list[dict]], key: str, season: int) -> Optional[dict]:
+def _lookup_by_season(rows_by_key: dict[str, list[dict]], key: str, season: int) -> dict | None:
     """The row (from rows_by_key[key]) whose [start_season, end_season] covers this season."""
     for row in rows_by_key.get(key, []):
         start = int(row["start_season"])
@@ -77,7 +76,7 @@ def _nba_arenas_by_team() -> dict[str, list[dict]]:
     return _load_by_key("nba_arenas.csv", "team_id")
 
 
-def lookup_nba_arena(team_id: str, season: int) -> Optional[dict]:
+def lookup_nba_arena(team_id: str, season: int) -> dict | None:
     return _lookup_by_season(_nba_arenas_by_team(), str(team_id), season)
 
 
@@ -97,7 +96,7 @@ def _nba_arenas_by_name() -> dict[str, dict]:
     return by_name
 
 
-def lookup_nba_arena_by_name(arena: str) -> Optional[dict]:
+def lookup_nba_arena_by_name(arena: str) -> dict | None:
     return _nba_arenas_by_name().get(arena)
 
 
@@ -108,7 +107,7 @@ def _mls_stadiums() -> dict[str, dict]:
         return {row["name"]: row for row in csv.DictReader(f)}
 
 
-def lookup_mls_stadium(name: str) -> Optional[dict]:
+def lookup_mls_stadium(name: str) -> dict | None:
     """Coordinates for an MLS ground, keyed by its canonical name.
 
     Covers both what ASA omits (8 of its 56 stadia carry no lat/lon) and the
@@ -122,7 +121,7 @@ def _nhl_arenas_by_tricode() -> dict[str, list[dict]]:
     return _load_by_key("nhl_arenas.csv", "tricode")
 
 
-def lookup_nhl_arena(tricode: str, season: int) -> Optional[dict]:
+def lookup_nhl_arena(tricode: str, season: int) -> dict | None:
     """The physical-arena-era row (team + season range) covering this season —
     keyed by team rather than by the API's display name, so a naming-rights
     rename never breaks the lookup (see nhl.py's _upsert_api_game)."""

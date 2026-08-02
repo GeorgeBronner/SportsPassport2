@@ -1,7 +1,7 @@
 import hashlib
 import logging
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import mailtrap as mt
 import sentry_sdk
@@ -27,7 +27,11 @@ def _hash_token(token: str) -> str:
 
 def _send_reset_email(to_email: str, to_name: str, reset_url: str) -> None:
     if not settings.mailtrap_api_key:
-        logger.warning("MAILTRAP_API_KEY not set — skipping email send for %s. Link: %s", to_email, reset_url)
+        logger.warning(
+            "MAILTRAP_API_KEY not set — skipping email send for %s. Link: %s",
+            to_email,
+            reset_url,
+        )
         return
 
     client = mt.MailtrapClient(token=settings.mailtrap_api_key)
@@ -38,7 +42,8 @@ def _send_reset_email(to_email: str, to_name: str, reset_url: str) -> None:
         text=(
             f"Hi {to_name},\n\n"
             "We received a request to reset your Sports Passport password.\n\n"
-            f"Click the link below to set a new password (valid for {settings.password_reset_token_expiry_minutes} minutes):\n\n"
+            f"Click the link below to set a new password "
+            f"(valid for {settings.password_reset_token_expiry_minutes} minutes):\n\n"
             f"{reset_url}\n\n"
             "If you didn't request this, you can safely ignore this email.\n\n"
             "— The Sports Passport Team"
@@ -75,7 +80,9 @@ def forgot_password(
 
         raw_token = secrets.token_urlsafe(32)
         token_hash = _hash_token(raw_token)
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.password_reset_token_expiry_minutes)
+        expires_at = datetime.now(UTC) + timedelta(
+            minutes=settings.password_reset_token_expiry_minutes
+        )
 
         db.add(PasswordResetToken(user_id=user.id, token_hash=token_hash, expires_at=expires_at))
 
@@ -99,7 +106,7 @@ def forgot_password(
 @limiter.limit("10/minute")
 def reset_password(request: Request, body: ResetPasswordRequest, db: Session = Depends(get_db)):
     token_hash = _hash_token(body.token)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     reset_token = (
         db.query(PasswordResetToken)

@@ -14,8 +14,8 @@ those states, and a migration-built schema matches what the models declare.
 import os
 import re
 import shutil
-import subprocess
 import sqlite3
+import subprocess
 import sys
 import tempfile
 

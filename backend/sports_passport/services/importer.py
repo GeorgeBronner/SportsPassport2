@@ -3,12 +3,12 @@
 All upserts are idempotent, keyed on (source, source_*_id), so imports and
 syncs can be re-run safely.
 """
-from typing import Optional
 from sqlalchemy.orm import Session
+
+from sports_passport.models.game import Game
 from sports_passport.models.league import League
 from sports_passport.models.team import Team
 from sports_passport.models.venue import Venue
-from sports_passport.models.game import Game
 
 
 def get_league(db: Session, code: str) -> League:
@@ -18,7 +18,9 @@ def get_league(db: Session, code: str) -> League:
     return league
 
 
-def upsert_team(db: Session, source: str, source_team_id: str, league_id: int, **fields) -> tuple[Team, bool]:
+def upsert_team(
+    db: Session, source: str, source_team_id: str, league_id: int, **fields
+) -> tuple[Team, bool]:
     """Insert or update a team. Returns (team, created)."""
     team = db.query(Team).filter(
         Team.source == source,
@@ -52,7 +54,9 @@ def upsert_venue(db: Session, source: str, source_venue_id: str, **fields) -> tu
     return venue, True
 
 
-def upsert_game(db: Session, source: str, source_game_id: str, league_id: int, **fields) -> tuple[Game, bool]:
+def upsert_game(
+    db: Session, source: str, source_game_id: str, league_id: int, **fields
+) -> tuple[Game, bool]:
     """Insert or update a game. Returns (game, created).
 
     Score/venue/attendance fields are always overwritten on update (a sync run
