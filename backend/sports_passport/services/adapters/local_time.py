@@ -46,6 +46,28 @@ def eastern_to_utc(eastern: datetime) -> datetime:
     return eastern.replace(tzinfo=EASTERN).astimezone(UTC).replace(tzinfo=None)
 
 
+def utc_to_eastern(stored: datetime) -> datetime:
+    """The inverse of `eastern_to_utc`: a stored naive UTC instant -> naive US
+    Eastern wall clock.
+
+    For anything that asks "what *day* was this game played on", UTC is the
+    wrong answer: a 7:30pm ET kickoff is stored past midnight UTC and reads as
+    the next day. Grouping attended games by weekday straight off `start_date`
+    put ~40% of a real 235-game log on the wrong day, most visibly turning
+    Friday night football into Saturday.
+
+    Eastern rather than a per-venue timezone for the same reason the rest of
+    this module uses it: no venue timezone is stored, every venue in this
+    dataset is North American, and Eastern is the wall clock the bulk sources
+    already publish in. It is exact for eastern venues and off only for games
+    that start after 9pm Pacific.
+
+    has_time=False rows are unaffected — DATE_ONLY_HOUR parks them at noon UTC,
+    which is the same calendar day in every US timezone.
+    """
+    return stored.replace(tzinfo=UTC).astimezone(EASTERN).replace(tzinfo=None)
+
+
 def date_only(day: datetime) -> datetime:
     """The stored instant for a game we know the date of but not the time.
 

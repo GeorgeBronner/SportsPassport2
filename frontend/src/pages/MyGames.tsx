@@ -103,7 +103,10 @@ const MyGames: React.FC = () => {
     });
   }, [attendedGames, league, season, query]);
 
-  const filtered = visible.length !== attendedGames.length;
+  // Derived from the controls, not from the row count: a filter that happens
+  // to match everything (one-league user clicking their only chip) is still an
+  // active filter and still needs its Clear button.
+  const filtered = league !== '' || season !== '' || query.trim() !== '';
 
   if (loading) return <Loading message="Loading your games..." />;
 
@@ -310,8 +313,11 @@ const MyGames: React.FC = () => {
                       )}
                       {/* Revealed on hover/focus. `Remove` is destructive and was
                           permanently visible on all 235 rows. Kept reachable by
-                          keyboard via focus-within. */}
-                      <span className="flex gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                          keyboard via focus-within — opacity-0 elements are
+                          still focusable. pointer-events is gated with it:
+                          opacity alone leaves an invisible but clickable
+                          target sitting over the row. */}
+                      <span className="flex gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto transition-opacity">
                         <button
                           type="button"
                           onClick={() => {

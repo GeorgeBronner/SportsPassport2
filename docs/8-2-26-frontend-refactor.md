@@ -1,10 +1,14 @@
 # Frontend Review — 2026-08-02
 
-> **Status: implemented.** Everything below was fixed on branch
-> `frontend-refactor-8-2-26`, taking the recommended variant in each mockup
-> (A1 · B1 · C1 · D1 · E1 · F1 · G1). See [What shipped](#what-shipped) at the
-> bottom for the mapping from finding → change, including the three places the
-> implementation deliberately went further than the review.
+> **Status: implemented, review fixes in progress, no PR yet.**
+> Everything below was fixed on branch `frontend-refactor-8-2-26`, taking the
+> recommended variant in each mockup (A1 · B1 · C1 · D1 · E1 · F1 · G1). See
+> [What shipped](#what-shipped) for the mapping from finding → change.
+>
+> A second-pass code review then found further defects. **Read
+> [Review pass & where we left off](#review-pass--where-we-left-off) at the very
+> bottom before resuming** — it lists what the review found, what is already
+> fixed, and the three items still outstanding.
 
 Full pass over every view in the running app (Vite dev server + live SQLite, 235 attended
 games, 7 leagues), in **both themes**, driven through Chrome. Findings are grouped by
@@ -474,3 +478,82 @@ frontend: eslint ✓   tsc ✓   vite build ✓
   a wrapping filter bar), but it wants a real device pass.
 - `stats.games_by_team` is now unused by the frontend. Kept deliberately; delete it when
   you're sure nothing external reads the endpoint.
+
+---
+
+## Review pass & where we left off
+
+A fresh reviewer went over `git diff main...HEAD` cold. It confirmed the four checks pass
+and that the token migration is genuinely complete (zero fixed-palette Tailwind colours
+left anywhere under `frontend/src`), then found the following. **Everything marked ✅ is
+fixed and committed; the ⏳ items are the ones to pick up.**
+
+### Fixed
+
+| ✅ | Finding | Fix |
+|---|---|---|
+| **B1** | **`games_by_weekday`/`games_by_month` were computed off the stored UTC instant.** `games.start_date` is always UTC, so any US evening kickoff rolls into the next UTC day. On the real 235-game log, **90 rows start before 07:00 UTC**: the endpoint returned Sat 142 / Fri 18, where the local dates the app actually prints give Sat 115 / Fri 54. Friday night football was being counted as Saturday, and the new "Busiest day" tile is a headline number. | New `utc_to_eastern()` in `services/adapters/local_time.py`, used for weekday, month and the gap measurement. Eastern for the same reason the rest of that module uses it — no venue timezone is stored, every venue is North American, and it is the wall clock the bulk sources publish in. `has_time=False` rows are unaffected (parked at noon UTC by `DATE_ONLY_HOUR`). |
+| **F1** | **Duplicate React keys** in "Most-visited venues": keyed on `name`+`city`, but the backend deliberately counts same-named venues separately by id. This DB has three colliding pairs (three separate Madison Square Garden rows, two MetLife, two Caesars Superdome) — latent only because just one of each currently reaches the top 8. | `venue_id` added to `AttendanceVenueCount`; both Statistics and TeamDetail key on it. |
+| **F5** | Attended rows on the team log **lost their hover feedback** — the inline `background-color` outranked `hover:bg-panel-2`. | Moved to an `.attended-row` class with its own `:hover` step. Note an unlayered class alone would *not* have fixed it: unlayered CSS outranks `@layer utilities` regardless of specificity, so the hover state is declared explicitly. |
+| **F3** | My log's hover-revealed row actions were `opacity-0` but **still hit-testable** — an invisible clickable target over every row. | `pointer-events-none` gated with the same hover/focus-within conditions. |
+| **F4** | "Clear filters" was inferred from `visible.length !== total`, so a filter matching every row (one-league user clicking their only chip) showed no Clear button. | Derived from the control state instead. |
+| **F6** | SeasonChart's last tick was anchored `end` unconditionally, so when it *didn't* overflow it sat half a label left of the gridline every other tick uses. | Anchor now follows the same overflow test as the clamp. |
+| **F7** | Version-skew guarding was inconsistent — `top_teams` was guarded but `games_by_weekday`, `games_by_month`, `season_breakdown` and `new_venues_by_season` would throw and blank the page on exactly the skew the comment described. | All new fields read through `?? {}` / `?? []`. |
+| **R1** | TileMap dropped the AK/HI tiles but still summed them into the percentage denominator, so a Hawaii game would silently vanish while skewing every other tile. DC has the same shape (the new choropleth *will* shade it; the tile grid has no tile for it). | An "Off the grid: HI 2 · DC 1" line appears when any state has games but no tile. |
+| **R3** | `.logo-plate`'s ring was `var(--line)` — a 9%-white hairline on an always-light plate, i.e. invisible in the only mode the rule applies in. | Dark ring instead. |
+| **F9** | `truncate` on an inline `<span>` in the omnibox was inert (`overflow` doesn't apply to non-replaced inline boxes). | Moved to the block wrapper. |
+| **F10** | Find printed the year with raw `getFullYear()` and MapView hard-coded `has_time=false`, both bypassing the timezone-aware `yearOf`. | Both use `yearOf` with the row's real `has_time`. |
+
+### ⏳ Outstanding — pick up here
+
+1. **Tests for the B1 timezone fix are not written yet.** This is the important one. The
+   existing `test_weekday_month_and_longest_gap` passes either way, because the fixture
+   sits at 23:30 UTC on a Saturday, which is still Saturday in Eastern — so **nothing
+   currently pins the fix**. I was part-way through adding three cases when we paused:
+   - a night kickoff stored past midnight UTC (the 2024 CFP final, played Monday
+     8 Jan 7:30pm ET, stored `2024-01-09 00:30`) asserting Monday, not Tuesday;
+   - a `has_time=False` row at noon UTC asserting the conversion does **not** roll it off
+     its own calendar day;
+   - `venues[].venue_id` present and unique.
+
+2. **F2 — the tooltip rewrite is mouse-only.** The stated reason for replacing native
+   `title=` was that title doesn't work on touch, but `useTooltip` binds only
+   `mouseenter`/`mousemove`/`mouseleave`; the triggers are non-interactive
+   `<div>`/`<rect>`/`<path>` with no `tabIndex`, and nothing points `aria-describedby` at
+   the `role="tooltip"` node. On touch and by keyboard the information is now *less*
+   reachable than before. A `<title>` child has been restored inside each SeasonChart
+   `<rect>` (that one was genuinely exposed to assistive tech), but **the stat tiles,
+   league chips, top-team rows, tile-map states and map dots still have no non-mouse
+   path.** Options: give the triggers `tabIndex={0}` + focus handlers, or keep a native
+   `title` alongside the styled card.
+
+3. **Mobile is still unverified** (§4.7) — unchanged from before. Additionally the
+   reviewer noted **R2**: `.sticky-head` is inert below `lg`, because `max-lg:overflow-x-auto`
+   makes the panel a scroll container on both axes (the exact trap documented in CLAUDE.md)
+   and its auto height means it never scrolls vertically. Deliberate scoping — the sticky
+   header is an `lg+` feature — but worth knowing.
+
+### Checked and explicitly found fine
+
+Worth not re-litigating: the no-attendances early return does satisfy the response model
+(Pydantic v2 deep-copies mutable defaults per instance); a single game leaves all three
+`longest_gap_*` as `None`; null scores are correctly excluded from the record rather than
+counted as ties; `venue_first_season` is order-independent; there are **no conditional
+hook-order violations** anywhere; SeasonChart's `ResizeObserver` is disconnected on
+cleanup and cannot `setWidth` after unmount; `Tooltip` cannot render-loop; the `@theme`
+deletion orphaned nothing; and `STATE_PATHS` correctly drops the five territories that
+`geoAlbersUsa` refuses to project.
+
+The reviewer also verified the aggregation against the **real** 235-game database:
+`sum(season_breakdown.games) == sum(games_by_weekday) == total_games == 235` and
+`sum(new_venues_by_season) == unique_stadiums == 63`.
+
+### State of the branch
+
+`frontend-refactor-8-2-26`, two commits, all four checks green
+(ruff · pyright · 345 pytest · eslint · tsc · build). **No PR has been opened yet** — that
+was the next step, and should wait for item 1 above at minimum.
+
+One repo hazard worth remembering: `npm run build` empties `backend/static/` and deletes
+the tracked `backend/static/.gitkeep`. Restore it (`git checkout backend/static/.gitkeep`)
+before committing after a build.

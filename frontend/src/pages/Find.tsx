@@ -7,7 +7,7 @@ import StampCard from '../components/passport/StampCard';
 import { attendanceApi } from '../api/attendance';
 import type { Attendance, Team } from '../types/api';
 import { leagueColor } from '../utils/leagues';
-import { displayTimeZone, formatDateShort } from '../utils/format';
+import { displayTimeZone, formatDateShort, yearOf } from '../utils/format';
 
 interface TeamTally {
   team: Team;
@@ -119,7 +119,7 @@ const Find: React.FC = () => {
                   {onThisDate.map(({ id, game }) => (
                     <div key={id} className="flex items-center gap-2.5 flex-wrap">
                       <span className="font-mono text-xs text-ink-3 w-9 shrink-0">
-                        {new Date(game.start_date).getFullYear()}
+                        {yearOf(game.start_date, game.has_time)}
                       </span>
                       <span
                         className="text-[9px] font-extrabold tracking-[0.12em] uppercase text-white rounded px-1.5 py-0.5 shrink-0"

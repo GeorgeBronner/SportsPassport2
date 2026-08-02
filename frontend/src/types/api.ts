@@ -56,6 +56,8 @@ export interface TeamSearchResult extends Team {
 }
 
 export interface TeamVenueCount {
+  /** Name+city is not unique — same-named venues are counted separately by id. */
+  venue_id: number;
   name: string;
   city: string | null;
   state: string | null;

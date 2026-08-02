@@ -114,7 +114,13 @@ const MapView: React.FC = () => {
         teams.set(team.name, (teams.get(team.name) ?? 0) + 1);
       }
     }
-    const dates = selectedGames.map((a) => a.game.start_date);
+    // Keep has_time alongside the date — yearOf needs it to pick the right
+    // timezone, and hard-coding false rolls an evening game back a year on
+    // New Year's Eve.
+    const dates = selectedGames.map((a) => ({
+      date: a.game.start_date,
+      hasTime: a.game.has_time,
+    }));
     return {
       wins,
       losses,
@@ -295,7 +301,8 @@ const MapView: React.FC = () => {
 
               {selectedSummary && (
                 <p className="text-[11px] text-ink-3 mt-1">
-                  {yearOf(selectedSummary.first, false)}–{yearOf(selectedSummary.last, false)} ·{' '}
+                  {yearOf(selectedSummary.first.date, selectedSummary.first.hasTime)}–
+                  {yearOf(selectedSummary.last.date, selectedSummary.last.hasTime)} ·{' '}
                   {selectedSummary.topTeams.map(([name, n]) => `${name} ${n}`).join(' · ')}
                 </p>
               )}
@@ -341,7 +348,7 @@ const MapView: React.FC = () => {
           data={stats?.games_by_season ?? {}}
           color="var(--focus)"
           tooltipLines={(year) => {
-            const season = stats?.season_breakdown[year];
+            const season = stats?.season_breakdown?.[year];
             if (!season) return [];
             return [
               Object.entries(season.leagues)

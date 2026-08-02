@@ -48,9 +48,15 @@ interface TileMapProps {
 }
 
 /** "Where you've been": US states as tiles, ink depth = games attended there. */
+const TILED = new Set(TILES.map(([code]) => code));
+
 const TileMap: React.FC<TileMapProps> = ({ gamesByState }) => {
   const counts = countsByStateCode(gamesByState);
   const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+  // Anything the grid has no tile for — AK, HI, DC, or a foreign venue whose
+  // state slipped through. Without this they'd vanish silently while still
+  // counting toward "states entered" and skewing every tile's percentage.
+  const untiled = Object.entries(counts).filter(([code]) => !TILED.has(code));
   const { tip, bind } = useTooltip();
 
   return (
@@ -97,6 +103,15 @@ const TileMap: React.FC<TileMapProps> = ({ gamesByState }) => {
           </span>
         ))}
       </div>
+      {untiled.length > 0 && (
+        <p className="text-[11px] text-ink-3 italic mt-2">
+          Off the grid:{' '}
+          {untiled
+            .sort(([, a], [, b]) => b - a)
+            .map(([code, count]) => `${code} ${count}`)
+            .join(' · ')}
+        </p>
+      )}
       <Tooltip tip={tip} />
     </div>
   );

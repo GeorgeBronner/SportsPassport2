@@ -22,6 +22,7 @@ from sports_passport.schemas.attendance import (
     SeasonBreakdown,
     TopTeamCount,
 )
+from sports_passport.services.adapters.local_time import utc_to_eastern
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
 
@@ -179,8 +180,11 @@ def get_attendance_stats(
         game = attendance.game
         games_by_season[game.season] += 1
         season_games[game.season] += 1
-        games_by_weekday[game.start_date.weekday()] += 1
-        games_by_month[game.start_date.month] += 1
+        # Local wall clock, not the stored UTC instant: a 7:30pm ET kickoff
+        # is stored past midnight UTC and would be counted on the next day.
+        local = utc_to_eastern(game.start_date)
+        games_by_weekday[local.weekday()] += 1
+        games_by_month[local.month] += 1
         if game.league:
             games_by_league[game.league.code] += 1
             season_leagues[game.season][game.league.code] += 1
@@ -243,14 +247,17 @@ def get_attendance_stats(
     for season in venue_first_season.values():
         new_venues_by_season[season] += 1
 
-    # Longest stretch between consecutive attended games.
+    # Longest stretch between consecutive attended games. Measured on local
+    # calendar days, but the *reported* endpoints stay the stored UTC instants —
+    # they are serialized with a trailing Z, so handing back an Eastern wall
+    # clock would have the client shift them a second time.
     longest_gap_days = longest_gap_start = longest_gap_end = None
-    game_dates = sorted(a.game.start_date for a in attendances)
+    stored_dates = sorted(a.game.start_date for a in attendances)
     # strict=False on purpose: the offset slice is always one shorter.
-    for earlier, later in zip(game_dates, game_dates[1:], strict=False):
+    for earlier, later in zip(stored_dates, stored_dates[1:], strict=False):
         # Calendar days, not elapsed time: two games 83h apart are "4 days
         # apart" to a reader, and raw timedelta.days would floor that to 3.
-        gap = (later.date() - earlier.date()).days
+        gap = (utc_to_eastern(later).date() - utc_to_eastern(earlier).date()).days
         if longest_gap_days is None or gap > longest_gap_days:
             longest_gap_days = gap
             longest_gap_start = earlier
@@ -258,6 +265,7 @@ def get_attendance_stats(
 
     venues = [
         AttendanceVenueCount(
+            venue_id=vid,
             name=venue_info[vid].name,
             city=venue_info[vid].city,
             state=venue_info[vid].state,

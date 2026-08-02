@@ -32,6 +32,10 @@ class AttendanceResponse(BaseModel):
 
 class AttendanceVenueCount(BaseModel):
     """Attended-game count for one venue, for maps and most-visited lists."""
+    # Distinct venues can share a name and city (three separate "Madison Square
+    # Garden" rows exist), and the count above is deliberately per-id — so
+    # consumers need the id to key on. Name+city is not unique.
+    venue_id: int
     name: str
     city: str | None = None
     state: str | None = None

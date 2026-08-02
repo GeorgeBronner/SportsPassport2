@@ -153,7 +153,9 @@ body {
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .logo-plate {
     background-color: var(--logo-plate);
-    box-shadow: 0 0 0 1px var(--line);
+    /* Dark ring, not var(--line): the plate is always light, and --line is a
+       9%-white hairline in dark mode, i.e. invisible on it. */
+    box-shadow: 0 0 0 1px rgba(11, 11, 11, 0.18);
     padding: 1px;
   }
 }
@@ -162,6 +164,21 @@ body {
   background-color: var(--logo-plate);
   box-shadow: 0 0 0 1px var(--line);
   padding: 1px;
+}
+
+/* Attended rows in a team's game log.
+   Both states are declared here on purpose. An inline background beat
+   `hover:bg-panel-2`, so attended rows lost their hover feedback while
+   unattended ones kept it — and moving the tint to an unlayered class alone
+   would not have fixed it, since unlayered rules outrank `@layer utilities`
+   whatever their specificity. The hover step deepens the same tint rather
+   than switching to panel-2, so the row keeps reading as attended. */
+.attended-row {
+  background-color: color-mix(in srgb, var(--stamp) 8%, transparent);
+}
+
+.attended-row:hover {
+  background-color: color-mix(in srgb, var(--stamp) 16%, transparent);
 }
 
 /* Sticky table header for long game logs — the column labels used to scroll

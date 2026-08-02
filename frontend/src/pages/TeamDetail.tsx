@@ -275,12 +275,13 @@ const TeamDetail: React.FC = () => {
                       // Emphasis inverted: 90%+ of a team's log is unattended,
                       // so dimming those made the whole table read as washed
                       // out. Full ink for everything, tint the attended rows.
-                      className="border-b border-line hover:bg-panel-2"
-                      style={
-                        attended
-                          ? { backgroundColor: 'color-mix(in srgb, var(--stamp) 8%, transparent)' }
-                          : undefined
-                      }
+                      //
+                      // A class, not an inline style: inline background beats
+                      // `hover:bg-panel-2`, which silently cost attended rows
+                      // their hover feedback while unattended rows kept it.
+                      className={`border-b border-line hover:bg-panel-2 ${
+                        attended ? 'attended-row' : ''
+                      }`}
                     >
                       <td className="py-2 px-2 whitespace-nowrap font-mono text-xs text-ink-2">
                         {formatDateShort(game.start_date, game.has_time)}
@@ -428,7 +429,7 @@ const TeamDetail: React.FC = () => {
                 {stats.venues.slice(0, 5).map((venue) => {
                   const max = stats.venues[0].count;
                   return (
-                    <div key={`${venue.name}-${venue.city}`}>
+                    <div key={venue.venue_id}>
                       <div className="text-xs text-ink-2 mb-1">{venue.name}</div>
                       <div className="flex items-center gap-2">
                         <span className="block h-2.5 flex-1 rounded-[3px] bg-panel-2 overflow-hidden">

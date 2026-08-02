@@ -64,6 +64,8 @@ const SeasonChart: React.FC<SeasonChartProps> = ({ data, color, height = 132, to
       const value = data[y] || 0;
       const x = PAD_LEFT + (y - y0) * barWidth;
       if (value > 0) {
+        const extra = tooltipLines?.(y, value).filter(Boolean) ?? [];
+        const summary = `${y} — ${value} game${value === 1 ? '' : 's'}`;
         bars.push(
           <rect
             key={y}
@@ -74,25 +76,29 @@ const SeasonChart: React.FC<SeasonChartProps> = ({ data, color, height = 132, to
             rx={1.5}
             fill={color}
             className="cursor-default hover:opacity-70 transition-opacity"
-            {...bind({
-              title: `${y} — ${value} game${value === 1 ? '' : 's'}`,
-              lines: tooltipLines?.(y, value),
-              color,
-            })}
-          />
+            {...bind({ title: summary, lines: extra, color })}
+          >
+            {/* The styled hover card is mouse-only. This <title> keeps the same
+                figures reachable by touch and to assistive tech, which is what
+                the native tooltip it replaced already did. */}
+            <title>{[summary, ...extra].join(' · ')}</title>
+          </rect>
         );
       }
       if (y % tickEvery === 0) {
-        // The final tick is anchored `end` and clamped inside the plot: centred
-        // it overflowed the right edge, so every chart used to read "'2".
-        const isLast = y + tickEvery > y1;
+        // Centred, the final tick overflowed the right edge and every chart read
+        // "'2" instead of "'25". Only the label that would actually overflow is
+        // pulled in — anchoring the last one `end` unconditionally shifted it
+        // half a label off the gridline the other ticks sit on.
         const centre = x + barWidth / 2;
+        const halfLabel = (span > 12 ? 3 : 4) * (LABEL_PX * 0.3);
+        const overflows = centre + halfLabel > width - PAD_RIGHT;
         ticks.push(
           <text
             key={`t${y}`}
-            x={(isLast ? Math.min(centre, width - PAD_RIGHT) : centre).toFixed(1)}
+            x={(overflows ? width - PAD_RIGHT : centre).toFixed(1)}
             y={height - 6}
-            textAnchor={isLast ? 'end' : 'middle'}
+            textAnchor={overflows ? 'end' : 'middle'}
           >
             {span > 12 ? `'${String(y).slice(2)}` : y}
           </text>

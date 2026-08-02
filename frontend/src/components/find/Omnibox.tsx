@@ -215,8 +215,8 @@ const Omnibox: React.FC<OmniboxProps> = ({
                         leagueCode={team.league_code}
                         size="md"
                       />
-                      <span className={`min-w-0 ${historical ? 'text-ink-2' : 'text-ink'}`}>
-                        <span className="truncate">{team.name}</span>{' '}
+                      <span className={`min-w-0 truncate ${historical ? 'text-ink-2' : 'text-ink'}`}>
+                        {team.name}{' '}
                         {team.nickname && team.nickname !== team.name && (
                           <span className="text-ink-3">{team.nickname}</span>
                         )}

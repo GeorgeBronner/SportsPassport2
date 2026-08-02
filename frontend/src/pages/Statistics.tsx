@@ -53,21 +53,23 @@ const Statistics: React.FC = () => {
   const firstYear = stats.first_game_date ? yearOf(stats.first_game_date, false) : null;
   const lastYear = stats.last_game_date ? yearOf(stats.last_game_date, false) : null;
 
+  // Every field added in the 2026-08-02 pass is read through `?? {}` / `?? []`.
+  // A stale cached bundle against an older API (or the reverse) would otherwise
+  // throw here and blank the whole page rather than degrading.
+  //
   // Alabama at 149 against a field of 10-29 flattened every other bar into an
   // identical sliver. Scaling to the runner-up keeps the field comparable and
   // marks the leader as off-scale instead of pretending it fits.
-  // `?? []` guards a stale cached bundle talking to an older API (or the
-  // reverse) — a missing array here would take the whole page down.
   const topTeams = (stats.top_teams ?? []).slice(0, TOP_TEAM_COUNT);
   const runnerUp = topTeams[1]?.count ?? topTeams[0]?.count ?? 1;
 
   const played = stats.home_wins + stats.home_losses + stats.home_ties;
   const homeWinPct = played > 0 ? Math.round((stats.home_wins / played) * 100) : null;
 
-  const busiestWeekday = Object.entries(stats.games_by_weekday).sort(
+  const busiestWeekday = Object.entries(stats.games_by_weekday ?? {}).sort(
     ([, a], [, b]) => b - a
   )[0];
-  const busiestMonth = Object.entries(stats.games_by_month).sort(([, a], [, b]) => b - a)[0];
+  const busiestMonth = Object.entries(stats.games_by_month ?? {}).sort(([, a], [, b]) => b - a)[0];
 
   const leagueSummary = LEAGUE_ORDER.filter((code) => stats.games_by_league[code])
     .map((code) => `${code}${stats.games_by_league[code]}`)
@@ -321,12 +323,12 @@ const Statistics: React.FC = () => {
               data={stats.games_by_season}
               color="var(--focus)"
               tooltipLines={(year) => {
-                const season = stats.season_breakdown[year];
+                const season = stats.season_breakdown?.[year];
                 if (!season) return [];
                 const leagues = Object.entries(season.leagues)
                   .map(([code, n]) => `${code} ${n}`)
                   .join(' · ');
-                const newVenues = stats.new_venues_by_season[year] ?? 0;
+                const newVenues = stats.new_venues_by_season?.[year] ?? 0;
                 return [
                   leagues,
                   `${season.venues} venue${season.venues === 1 ? '' : 's'}` +
@@ -346,7 +348,7 @@ const Statistics: React.FC = () => {
           <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
             {stats.venues.slice(0, 8).map((venue) => (
               <div
-                key={`${venue.name}-${venue.city}`}
+                key={venue.venue_id}
                 className="flex items-center gap-2"
                 {...bind({
                   title: venue.name,
