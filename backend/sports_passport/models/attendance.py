@@ -1,7 +1,15 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Index
-from sqlalchemy.orm import relationship
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+
 from sports_passport.db.database import Base
+
+if TYPE_CHECKING:
+    from sports_passport.models.game import Game
+    from sports_passport.models.user import User
 
 
 class UserGameAttendance(Base):
@@ -14,13 +22,19 @@ class UserGameAttendance(Base):
         Index("uq_user_game_attendance", "user_id", "game_id", unique=True),
     )
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    game_id = Column(Integer, ForeignKey("games.id"), nullable=False, index=True)
-    notes = Column(String)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True)
+    game_id: Mapped[int] = mapped_column(Integer, ForeignKey("games.id"), index=True)
+    notes: Mapped[str | None] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
 
     # Relationships
-    user = relationship("User", back_populates="attended_games")
-    game = relationship("Game", back_populates="user_attendances")
+    user: Mapped["User"] = relationship("User", back_populates="attended_games")
+    game: Mapped["Game"] = relationship("Game", back_populates="user_attendances")

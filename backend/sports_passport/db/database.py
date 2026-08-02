@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
+
 from sports_passport.core.config import settings
 
 # Create SQLAlchemy engine
@@ -24,8 +25,11 @@ if "sqlite" in settings.database_url:
 # Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Create Base class for models
-Base = declarative_base()
+# Create Base class for models. DeclarativeBase (SQLAlchemy 2.0) rather than
+# declarative_base(): the latter returns an untyped class, which makes every
+# Mapped[] annotation on a model invisible to a type checker.
+class Base(DeclarativeBase):
+    pass
 
 
 def get_db():

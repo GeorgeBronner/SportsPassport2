@@ -1,17 +1,26 @@
-from sqlalchemy import Column, Integer, String, Boolean
-from sqlalchemy.orm import relationship
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Boolean, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from sports_passport.db.database import Base
+
+if TYPE_CHECKING:
+    from sports_passport.models.game import Game
+    from sports_passport.models.team import Team
 
 
 class League(Base):
     __tablename__ = "leagues"
 
-    id = Column(Integer, primary_key=True, index=True)
-    code = Column(String, unique=True, nullable=False, index=True)  # 'CFB','MLB','NFL','NBA','NHL'
-    name = Column(String, nullable=False)
-    sport = Column(String, nullable=False)  # 'football','baseball','basketball','hockey'
-    active = Column(Boolean, default=True, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    # 'CFB','MLB','NFL','NBA','NHL'
+    code: Mapped[str] = mapped_column(String, unique=True, index=True)
+    name: Mapped[str] = mapped_column(String)
+    # 'football','baseball','basketball','hockey'
+    sport: Mapped[str] = mapped_column(String)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships
-    teams = relationship("Team", back_populates="league")
-    games = relationship("Game", back_populates="league")
+    teams: Mapped[list["Team"]] = relationship("Team", back_populates="league")
+    games: Mapped[list["Game"]] = relationship("Game", back_populates="league")
