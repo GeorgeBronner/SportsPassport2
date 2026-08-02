@@ -1,45 +1,47 @@
 import React from 'react';
+import Tooltip from '../common/Tooltip';
+import { useTooltip } from '../../hooks/useTooltip';
+import { countsByStateCode } from '../../utils/states';
 
 // Square tile-grid US map: geographically-sensible neighbor layout, no geodata.
 // [state code, column (1-based), row (1-based)]
+//
+// Continental only, matching the Atlas view — which drops Alaska and Hawaii
+// from the projection (see docs/SP3_frontend_redesign.md Phase 4). Keeping
+// them here left two marooned tiles and an empty column for a dataset with no
+// non-continental games. Column 1 goes with them, so the grid is 11 wide.
 const TILES: Array<[string, number, number]> = [
-  ['AK', 1, 1], ['ME', 12, 1],
-  ['WA', 2, 2], ['MT', 3, 2], ['ND', 4, 2], ['MN', 5, 2], ['WI', 6, 2], ['MI', 7, 2],
-  ['NY', 10, 2], ['VT', 11, 2], ['NH', 12, 2],
-  ['OR', 2, 3], ['ID', 3, 3], ['SD', 4, 3], ['IA', 5, 3], ['IL', 6, 3], ['IN', 7, 3],
-  ['OH', 8, 3], ['PA', 9, 3], ['NJ', 10, 3], ['MA', 11, 3], ['RI', 12, 3],
-  ['CA', 2, 4], ['NV', 3, 4], ['WY', 4, 4], ['NE', 5, 4], ['MO', 6, 4], ['KY', 7, 4],
-  ['WV', 8, 4], ['VA', 9, 4], ['MD', 10, 4], ['DE', 11, 4], ['CT', 12, 4],
-  ['UT', 3, 5], ['CO', 4, 5], ['KS', 5, 5], ['AR', 6, 5], ['TN', 7, 5], ['NC', 8, 5], ['SC', 9, 5],
-  ['AZ', 3, 6], ['NM', 4, 6], ['OK', 5, 6], ['LA', 6, 6], ['MS', 7, 6], ['AL', 8, 6], ['GA', 9, 6],
-  ['HI', 1, 7], ['TX', 5, 7], ['FL', 10, 7],
+  ['ME', 11, 1],
+  ['WA', 1, 2], ['MT', 2, 2], ['ND', 3, 2], ['MN', 4, 2], ['WI', 5, 2], ['MI', 6, 2],
+  ['NY', 9, 2], ['VT', 10, 2], ['NH', 11, 2],
+  ['OR', 1, 3], ['ID', 2, 3], ['SD', 3, 3], ['IA', 4, 3], ['IL', 5, 3], ['IN', 6, 3],
+  ['OH', 7, 3], ['PA', 8, 3], ['NJ', 9, 3], ['MA', 10, 3], ['RI', 11, 3],
+  ['CA', 1, 4], ['NV', 2, 4], ['WY', 3, 4], ['NE', 4, 4], ['MO', 5, 4], ['KY', 6, 4],
+  ['WV', 7, 4], ['VA', 8, 4], ['MD', 9, 4], ['DE', 10, 4], ['CT', 11, 4],
+  ['UT', 2, 5], ['CO', 3, 5], ['KS', 4, 5], ['AR', 5, 5], ['TN', 6, 5], ['NC', 7, 5],
+  ['SC', 8, 5],
+  ['AZ', 2, 6], ['NM', 3, 6], ['OK', 4, 6], ['LA', 5, 6], ['MS', 6, 6], ['AL', 7, 6],
+  ['GA', 8, 6],
+  ['TX', 4, 7], ['FL', 9, 7],
 ];
 
-const NAME_TO_CODE: Record<string, string> = {
-  alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA',
-  colorado: 'CO', connecticut: 'CT', delaware: 'DE', florida: 'FL', georgia: 'GA',
-  hawaii: 'HI', idaho: 'ID', illinois: 'IL', indiana: 'IN', iowa: 'IA', kansas: 'KS',
-  kentucky: 'KY', louisiana: 'LA', maine: 'ME', maryland: 'MD', massachusetts: 'MA',
-  michigan: 'MI', minnesota: 'MN', mississippi: 'MS', missouri: 'MO', montana: 'MT',
-  nebraska: 'NE', nevada: 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ',
-  'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND',
-  ohio: 'OH', oklahoma: 'OK', oregon: 'OR', pennsylvania: 'PA', 'rhode island': 'RI',
-  'south carolina': 'SC', 'south dakota': 'SD', tennessee: 'TN', texas: 'TX', utah: 'UT',
-  vermont: 'VT', virginia: 'VA', washington: 'WA', 'west virginia': 'WV',
-  wisconsin: 'WI', wyoming: 'WY',
-};
-
-const toCode = (state: string): string => {
-  const s = state.trim();
-  return s.length === 2 ? s.toUpperCase() : (NAME_TO_CODE[s.toLowerCase()] ?? s.toUpperCase());
-};
-
-// Ink depth by games attended; color-mix keeps it correct in both themes.
+/** Ink depth by games attended. The unvisited step is a hairline outline rather
+ *  than a tint — at 20% focus over panel-2 the "1–2" swatch was almost
+ *  indistinguishable from "0" in dark mode. */
 const inkFor = (count: number): { bg: string; strong: boolean } => {
-  if (count === 0) return { bg: 'var(--panel-2)', strong: false };
-  const pct = count >= 20 ? 95 : count >= 10 ? 75 : count >= 7 ? 55 : count >= 3 ? 38 : 20;
+  if (count === 0) return { bg: 'transparent', strong: false };
+  const pct = count >= 20 ? 95 : count >= 10 ? 75 : count >= 7 ? 55 : count >= 3 ? 38 : 26;
   return { bg: `color-mix(in srgb, var(--focus) ${pct}%, var(--panel-2))`, strong: pct >= 55 };
 };
+
+const LEGEND: Array<[number, string]> = [
+  [0, '0'],
+  [1, '1–2'],
+  [3, '3–6'],
+  [7, '7–9'],
+  [10, '10–19'],
+  [20, '20+'],
+];
 
 interface TileMapProps {
   gamesByState: Record<string, number>;
@@ -47,17 +49,15 @@ interface TileMapProps {
 
 /** "Where you've been": US states as tiles, ink depth = games attended there. */
 const TileMap: React.FC<TileMapProps> = ({ gamesByState }) => {
-  const counts: Record<string, number> = {};
-  for (const [state, count] of Object.entries(gamesByState)) {
-    const code = toCode(state);
-    counts[code] = (counts[code] ?? 0) + count;
-  }
+  const counts = countsByStateCode(gamesByState);
+  const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+  const { tip, bind } = useTooltip();
 
   return (
     <div className="overflow-x-auto">
       <div
         className="grid gap-1 w-max"
-        style={{ gridTemplateColumns: 'repeat(12, 2.5rem)', gridAutoRows: '2.5rem' }}
+        style={{ gridTemplateColumns: 'repeat(11, 2.5rem)', gridAutoRows: '2.5rem' }}
       >
         {TILES.map(([code, col, row]) => {
           const count = counts[code] ?? 0;
@@ -65,11 +65,19 @@ const TileMap: React.FC<TileMapProps> = ({ gamesByState }) => {
           return (
             <div
               key={code}
-              title={count ? `${code}: ${count} game${count > 1 ? 's' : ''}` : code}
               className={`rounded flex flex-col items-center justify-center text-[10px] font-semibold border ${
                 count === 0 ? 'border-line text-ink-3' : 'border-transparent'
               } ${strong ? 'text-white' : count > 0 ? 'text-ink' : ''}`}
               style={{ gridColumn: col, gridRow: row, backgroundColor: bg }}
+              {...bind({
+                title: code,
+                lines: count
+                  ? [
+                      `${count} game${count === 1 ? '' : 's'} attended`,
+                      total ? `${Math.round((count / total) * 100)}% of your located games` : '',
+                    ]
+                  : ['No games attended here yet.'],
+              })}
             >
               {code}
               {count > 0 && <span className="text-[9px] font-mono font-bold">{count}</span>}
@@ -79,16 +87,17 @@ const TileMap: React.FC<TileMapProps> = ({ gamesByState }) => {
       </div>
       <div className="flex items-center gap-2 mt-3 text-xs text-ink-2 flex-wrap">
         <span>Games:</span>
-        {([0, 1, 3, 7, 10, 20] as const).map((n, i) => (
+        {LEGEND.map(([n, label]) => (
           <span key={n} className="inline-flex items-center gap-1">
             <span
               className="inline-block w-5 h-3 rounded-[2px] border border-line"
               style={{ backgroundColor: inkFor(n).bg }}
             />
-            {['0', '1–2', '3–6', '7–9', '10–19', '20+'][i]}
+            {label}
           </span>
         ))}
       </div>
+      <Tooltip tip={tip} />
     </div>
   );
 };

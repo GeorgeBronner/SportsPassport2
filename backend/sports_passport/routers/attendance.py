@@ -19,9 +19,16 @@ from sports_passport.schemas.attendance import (
     AttendanceVenuesResponse,
     BulkAttendanceRequest,
     BulkAttendanceResponse,
+    SeasonBreakdown,
+    TopTeamCount,
 )
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
+
+# How many teams the stats response carries full identity for. The Stats page
+# shows eight; a little headroom costs nothing and avoids a schema change if
+# the view grows.
+TOP_TEAM_LIMIT = 12
 
 
 def _with_game_relations(query):
@@ -143,11 +150,23 @@ def get_attendance_stats(
     games_by_team = defaultdict(int)
     games_by_season = defaultdict(int)
     games_by_state = defaultdict(int)
+    team_counts = defaultdict(int)
+    team_info = {}
+    games_by_weekday = defaultdict(int)
+    games_by_month = defaultdict(int)
     venue_counts = defaultdict(int)
     venue_info = {}
     first_date = last_date = None
     stadiums = set()
     states = set()
+    home_wins = home_losses = home_ties = 0
+    season_games = defaultdict(int)
+    season_leagues = defaultdict(lambda: defaultdict(int))
+    season_venues = defaultdict(set)
+    season_home_record = defaultdict(lambda: [0, 0, 0])
+    # First season each venue appears in, so a venue counts as "new" once only —
+    # and in the right season even if the log is walked out of order.
+    venue_first_season = {}
 
     def _counts_for_stats(team) -> bool:
         # College sports track their top division only (CFB: FBS, CBB: D-I);
@@ -159,19 +178,44 @@ def get_attendance_stats(
     for attendance in attendances:
         game = attendance.game
         games_by_season[game.season] += 1
+        season_games[game.season] += 1
+        games_by_weekday[game.start_date.weekday()] += 1
+        games_by_month[game.start_date.month] += 1
         if game.league:
             games_by_league[game.league.code] += 1
+            season_leagues[game.season][game.league.code] += 1
 
-        if _counts_for_stats(game.home_team):
-            games_by_team[game.home_team.name] += 1
-        if _counts_for_stats(game.away_team):
-            games_by_team[game.away_team.name] += 1
+        for team in (game.home_team, game.away_team):
+            if not _counts_for_stats(team):
+                continue
+            games_by_team[team.name] += 1
+            # Keyed by id, not name: Alabama fields both a CFB and a CBB team,
+            # and the name-keyed map silently merges them.
+            team_counts[team.id] += 1
+            team_info[team.id] = (team, game.league.code if game.league else "")
+
+        # Home-team record. Only played games count — a future fixture on the
+        # log has both scores null and must not be scored as a tie.
+        if game.home_score is not None and game.away_score is not None:
+            if game.home_score > game.away_score:
+                home_wins += 1
+                season_home_record[game.season][0] += 1
+            elif game.home_score < game.away_score:
+                home_losses += 1
+                season_home_record[game.season][1] += 1
+            else:
+                home_ties += 1
+                season_home_record[game.season][2] += 1
 
         # Track stadiums and states
         if game.venue:
             stadiums.add(game.venue.name)
             venue_counts[game.venue.id] += 1
             venue_info[game.venue.id] = game.venue
+            season_venues[game.season].add(game.venue.id)
+            known = venue_first_season.get(game.venue.id)
+            if known is None or game.season < known:
+                venue_first_season[game.venue.id] = game.season
             if game.venue.state:
                 states.add(game.venue.state)
                 games_by_state[game.venue.state] += 1
@@ -180,6 +224,37 @@ def get_attendance_stats(
             first_date = game.start_date
         if last_date is None or game.start_date > last_date:
             last_date = game.start_date
+
+    top_teams = [
+        TopTeamCount(
+            team_id=tid,
+            name=team_info[tid][0].name,
+            league_code=team_info[tid][1],
+            logo_url=team_info[tid][0].logo_url,
+            abbreviation=team_info[tid][0].abbreviation,
+            count=count,
+        )
+        for tid, count in sorted(
+            team_counts.items(), key=lambda x: (-x[1], team_info[x[0]][0].name)
+        )[:TOP_TEAM_LIMIT]
+    ]
+
+    new_venues_by_season = defaultdict(int)
+    for season in venue_first_season.values():
+        new_venues_by_season[season] += 1
+
+    # Longest stretch between consecutive attended games.
+    longest_gap_days = longest_gap_start = longest_gap_end = None
+    game_dates = sorted(a.game.start_date for a in attendances)
+    # strict=False on purpose: the offset slice is always one shorter.
+    for earlier, later in zip(game_dates, game_dates[1:], strict=False):
+        # Calendar days, not elapsed time: two games 83h apart are "4 days
+        # apart" to a reader, and raw timedelta.days would floor that to 3.
+        gap = (later.date() - earlier.date()).days
+        if longest_gap_days is None or gap > longest_gap_days:
+            longest_gap_days = gap
+            longest_gap_start = earlier
+            longest_gap_end = later
 
     venues = [
         AttendanceVenueCount(
@@ -206,6 +281,29 @@ def get_attendance_stats(
         venues=venues,
         first_game_date=first_date,
         last_game_date=last_date,
+        home_wins=home_wins,
+        home_losses=home_losses,
+        home_ties=home_ties,
+        games_by_weekday=dict(sorted(games_by_weekday.items())),
+        games_by_month=dict(sorted(games_by_month.items())),
+        season_breakdown={
+            season: SeasonBreakdown(
+                games=count,
+                venues=len(season_venues[season]),
+                leagues=dict(
+                    sorted(season_leagues[season].items(), key=lambda x: (-x[1], x[0]))
+                ),
+                home_wins=season_home_record[season][0],
+                home_losses=season_home_record[season][1],
+                home_ties=season_home_record[season][2],
+            )
+            for season, count in sorted(season_games.items())
+        },
+        top_teams=top_teams,
+        new_venues_by_season=dict(sorted(new_venues_by_season.items())),
+        longest_gap_days=longest_gap_days,
+        longest_gap_start=longest_gap_start,
+        longest_gap_end=longest_gap_end,
     )
 
 

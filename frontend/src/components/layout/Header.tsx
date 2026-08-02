@@ -7,7 +7,9 @@ const NAV = [
   { to: '/', label: 'Find games' },
   { to: '/map', label: 'Map' },
   { to: '/my-games', label: 'My log' },
-  { to: '/statistics', label: 'Stats' },
+  // "Passport" not "Stats": nothing on that page is called Stats — its heading
+  // is "Your passport" — and the mismatch made the nav read as a fifth view.
+  { to: '/statistics', label: 'Passport' },
 ];
 
 const Header = () => {
@@ -39,7 +41,7 @@ const Header = () => {
             Sports Passport
           </span>
           <span className="block text-[9px] tracking-[0.14em] text-ink-3 uppercase">
-            Games attended · six leagues
+            Games attended · seven leagues
           </span>
         </Link>
 

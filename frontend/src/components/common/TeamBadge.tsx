@@ -58,7 +58,12 @@ const TeamBadge: React.FC<TeamBadgeProps> = ({ name, abbreviation, logoUrl, leag
         alt=""
         aria-hidden="true"
         loading="lazy"
-        className={`${SIZES[size]} object-contain shrink-0`}
+        // `logo-plate` gives every logo a light backing in dark mode. Teams
+        // whose primary mark is black or navy (Spurs, Ducks, Yankees) are
+        // transparent PNGs and were rendering as invisible gaps on the dark
+        // panels. Applied to all logos rather than a guessed subset, so the
+        // badge column stays visually uniform.
+        className={`${SIZES[size]} object-contain shrink-0 logo-plate`}
         onError={() => setBrokenUrl(logoUrl)}
       />
     ) : (

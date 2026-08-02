@@ -49,20 +49,20 @@ const Profile: React.FC = () => {
   return (
     <Layout>
       <div className="max-w-md mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-          <p className="text-gray-700 mt-1">Manage your account settings</p>
+        <div className="mb-6">
+          <p className="kicker">Account</p>
+          <h1 className="text-2xl font-bold text-ink">My profile</h1>
         </div>
 
-        <Card className="bg-gradient-to-br from-white to-gray-50 shadow-elevated mb-6">
-          <div className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-1">Name</div>
-          <div className="text-lg text-gray-900 mb-4">{user?.full_name}</div>
-          <div className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-1">Email</div>
-          <div className="text-lg text-gray-900">{user?.email}</div>
+        <Card className="mb-4">
+          <div className="kicker mb-1">Name</div>
+          <div className="text-lg text-ink mb-4">{user?.full_name}</div>
+          <div className="kicker mb-1">Email</div>
+          <div className="text-lg text-ink">{user?.email}</div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-white to-gray-50 shadow-elevated">
-          <h2 className="text-xl font-bold mb-6 text-gray-900">Change Password</h2>
+        <Card>
+          <h2 className="text-lg font-bold mb-5 text-ink">Change password</h2>
 
           {error && <Alert type="error" message={error} onClose={() => setError('')} />}
           {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}

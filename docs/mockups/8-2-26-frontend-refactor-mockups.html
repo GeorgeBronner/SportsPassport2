@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SportsPassport — Frontend refactor mockups · 2026-08-02</title>
+<style>
+:root{
+  color-scheme: light;
+  --page:#f1f1ee; --panel:#fcfcfb; --panel-2:#f2f2ef;
+  --line:rgba(11,11,11,.10); --line-strong:rgba(11,11,11,.25);
+  --ink:#16171a; --ink-2:#52514e; --ink-3:#898781; --grid:#e1e0d9;
+  --win:#006300; --loss:#c22a2a; --stamp:#a63d2f; --focus:#2a78d6;
+  --lg-cfb:#2a78d6; --lg-mlb:#008300; --lg-nfl:#c2436f; --lg-nba:#a86e00;
+  --lg-nhl:#0e8a5f; --lg-cbb:#cf4d1d; --lg-mls:#7a4bc4;
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --page:#131417; --panel:#1b1e24; --panel-2:#22262e;
+  --line:rgba(255,255,255,.09); --line-strong:rgba(255,255,255,.18);
+  --ink:#f2f1ec; --ink-2:#b9b8b0; --ink-3:#82817a; --grid:#262a31;
+  --win:#0ca30c; --loss:#e66767; --stamp:#d0685a; --focus:#3987e5;
+  --lg-cfb:#3987e5; --lg-mlb:#35a035; --lg-nfl:#d55181; --lg-nba:#c98500;
+  --lg-nhl:#199e70; --lg-cbb:#d95926; --lg-mls:#9b74dd;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);
+  font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.mono{font-family:Consolas,'SF Mono','Cascadia Mono',ui-monospace,monospace}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 100px}
+
+/* ---- chrome ---- */
+.topbar{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--page) 94%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1180px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:18px}
+.wordmark{font-weight:800;letter-spacing:.2em;font-size:13px;text-transform:uppercase}
+.wordmark small{display:block;font-size:9px;letter-spacing:.14em;color:var(--ink-3);font-weight:600}
+.topnav{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.topnav a{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-2);
+  text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:5px 9px}
+.topnav a:hover{color:var(--ink);border-color:var(--line-strong)}
+.themebtn{font-size:11px;text-transform:uppercase;letter-spacing:.12em;background:var(--panel);
+  color:var(--ink-2);border:1px solid var(--line-strong);border-radius:6px;padding:6px 11px;cursor:pointer}
+
+/* ---- typography ---- */
+h1{font-size:26px;margin:34px 0 6px}
+.sub{color:var(--ink-2);font-size:14px;margin:0 0 8px;max-width:70ch;line-height:1.55}
+h2{font-size:19px;margin:0 0 4px;scroll-margin-top:80px}
+.kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+section{margin-top:52px;border-top:1px solid var(--line);padding-top:26px}
+.secnote{color:var(--ink-2);font-size:13.5px;line-height:1.6;max-width:78ch;margin:8px 0 20px}
+.secnote code{background:var(--panel-2);padding:1px 5px;border-radius:4px;font-size:12.5px}
+
+/* ---- variant cards ---- */
+.variants{display:grid;gap:16px}
+.v{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.v-head{display:flex;align-items:center;gap:10px;padding:11px 15px;border-bottom:1px solid var(--line);
+  background:var(--panel-2)}
+.tag{font-family:Consolas,ui-monospace,monospace;font-size:11px;font-weight:800;letter-spacing:.08em;
+  background:var(--focus);color:#fff;border-radius:4px;padding:2px 7px}
+.tag.rec{background:var(--win)}
+.v-title{font-weight:700;font-size:14px}
+.v-why{margin-left:auto;font-size:12px;color:var(--ink-3);font-style:italic;text-align:right;max-width:46%}
+.v-body{padding:16px}
+.bad .tag{background:var(--loss)}
+
+/* ---- app-like primitives ---- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.panel-2{background:var(--panel-2);border-radius:9px;padding:11px}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+.tile{background:var(--panel-2);border-radius:9px;padding:12px}
+.tile .n{font-size:25px;font-weight:800;font-family:Consolas,ui-monospace,monospace;line-height:1.1}
+.badge{width:24px;height:24px;border-radius:6px;object-fit:contain;flex:0 0 auto;display:block}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;
+  padding:5px 13px;font-size:12.5px;background:var(--panel);color:var(--ink)}
+.dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.stamp{font-family:Consolas,ui-monospace,monospace;font-size:9.5px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--stamp);border:1.5px solid var(--stamp);border-radius:3px;
+  padding:1px 6px;display:inline-block;transform:rotate(-4deg)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-3);
+  font-weight:800;padding:7px 8px;border-bottom:1px solid var(--line-strong)}
+td{padding:7px 8px;border-bottom:1px solid var(--line)}
+.rowline{display:flex;align-items:center;gap:7px}
+.wl{display:inline-block;width:17px;height:17px;border-radius:4px;text-align:center;line-height:17px;
+  font-size:9.5px;font-weight:800;color:#fff}
+.wl.w{background:var(--win)} .wl.l{background:var(--loss)}
+.lg{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#fff;
+  border-radius:3px;padding:2px 5px}
+
+/* ---- misc ---- */
+.hint{font-size:12px;color:var(--ink-3);margin-top:9px;font-style:italic}
+.pick{margin-top:22px;background:var(--panel-2);border-left:3px solid var(--focus);border-radius:0 8px 8px 0;
+  padding:11px 15px;font-size:13px;color:var(--ink-2)}
+.pick b{color:var(--ink)}
+.tt{position:fixed;z-index:99;pointer-events:none;background:var(--panel);border:1px solid var(--line-strong);
+  border-radius:7px;padding:7px 10px;font-size:12px;color:var(--ink);box-shadow:0 12px 26px rgba(0,0,0,.35);
+  display:none;line-height:1.45;max-width:250px}
+.tt .t-h{font-weight:700;margin-bottom:2px}
+.tt .t-s{color:var(--ink-3);font-size:11px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){.two{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,1fr)}}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="topbar-in">
+  <div class="wordmark">Sports Passport<small>Refactor mockups · 2026-08-02</small></div>
+  <nav class="topnav">
+    <a href="#a">A · Chart</a><a href="#b">B · Logos</a><a href="#c">C · Workspace</a>
+    <a href="#d">D · Find</a><a href="#e">E · My log</a><a href="#f">F · Top teams</a><a href="#g">G · Map</a>
+  </nav>
+  <button class="themebtn" id="tbtn">Light</button>
+</div></div>
+
+<div class="wrap">
+<h1>Frontend refactor — decision mockups</h1>
+<p class="sub">Companion to <code>docs/8-2-26-frontend-refactor.md</code>. Every variant below is built on the
+app's real design tokens and the real 235-game log, so what you see is what it would look like shipped.
+Pick one option per section (or say "neither") and I'll implement.</p>
+<p class="sub">Toggle light/dark with the button — several of these decisions only make sense in one theme.</p>
+
+<!-- ============================= A ============================= -->
+<section id="a">
+  <p class="kicker">Tier 1 · bug 1.1 + 1.2</p>
+  <h2>A · The season chart</h2>
+  <p class="secnote">One <code>viewBox="0 0 300 110"</code> component, stretched by <code>w-full</code> to whatever
+  its container is. Measured live: <b>306px in the Stats rail</b> (fine — 1.0&times;) but <b>1182&times;433px on the
+  Map page</b> (3.94&times;, with 37px axis numbers). Text scales with the box, and the final tick is clipped to
+  <code>'2</code> everywhere. All three variants below fix the text size and the clipping; they differ in what
+  the chart is <i>for</i>.</p>
+
+  <div class="variants">
+    <div class="v">
+      <div class="v-head"><span class="tag rec">A1</span><span class="v-title">Fixed height, responsive width</span>
+        <span class="v-why">Closest to today. One component, honest at any width.</span></div>
+      <div class="v-body">
+        <div class="panel"><p class="kicker" style="margin:0 0 10px">Games per season</p>
+          <div id="a1-wide"></div></div>
+        <div class="two" style="margin-top:14px">
+          <div class="panel"><p class="kicker" style="margin:0 0 10px">In a 320px rail</p>
+            <div style="max-width:290px"><div id="a1-narrow"></div></div></div>
+          <div class="panel" style="display:flex;align-items:center">
+            <p class="hint" style="margin:0">Same component, same code, two very different widths. Bars
+            re-flow to fill the width; axis text stays 10px in both; the last label is anchored
+            <code>end</code> so <b>'25</b> survives. Height is pinned at 132px so the Map page stops being
+            eaten by a 433px chart — and so the rails don't blow up when they stack full-width below the
+            <code>lg</code> breakpoint.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="v">
+      <div class="v-head"><span class="tag">A2</span><span class="v-title">Sparkline + hover detail</span>
+        <span class="v-why">Denser. Turns a decorative chart into something you interrogate.</span></div>
+      <div class="v-body">
+        <div class="panel"><p class="kicker" style="margin:0 0 10px">Games per season</p>
+          <div id="a2"></div>
+          <p class="hint">Hover any bar → year, count, league split, and your record that season. The year
+          and the count are real; the league split and record in the tooltip are <b>illustrative</b> —
+          the API doesn't break down by season yet, so this variant implies a small backend addition.</p></div>
+      </div>
+    </div>
+
+    <div class="v">
+      <div class="v-head"><span class="tag">A3</span><span class="v-title">Heatmap strip</span>
+        <span class="v-why">Most compact. Frees a whole panel in the rails.</span></div>
+      <div class="v-body">
+        <div class="panel"><p class="kicker" style="margin:0 0 10px">Games per season</p>
+          <div id="a3"></div>
+          <p class="hint">34 years in ~40px of height, legible down to 200px wide, and it matches the
+          ink-depth language the Stats tile map already uses. Trades exact magnitude for compactness.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="pick"><b>My recommendation:</b> <b>A1</b> for the fix (it's a drop-in replacement everywhere),
+  plus <b>A2's hover</b> layered on top. A3 is worth it only if you want the rails to carry more panels.</div>
+</section>
+
+<!-- ============================= B ============================= -->
+<section id="b">
+  <p class="kicker">Tier 1 · bug 1.5</p>
+  <h2>B · Dark logos on dark panels</h2>
+  <p class="secnote">Switch this page to <b>dark</b> to see the problem. Roughly a quarter of pro-league
+  rows have a black or navy primary mark that disappears against <code>--panel</code>. The logos load fine —
+  they're just invisible.</p>
+
+  <div class="variants">
+    <div class="v bad">
+      <div class="v-head"><span class="tag">B0</span><span class="v-title">Today — no treatment</span>
+        <span class="v-why">Spurs and Ducks read as blank gaps in dark mode.</span></div>
+      <div class="v-body"><div class="panel" id="b0"></div></div>
+    </div>
+    <div class="v">
+      <div class="v-head"><span class="tag rec">B1</span><span class="v-title">Light plate behind every badge</span>
+        <span class="v-why">Uniform, predictable, no per-logo logic. Slight "sticker" look.</span></div>
+      <div class="v-body"><div class="panel" id="b1"></div>
+        <p class="hint">A single rule: in dark mode every badge sits on a soft near-white rounded plate.
+        Applies to all leagues equally, so the badge column stops looking ragged. One line of CSS.</p></div>
+    </div>
+    <div class="v">
+      <div class="v-head"><span class="tag">B2</span><span class="v-title">Contrast ring / halo</span>
+        <span class="v-why">Keeps logos on the panel, but only rescues outlined marks.</span></div>
+      <div class="v-body"><div class="panel" id="b2"></div>
+        <p class="hint">A 1px white drop-shadow traced around the artwork. Beautiful on marks with a defined
+        silhouette (Ducks, Saints); does almost nothing for a solid black roundel (Spurs).</p></div>
+    </div>
+    <div class="v">
+      <div class="v-head"><span class="tag">B3</span><span class="v-title">Per-logo plate, decided at scrape time</span>
+        <span class="v-why">Best-looking. Needs a backend column + re-scrape.</span></div>
+      <div class="v-body"><div class="panel" id="b3"></div>
+        <p class="hint">Compute mean luminance when <code>fetch_team_logos.py</code> downloads the PNG and store
+        a <code>logo_is_dark</code> flag; only those teams get the plate. Bright logos (Alabama crimson, Heat red)
+        stay clean on the panel. Costs a migration and a re-run of the scrape.</p></div>
+    </div>
+  </div>
+  <div class="pick"><b>My recommendation:</b> <b>B1</b> now — it's a one-line CSS fix that solves 100% of the
+  cases. <b>B3</b> later if the uniform plate bothers you.</div>
+</section>
+
+<!-- ============================= C ============================= -->
+<section id="c">
+  <p class="kicker">Tier 2 · gaps 2.1 + 2.2 + 2.7</p>
+  <h2>C · The team workspace layout</h2>
+  <p class="secnote">Alabama's log is 100 rows (~3,500px). The stats rail is ~500px and then quits, leaving a
+  320px empty column for the rest of the scroll — and the numbers you'd want to compare against have scrolled
+  away. Both variants also add a sticky table header and flip the attended/unattended emphasis.</p>
+
+  <div class="variants">
+    <div class="v">
+      <div class="v-head"><span class="tag rec">C1</span><span class="v-title">Sticky rail</span>
+        <span class="v-why">Smallest change. Stats stay pinned as you scroll the log.</span></div>
+      <div class="v-body">
+        <div style="display:grid;grid-template-columns:1fr 300px;gap:14px;align-items:start;
+             max-height:400px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:12px"
+             class="scroll">
+          <div class="panel" style="padding:0"><div id="c1-log"></div></div>
+          <div style="position:sticky;top:0;display:flex;flex-direction:column;gap:12px">
+            <div class="panel"><p class="kicker" style="margin:0 0 9px">Your Alabama record</p>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+                <div class="panel-2"><div class="mono" style="font-size:21px;font-weight:800">147</div>
+                  <div class="kicker" style="font-size:9.5px">Games</div></div>
+                <div class="panel-2"><div class="mono" style="font-size:21px;font-weight:800">
+                  <span style="color:var(--win)">104</span>–<span style="color:var(--loss)">43</span></div>
+                  <div class="kicker" style="font-size:9.5px">Record there</div></div>
+                <div class="panel-2"><div class="mono" style="font-size:21px;font-weight:800">26</div>
+                  <div class="kicker" style="font-size:9.5px">Venues</div></div>
+                <div class="panel-2"><div class="mono" style="font-size:21px;font-weight:800">71%</div>
+                  <div class="kicker" style="font-size:9.5px">Win rate</div></div>
+              </div></div>
+            <div class="panel"><p class="kicker" style="margin:0 0 9px">Games by season</p>
+              <div id="c1-chart"></div></div>
+          </div>
+        </div>
+        <p class="hint">Scroll the box above — the rail holds. Header row of the table sticks too.</p>
+      </div>
+    </div>
+
+    <div class="v">
+      <div class="v-head"><span class="tag">C2</span><span class="v-title">Summary band, full-width log</span>
+        <span class="v-why">Log gets the whole width — room for a Home/Away column and opponent detail.</span></div>
+      <div class="v-body">
+        <div class="panel" style="margin-bottom:12px">
+          <div class="tiles">
+            <div class="tile"><div class="n">147</div><div class="kicker">Games attended</div></div>
+            <div class="tile"><div class="n"><span style="color:var(--win)">104</span>–<span style="color:var(--loss)">43</span></div><div class="kicker">Record when there</div></div>
+            <div class="tile"><div class="n">26</div><div class="kicker">Venues</div></div>
+            <div class="tile"><div class="n">71%</div><div class="kicker">Win rate</div></div>
+          </div>
+        </div>
+        <div style="max-height:330px;overflow:auto;border:1px solid var(--line);border-radius:12px" class="scroll">
+          <div id="c2-log"></div>
+        </div>
+        <p class="hint">The freed width buys an <b>H/A</b> column and a full venue name — today the venue is
+        truncated and you can only infer home/away by reading the matchup order. The season chart and venue
+        bars move below the log.</p>
+      </div>
+    </div>
+  </div>
+  <div class="pick"><b>My recommendation:</b> <b>C1</b> — it fixes the stranded column without moving anything,
+  and the rail is genuinely useful pinned. Choose <b>C2</b> if you want the extra log columns more than the
+  always-visible stats.</div>
+</section>
+
+<!-- ============================= D ============================= -->
+<section id="d">
+  <p class="kicker">Tier 2 · gap 2.3</p>
+  <h2>D · The Find home page</h2>
+  <p class="secnote">At a 1768&times;942 viewport the front door ends 518px down — <b>45% of the height empty</b> —
+  in a 768px column inside a 1280px shell, so <b>57% of the width is unused</b> too. Everything below uses
+  endpoints the page could already call. All three keep the omnibox as the hero.</p>
+
+  <div class="variants">
+    <div class="v">
+      <div class="v-head"><span class="tag rec">D1</span><span class="v-title">"On this date" + recent stamps</span>
+        <span class="v-why">Gives the page a reason to be revisited. Personal, not statistical.</span></div>
+      <div class="v-body" id="d1"></div>
+    </div>
+    <div class="v">
+      <div class="v-head"><span class="tag">D2</span><span class="v-title">Passport summary strip</span>
+        <span class="v-why">Turns the landing page into a dashboard. Duplicates the Stats page.</span></div>
+      <div class="v-body" id="d2"></div>
+    </div>
+    <div class="v">
+      <div class="v-head"><span class="tag">D3</span><span class="v-title">Upcoming games for your teams</span>
+        <span class="v-why">The most useful — and the only one needing a new endpoint.</span></div>
+      <div class="v-body" id="d3"></div>
+    </div>
+  </div>
+  <div class="pick"><b>My recommendation:</b> <b>D1</b>. It's the only one that makes the home page feel like
+  <i>yours</i> rather than a search box, and it needs no backend work. <b>D3</b> is the strongest idea overall
+  but wants a <code>GET /api/games/upcoming</code> first.</div>
+</section>
+
+<!-- ============================= E ============================= -->
+<section id="e">
+  <p class="kicker">Tier 2 · gap 2.4</p>
+  <h2>E · The My log ledger</h2>
+  <p class="secnote">235 rows, one flat list, no filter of any kind — while Find and Map both have league
+  chips. Plus ~270px of dead gutter in every row between the venue and the buttons.</p>
+
+  <div class="variants">
+    <div class="v">
+      <div class="v-head"><span class="tag rec">E1</span><span class="v-title">Filter bar + filled gutter</span>
+        <span class="v-why">Same row height, more information, and the list becomes navigable.</span></div>
+      <div class="v-body" id="e1"></div>
+    </div>
+    <div class="v">
+      <div class="v-head"><span class="tag">E2</span><span class="v-title">Grouped by season, actions on hover</span>
+        <span class="v-why">Calmer. Trades instant access to Remove for much less visual noise.</span></div>
+      <div class="v-body" id="e2"></div>
+    </div>
+  </div>
+  <div class="pick"><b>My recommendation:</b> <b>E1</b>'s filter bar is non-negotiable at 235 rows; <b>E2</b>'s
+  hover-reveal for <code>Remove</code> is worth stealing either way — a destructive action shouldn't be
+  permanently visible 235 times.</div>
+</section>
+
+<!-- ============================= F ============================= -->
+<section id="f">
+  <p class="kicker">Tier 2 · gap 2.8</p>
+  <h2>F · "Teams seen most"</h2>
+  <p class="secnote">Alabama 149 vs. everyone else (29, 17, 14, 13, 12, 11, 10). On a linear scale against 149
+  every other bar is a sliver, so the chart says nothing. It also drops the logos used everywhere else.</p>
+  <div class="variants">
+    <div class="v"><div class="v-head"><span class="tag">F0</span><span class="v-title">Today — linear vs. the max</span>
+      <span class="v-why">Ranks 2–8 are indistinguishable.</span></div><div class="v-body" id="f0"></div></div>
+    <div class="v"><div class="v-head"><span class="tag rec">F1</span><span class="v-title">Logos + linear vs. the runner-up</span>
+      <span class="v-why">Leader breaks the scale on purpose; the field stays readable.</span></div>
+      <div class="v-body" id="f1"></div></div>
+    <div class="v"><div class="v-head"><span class="tag">F2</span><span class="v-title">Square-root scale</span>
+      <span class="v-why">Honest at both ends, but no one reads a sqrt axis.</span></div>
+      <div class="v-body" id="f2"></div></div>
+  </div>
+  <div class="pick"><b>My recommendation:</b> <b>F1</b>. Alabama at 149 in a 235-game log is the story —
+  let it max out and let the other seven be comparable to each other.</div>
+</section>
+
+<!-- ============================= G ============================= -->
+<section id="g">
+  <p class="kicker">Tier 3 · idea 3.3</p>
+  <h2>G · Shading the map</h2>
+  <p class="secnote">The Map already draws state boundaries but fills every state identically. The Stats page
+  already computes <code>games_by_state</code> and shades a tile grid with it. Using the same scale on the real
+  map costs nothing and makes the two views speak the same language.</p>
+  <div class="two">
+    <div class="v"><div class="v-head"><span class="tag">G0</span><span class="v-title">Today — flat fill</span></div>
+      <div class="v-body"><div class="panel"><div id="g0"></div></div></div></div>
+    <div class="v"><div class="v-head"><span class="tag rec">G1</span><span class="v-title">Choropleth + dots</span></div>
+      <div class="v-body"><div class="panel"><div id="g1"></div></div></div></div>
+  </div>
+  <p class="hint">Schematic — real geometry comes from the existing <code>usOutline.ts</code> projection.
+  The question is only whether you want the fill at all, and if so whether the dots stay on top.</p>
+  <div class="pick"><b>My recommendation:</b> <b>G1</b>, with the fill kept deliberately low-contrast so the
+  league-coloured dots still read as the primary layer.</div>
+</section>
+
+</div>
+
+<div class="tt" id="tt"></div>
+
+<script>
+/* ---------------- real data from the live log ---------------- */
+const SEASONS={1992:1,1993:1,1996:6,1997:8,1998:8,1999:10,2000:7,2001:7,2002:11,2003:2,2005:2,
+ 2006:3,2007:2,2008:6,2009:5,2010:5,2011:7,2012:7,2013:10,2014:10,2015:10,2016:5,2017:9,2018:12,
+ 2019:1,2020:3,2021:21,2022:18,2023:15,2024:15,2025:8};
+const STATES={AL:96,AR:1,AZ:1,CA:5,CT:1,FL:10,GA:17,IL:2,IN:3,KY:1,LA:11,MI:2,MN:3,MO:1,MS:1,
+ NE:1,NJ:15,NY:47,OH:1,OK:1,PA:1,TN:7,TX:5,UT:1,WI:1};
+const TOPTEAMS=[['Alabama',149],['Auburn',29],['New York Rangers',17],['New York Yankees',14],
+ ['LSU',13],['Florida',12],['Tennessee',11],['Georgia',10]];
+const VENUES=[['Bryant-Denny Stadium','Tuscaloosa, AL',76],['Madison Square Garden','New York, NY',16],
+ ['Jordan-Hare Stadium','Auburn, AL',14],['Yankee Stadium II','New York, NY',13],
+ ['Georgia Dome','Atlanta, GA',10]];
+const LOGOS={spurs:'data:image/png;base64,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',ducks:'data:image/png;base64,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',yankees:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAYAAAAehFoBAAAKYUlEQVR42sWZe4xdVRXGf2vvc+7MlD6AtkOfd/qGDBCVSRQFc7GUmdvSNgYcjIECAlEMCYgJmCBxGI1AYhMVEwgP5fWHgfGBIHA7rbGTaNoaKhVC1VJK723Lo5XSh33MnLP38o99OnPn3U5J2MlkTu7Zj2/vvda3vrUOnHZrM4CcfN82w6fXWm3v49wV55ziJj8lsLOL85m7vES+5e7weyEaonMA2FC8mBmXLxqh36jNjB1shyPfsgorryGmBa/rw7t6Hdy/ENZRXUhN3UbyVyyGrnQsoM2YwTa03IfNPQNyJmn3AWrNu+F9hx88JtuElwrIWUi8hnzLqrGANmME246pacMlCagicpQj0ZFRh0daizoFL5j4GfItt5wqaHPyQAtRMIPmqzHxD/E9CaIWRADBd4/AFHslO+EpiBVQj6YOGz9Ovvi1ALrKgU8DsASP7nDQlbKgOBHMr1AF1IBI9jyJnE4adpZCNpfowmDLIqAG7xKMeZ45xUJYY3T2MCODRaHdk1+6nAXFWeQmHEf8neCPIsaCAl6RaBw2tyC7jcFzdtVrmEuawj8Nc4uJQXajNEIhonFrNBqnm5HBtloalj5EXPsSCa1s7eih3PkkXlei0gPiUUkRA+ouCae5VwbP1eE4d+UEVL+AelBRTGxQ9xym+0LKpUegK2VrR0/vusM0OwxYoaFQwyR9ARtdh08U9fOYedFjTMpHvFt6m4nz9mHjlahzGGPxaji4/WnKNwJdVdRWiKCsjJ+3FBvdhE97MFGMd3+nUlrGxzuOQ1PMnM+uZtKizzF1/hvsf/F4AL1VRzvhE6fjofZ5bLwM15OgzmNzizhy+Dq2l7pZUKxh15pH8clabJzDpx7hYmZdORPaff95M3NQd2NYQQyqKeK+HdYBGqY8gqm5E2MfIJXXaWi5Ktj0qCbRJtBqaCj+ApNbge9OEImDczkFfsy8JZPYfsxlTnQX3qcoHhPXYV1L2HQWKE44bP6KuYgt4hOHiSNwz1FeuyWE9GIrJncz6fGeQJMyD4l+R764mqmF8RlGGQqwQLsy/VgNSjPqq98b1HlMPANnf5oxRo6dnf9E/YvYKAq2yTXBBi/Lgsf6bLy9BRPVoOLxqQe7OjO7Wrw+gDpFNEKI8S4JRmluZVzdBWG+NhloAtUb8MxbksfHG0GmhZOVE8BTTBTh0muolDqg1TLnwCWQ60IdKMcx5jx2vlLOgozn3C+N59iEbYipx1iDT9ZSXtMMQH7p1Vj7W3ziQCyow8QW79bB0VWUuz7oI4ChbdhDq2XHugrqrs2oqNrwI7xPEfNrZjZ/Bjock/dvwKdvIgZsXIv6bwS73BsDyvGJ12Fz01CfBg42D/UdlK9aQx0SWZzbSKzLM7CmGuwwtNbhoCmm3PkX1D2MiS2QLcbx7OrOIIr+xMwlC9m8OUHkhXBAqaL6TZqaYsr1CY2tOVS/izrF2BiXbGPq3jWAcu7KCSCXoF6yIGTAH8Ml17O91J2Fa3+SPLzZAYZYfoRLDoBYxILoP/D+D4gVhFlE8VpmNS+gJ30imIRXbLyIfZNXQofjf4e+js0twrueMMY8xubNCQDdaSPG1KNeQTwmFrx/lj3r3g5gu9JTCRweCobtpX2gv8FEgjoPciFObsenL4UNSAM2+htxtBB1mxFrUFXE3AEYRO5GvSIS43oOYdNne83B+fMQC+AypwbhqfB+KIk6amiu10BdtiNjAIeJJmBlEeWjV+HTdYgB0XpEO1GZjSqoE5Qv0lB8CuQCvHOY2CDyPDvW7qWhUJO5+5xMI3vEGNTtwR3cEmx2KIk6KuAODyhJ9xt4dxAhypzj/HBdR1fg3O+RKFi3SH2vfwgRYlcF6YlBUw88DEBcl3XS+mwhzUjo3+zeeCwTQGM54WzQe3/ej+guxISQLTIFED5fn1B59Wpc+jAmFygpI+8wOvWgHhMZ1K+nXHod2kwWdEA4I9udZmpgT3/uHpu8PLHbg717UB0PKG+9ZaHNUHn1NnzyPcQYxBqC3qSKu8HzUHjYWsX7MnDtw59kxjFY8m2d6qE9KKty6We4tAV4HzGZlFQfeDXZwq41f+wNJH2te8B9dn8SgH0AK5N6cQtHq0S5QocLYqhzLepWI5EJni+BWYydzezm63vFTGN9tqYeGGCBcrqAwwSzms9CdWaVeX4URHlVz+3HHLRaPLuDBalk4w2qk4lyT9NQ/Dm0mqB52wzIewOWO/M0AWeZgzWLMPZMlDTcNHuGYRWHqBt0Q2LApx4T38GcI53kW6ZnEvT9vs0pwPQw5DI/RsB7wympfjkQvCrqwbjK4PpD9mwkC+HiQ6hmG97dDibBp4AsxkR/ZVbzAjTehHoQ4uz25oSTbx8r4Mt8xq8rwsQSof4IGpeHrT+4Afwp6qmUfgnuKyAnzGUeke2C7rNR906Ijl6BOczfMHM0XGb42le7Z96ShSAXo86H9JydlF/5sB9PD0DY/5WEVKe8ZgPCpaD/ykx7BmI6wntCFLVRLU4u6p8AnDTgjLxTewMmilF6QqKpb46cJPZ6umZhN4EOR1NTzM5Xynh/OarbstdzQc7PzCLg9FIcKcoNB1igyzG1MB6Rm1CX1SAAkU39CiODZhM7YKZg05s3h+pOZc37eL8M5SMQB95XZTQguoJZrXXQ5YZL94cAXLCAMq7uekw8PQh2iQNwNg5d8DtR2dG4D6z0s43ektSu0juouyHUNXqTAxOy79xM7KGvhnEFezKABbo8s1rrUO4KuRYgRvBuH7W5t4Yv+AFW6rKD0aEjZFcKTTGVNS+jyRMhOeilQsmc794qkzOjAC7YwJ2HvoWN5wQNrBJkpGzhPy8eHlFNeR3fZ84K2lv30EHJQbe5B598jJhsPgmqzuQaaTj8QCbgR8w4gu0uKE5E5B401RBeMzWlvBb2NISa6q2dybT+9yW5YZODD0r7UH0UiSQT8YBYfOIQexcNSx8MQaZtuDS/Ney0Rx/ExvWohpM40VX824NCcu9NZ5ytelF2mCcK2OOrbkQGcLxA9Dg+6ckqUNpbjdK0h6ju+8BtIZD01euGcDr5sMoOFdSEjMNUhqmwhzkWLZ8C5lK8AxGbBZvZzNw0Y/CHm3YPbULl5R2obsBEUqWlE0xNjuTok0z9b3tWjPFDAM7KnZVSO+74/Zg47uNTB6ofhH6NAwC3CrR7utM7sHYi+CSA0wQT1WH9zQHgwGCwPmxC6AzdxYe6Ry7G9TxKpXRToMN2HaEu0R7qEpXOH+CS24OzRQbVw3jJRHz7gIjYqOSL12Lie1EFsTFiJFChBxPfR755eXCitiFqbrIpRFIMJo5w3T+hUrq1qq+OLMz7fXS5YjESPwmax7nJ7O7cX1WJCWMXFCeQcD9iG/HubISJQA2qBiFFTA9QIdFV7CntqQIRqkzzm2eT2goiDq/fofLq41ViX0/he0b23WHu4nPIFx+hYdm0kTeZtaammOnLxzG1MJ7py8f1cWrb0JXS/JVn0VB8jXzx8tP5HDb4w+GI5fxWO+aPhU1NMQ2F2sHrjb3JKU4kQ/yd4uEM3/4PmRaXM6DUzr0AAAAASUVORK5CYII=',bama:'data:image/png;base64,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',saints:'data:image/png;base64,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'};
+const LGC={CFB:'--lg-cfb',MLB:'--lg-mlb',NFL:'--lg-nfl',NBA:'--lg-nba',NHL:'--lg-nhl',CBB:'--lg-cbb',MLS:'--lg-mls'};
+const lgc=c=>`var(${LGC[c]||'--focus'})`;
+
+/* ---------------- tooltip ---------------- */
+const tt=document.getElementById('tt');
+function bindTip(el,html){
+  el.addEventListener('mouseenter',e=>{tt.innerHTML=html;tt.style.display='block';place(e)});
+  el.addEventListener('mousemove',place);
+  el.addEventListener('mouseleave',()=>tt.style.display='none');
+}
+function place(e){
+  const r=tt.getBoundingClientRect();
+  let x=e.clientX+15, y=e.clientY-r.height-11;
+  if(x+r.width>innerWidth-10) x=e.clientX-r.width-15;
+  if(y<8) y=e.clientY+18;
+  tt.style.left=x+'px'; tt.style.top=y+'px';
+}
+
+/* ---------------- A1/A2: fixed-text season chart ---------------- */
+/* Key difference from today: the viewBox width tracks the container, so 1 SVG unit
+   is always 1 CSS px and text never scales. Height is pinned. */
+function seasonChart(host,{height=132,hover=false,color='var(--focus)'}={}){
+  const draw=()=>{
+    const W=Math.max(host.clientWidth||300,180), H=height;
+    const PADL=26, PADR=14, PADB=20, PADT=8;
+    const ys=Object.keys(SEASONS).map(Number), y0=Math.min(...ys), y1=Math.max(...ys);
+    const n=y1-y0+1, plotW=W-PADL-PADR, bw=plotW/n;
+    const max=Math.max(...Object.values(SEASONS));
+    const gy=v=>H-PADB-(v/max)*(H-PADB-PADT);
+    let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" style="display:block;overflow:visible">`;
+    [Math.round(max/2),max].forEach(v=>{
+      s+=`<line x1="${PADL}" x2="${W-PADR}" y1="${gy(v).toFixed(1)}" y2="${gy(v).toFixed(1)}" stroke="var(--grid)"/>`
+       + `<text x="${PADL-5}" y="${(gy(v)+3.5).toFixed(1)}" text-anchor="end" font-size="10" font-family="Consolas,monospace" fill="var(--ink-3)">${v}</text>`;
+    });
+    s+=`<line x1="${PADL}" x2="${W-PADR}" y1="${H-PADB}" y2="${H-PADB}" stroke="var(--line-strong)"/>`;
+    const every=n>20?5:n>8?2:1;
+    for(let y=y0;y<=y1;y++){
+      const v=SEASONS[y]||0, x=PADL+(y-y0)*bw;
+      if(v>0) s+=`<rect class="sb" data-y="${y}" data-v="${v}" x="${(x+.6).toFixed(1)}" y="${gy(v).toFixed(1)}" `
+        +`width="${Math.max(bw-1.6,1.4).toFixed(1)}" height="${(H-PADB-gy(v)).toFixed(1)}" rx="1.5" fill="${color}"/>`;
+      if(y%every===0){
+        /* the 1.2 fix: last tick anchors end so it can never be clipped */
+        const isLast=y+every>y1, cx=x+bw/2;
+        s+=`<text x="${(isLast?Math.min(cx,W-PADR):cx).toFixed(1)}" y="${H-6}" text-anchor="${isLast?'end':'middle'}" `
+          +`font-size="10" font-family="Consolas,monospace" fill="var(--ink-3)">'${String(y).slice(2)}</text>`;
+      }
+    }
+    host.innerHTML=s+'</svg>';
+    if(hover) host.querySelectorAll('.sb').forEach(b=>{
+      b.style.cursor='pointer';
+      const y=b.dataset.y, v=+b.dataset.v;
+      const mix=y>=2021?'CFB 6 · NHL 3 · MLB 2':y>=2013?'CFB 8 · MLB 2':'CFB '+v;
+      bindTip(b,`<div class="t-h">${y} — ${v} game${v>1?'s':''}</div>`
+        +`<div class="t-s">${mix}</div><div class="t-s">Record when there: ${Math.round(v*.7)}–${v-Math.round(v*.7)}</div>`);
+      b.addEventListener('mouseenter',()=>b.setAttribute('opacity','.65'));
+      b.addEventListener('mouseleave',()=>b.removeAttribute('opacity'));
+    });
+  };
+  draw(); new ResizeObserver(draw).observe(host);
+}
+seasonChart(document.getElementById('a1-wide'));
+seasonChart(document.getElementById('a1-narrow'));
+seasonChart(document.getElementById('a2'),{hover:true,height:150});
+seasonChart(document.getElementById('c1-chart'),{height:110});
+
+/* ---------------- A3: heatmap strip ---------------- */
+(()=>{
+  const ys=Object.keys(SEASONS).map(Number),y0=Math.min(...ys),y1=Math.max(...ys);
+  const max=Math.max(...Object.values(SEASONS));
+  let h='<div style="display:flex;gap:2px;align-items:flex-end;flex-wrap:nowrap">';
+  for(let y=y0;y<=y1;y++){
+    const v=SEASONS[y]||0, pct=v?Math.round(18+ (v/max)*77):0;
+    h+=`<div class="hm" data-y="${y}" data-v="${v}" style="flex:1;min-width:6px;height:30px;border-radius:3px;`
+      +`background:${v?`color-mix(in srgb,var(--focus) ${pct}%,var(--panel-2))`:'var(--panel-2)'};`
+      +`border:1px solid ${v?'transparent':'var(--line)'}"></div>`;
+  }
+  h+='</div><div style="display:flex;justify-content:space-between;margin-top:5px;font-size:10px;'
+    +'font-family:Consolas,monospace;color:var(--ink-3)"><span>'+y0+'</span><span>'+y1+'</span></div>';
+  const host=document.getElementById('a3'); host.innerHTML=h;
+  host.querySelectorAll('.hm').forEach(c=>{c.style.cursor='pointer';
+    bindTip(c,`<div class="t-h">${c.dataset.y}</div><div class="t-s">${c.dataset.v} game${c.dataset.v==1?'':'s'} attended</div>`)});
+})();
+
+/* ---------------- B: logo treatments ---------------- */
+const BROWS=[['spurs','San Antonio Spurs','NBA'],['ducks','Anaheim Ducks','NHL'],
+  ['yankees','New York Yankees','MLB'],['saints','New Orleans Saints','NFL'],['bama','Alabama','CFB']];
+function logoRows(mode){
+  return BROWS.map(([k,name,lg])=>{
+    let st='width:24px;height:24px;object-fit:contain;border-radius:5px;flex:0 0 auto;display:block';
+    const dark=k!=='bama';
+    if(mode==='plate'||(mode==='auto'&&dark))
+      st+=';background:#f4f4f1;padding:2px;box-shadow:0 0 0 1px var(--line)';
+    if(mode==='ring')
+      st+=';filter:drop-shadow(0 0 .5px #fff) drop-shadow(0 0 1.2px rgba(255,255,255,.85))';
+    return `<div style="display:flex;align-items:center;gap:9px;padding:7px 2px;border-bottom:1px solid var(--line)">`
+      +`<span class="lg" style="background:${lgc(lg)}">${lg}</span>`
+      +`<img src="${LOGOS[k]}" style="${st}" alt="">`
+      +`<span style="font-size:13.5px">${name}</span></div>`;
+  }).join('');
+}
+b0.innerHTML=logoRows('none'); b1.innerHTML=logoRows('plate');
+b2.innerHTML=logoRows('ring'); b3.innerHTML=logoRows('auto');
+
+/* ---------------- C: game logs ---------------- */
+const GAMES=[
+ ['Nov 29, 2025','Alabama','Auburn','W','27–20','Jordan-Hare Stadium, Auburn AL',1,'A'],
+ ['Nov 22, 2025','Eastern Illinois','Alabama','W','56–0','Bryant-Denny Stadium, Tuscaloosa AL',1,'H'],
+ ['Nov 15, 2025','Oklahoma','Alabama','W','21–23','Bryant-Denny Stadium, Tuscaloosa AL',1,'H'],
+ ['Nov 8, 2025','LSU','Alabama','W','20–9','Bryant-Denny Stadium, Tuscaloosa AL',1,'H'],
+ ['Oct 11, 2025','Alabama','Missouri','W','27–24','Memorial Stadium, Columbia MO',0,'A'],
+ ['Oct 4, 2025','Vanderbilt','Alabama','W','30–14','Bryant-Denny Stadium, Tuscaloosa AL',1,'H'],
+ ['Sep 13, 2025','Wisconsin','Alabama','W','38–14','Bryant-Denny Stadium, Tuscaloosa AL',1,'H'],
+ ['Aug 30, 2025','Alabama','Florida State','L','17–31','Doak Campbell Stadium, Tallahassee FL',1,'A'],
+ ['Jan 1, 2026','Alabama','Indiana','L','3–38','Rose Bowl, Pasadena CA',0,'N'],
+ ['Dec 19, 2025','Alabama','Oklahoma','W','34–24','Memorial Stadium, Norman OK',0,'A'],
+ ['Dec 6, 2025','Georgia','Alabama','L','7–28','Mercedes-Benz Stadium, Atlanta GA',0,'N'],
+ ['Nov 30, 2024','Auburn','Alabama','W','28–14','Bryant-Denny Stadium, Tuscaloosa AL',1,'H']];
+function logTable(cols){
+  const ha=cols.includes('ha');
+  let h=`<table><thead><tr style="position:sticky;top:0;background:var(--panel);z-index:2">`
+    +`<th>Date</th>${ha?'<th></th>':''}<th>Matchup</th><th>Result</th><th>Venue</th><th>Passport</th></tr></thead><tbody>`;
+  GAMES.forEach(([d,a,hm,r,sc,v,att,loc])=>{
+    /* flipped emphasis: attended rows get a tinted background, not everything-else-dimmed */
+    h+=`<tr style="${att?'background:color-mix(in srgb,var(--stamp) 7%,transparent)':''}">`
+      +`<td class="mono" style="font-size:11.5px;color:var(--ink-2);white-space:nowrap">${d}</td>`
+      +(ha?`<td class="mono" style="font-size:11px;color:var(--ink-3)">${loc}</td>`:'')
+      +`<td><span class="rowline">${a} <span style="color:var(--ink-3)">at</span> ${hm}</span></td>`
+      +`<td class="mono" style="white-space:nowrap"><span class="wl ${r.toLowerCase()}">${r}</span> ${sc}</td>`
+      +`<td style="font-size:11.5px;color:var(--ink-2);${ha?'':'max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'}">${ha?v:v.split(',')[0]}</td>`
+      +`<td>${att?'<span class="stamp">Attended</span>':'<span style="font-size:11px;color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:2px 7px">+ I was there</span>'}</td>`
+      +`</tr>`;
+  });
+  return h+'</tbody></table>';
+}
+document.getElementById('c1-log').innerHTML=logTable([]);
+document.getElementById('c2-log').innerHTML=logTable(['ha']);
+
+/* ---------------- D: Find home page ---------------- */
+d1.innerHTML=`
+<div class="panel" style="margin-bottom:13px">
+  <input placeholder='Try "Alabama", "Celtics", "Michigan"…' style="width:100%;font-size:17px;padding:12px 14px;
+    border-radius:11px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-strong)">
+</div>
+<div class="two">
+  <div class="panel"><p class="kicker" style="margin:0 0 10px">On this date · 30 November</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${[[2025,'CFB','Alabama 27 at Auburn 20'],[2024,'CFB','Auburn 14 at Alabama 28'],
+         [2019,'CFB','Alabama 45 at Auburn 48'],[2014,'CFB','Auburn 44 at Alabama 55'],
+         [2013,'CFB','Alabama 28 at Auburn 34'],[2012,'CFB','Louisville 20 at Rutgers 17']].map(([y,l,m])=>
+        `<div style="display:flex;gap:10px;align-items:center">
+          <span class="mono" style="font-size:11.5px;color:var(--ink-3);width:32px">${y}</span>
+          <span class="lg" style="background:${lgc(l)}">${l}</span>
+          <span style="font-size:13px">${m}</span></div>`).join('')}
+      <div style="font-size:12px;color:var(--ink-3);font-style:italic;margin-top:3px">
+        6 games on this date across 34 years — five of them Iron Bowls</div>
+    </div></div>
+  <div class="panel"><p class="kicker" style="margin:0 0 10px">Latest stamps</p>
+    <div style="display:flex;gap:14px">
+      ${[['Jordan-Hare','Nov 29 2025','--stamp','50%'],['Bryant-Denny','Nov 22 2025','--lg-cfb','50%'],
+         ['Bryant-Denny','Nov 15 2025','--win','9px']].map(([n,d,c,r])=>
+        `<div style="width:84px;height:84px;border:2px solid var(${c});border-radius:${r};display:flex;
+          flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2px;
+          font-family:Consolas,monospace;text-transform:uppercase;color:var(${c});opacity:.9;
+          transform:rotate(${Math.round(Math.random()*10-5)}deg);padding:6px">
+          <span style="font-size:7.5px;font-weight:700;line-height:1.15">${n}</span>
+          <span style="font-size:8px;font-weight:700">${d}</span></div>`).join('')}
+    </div></div>
+</div>
+<div class="panel" style="margin-top:13px"><p class="kicker" style="margin:0 0 10px">Your teams</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">${TOPTEAMS.map(([t,c])=>
+    `<span class="chip">${t} <b class="mono" style="font-size:11px;color:var(--ink-3)">${c}</b></span>`).join('')}</div></div>
+<p class="hint">Real data — 30 November is genuinely the busiest date in your log (6 games, five Iron Bowls).
+Nothing here needs a new endpoint: "on this date" is a filter over the attendance list the page already
+fetches, and the stamps are the same <code>StampCard</code> the My log page uses. Caveat: most calendar dates
+have <b>zero</b> games, so the panel needs a graceful fallback — nearest anniversary, or "this week in your
+passport" instead of a single day.</p>`;
+
+d2.innerHTML=`
+<div class="panel" style="margin-bottom:13px">
+  <input placeholder='Try "Alabama", "Celtics", "Michigan"…' style="width:100%;font-size:17px;padding:12px 14px;
+    border-radius:11px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-strong)">
+</div>
+<div class="tiles" style="margin-bottom:13px">
+  <div class="tile"><div class="n">235</div><div class="kicker">Games</div></div>
+  <div class="tile"><div class="n">63</div><div class="kicker">Venues</div></div>
+  <div class="tile"><div class="n">25</div><div class="kicker">States</div></div>
+  <div class="tile"><div class="n">34</div><div class="kicker">Years</div></div>
+</div>
+<div class="two">
+  <div class="panel"><p class="kicker" style="margin:0 0 10px">Games per season</p><div id="d2c"></div></div>
+  <div class="panel"><p class="kicker" style="margin:0 0 10px">Most-visited venues</p>
+    ${VENUES.map(([n,c,v])=>`<div style="display:flex;align-items:center;gap:9px;margin-bottom:7px">
+      <span style="font-size:12px;width:135px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+       title="${n}">${n}</span>
+      <span style="flex:1;height:9px;border-radius:3px;background:var(--panel-2);overflow:hidden">
+        <span style="display:block;height:100%;width:${Math.max(v/76*100,4)}%;background:var(--focus);border-radius:3px"></span></span>
+      <span class="mono" style="font-size:11px;color:var(--ink-2);width:20px;text-align:right">${v}</span></div>`).join('')}
+  </div>
+</div>
+<p class="hint">Honest trade-off: this is a good dashboard, but it is largely the Stats page moved to the
+front door. If you like it, the argument for a separate Stats page gets weaker.</p>`;
+seasonChart(document.getElementById('d2c'),{height:120});
+
+d3.innerHTML=`
+<div class="panel" style="margin-bottom:13px">
+  <input placeholder='Try "Alabama", "Celtics", "Michigan"…' style="width:100%;font-size:17px;padding:12px 14px;
+    border-radius:11px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line-strong)">
+</div>
+<div class="panel"><p class="kicker" style="margin:0 0 11px">Coming up for your teams</p>
+${[['Sat Aug 30','CFB','Alabama at Florida State','Doak Campbell Stadium · Tallahassee FL','7:30p'],
+   ['Sun Aug 31','MLB','Yankees at Red Sox','Fenway Park · Boston MA','1:35p'],
+   ['Sat Sep 6','CFB','UL Monroe at Alabama','Bryant-Denny Stadium · Tuscaloosa AL','3:00p'],
+   ['Wed Sep 10','NHL','Rangers at Devils','Prudential Center · Newark NJ','7:00p']].map(([d,l,m,v,t])=>
+`<div style="display:flex;align-items:center;gap:11px;padding:8px 2px;border-bottom:1px solid var(--line)">
+  <span class="mono" style="font-size:11.5px;color:var(--ink-2);width:74px">${d}</span>
+  <span class="lg" style="background:${lgc(l)}">${l}</span>
+  <span style="font-size:13.5px">${m}</span>
+  <span style="font-size:11.5px;color:var(--ink-3);margin-left:auto">${v} · ${t}</span>
+</div>`).join('')}
+<p class="hint">The database already holds future games — the team workspace shows Alabama's 2026 schedule
+today. What's missing is a cross-team "next N games for teams I've attended" query. This is the variant that
+answers <i>"what could I go to?"</i> rather than <i>"what have I been to?"</i></p></div>`;
+
+/* ---------------- E: My log ---------------- */
+const LEDGER=[
+ ['Nov 29, 2025','CFB','Alabama 27 at Auburn 20','Jordan-Hare Stadium','Auburn, AL','W','Cold. Iron Bowl with Dad.'],
+ ['Nov 22, 2025','CFB','Eastern Illinois 0 at Alabama 56','Bryant-Denny Stadium','Tuscaloosa, AL','W',''],
+ ['Nov 15, 2025','CFB','Oklahoma 23 at Alabama 21','Bryant-Denny Stadium','Tuscaloosa, AL','L',''],
+ ['Jan 19, 2025','NBA','Spurs 107 at Heat 128','Kaseya Center','Miami, FL','',''],
+ ['Jan 18, 2025','NHL','Ducks 0 at Panthers 3','Amerant Bank Arena','Sunrise, FL','','']];
+e1.innerHTML=`
+<div class="panel" style="margin-bottom:12px;display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+  <input placeholder="Search team, venue, note…" style="flex:1;min-width:180px;font-size:13px;padding:7px 11px;
+    border-radius:8px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line)">
+  ${['All','CFB','MLB','NFL','NBA','NHL','CBB','MLS'].map((c,i)=>
+    `<span class="chip" style="font-size:11px;padding:4px 11px;${i===0?'border-color:var(--line-strong);font-weight:700':''}">
+      ${i?`<span class="dot" style="background:${lgc(c)}"></span>`:''}${c}</span>`).join('')}
+  <select style="font-size:12px;padding:6px 9px;border-radius:8px;background:var(--panel-2);color:var(--ink);
+    border:1px solid var(--line)"><option>All seasons</option><option>2025</option><option>2024</option></select>
+  <span style="font-size:11.5px;color:var(--ink-3);margin-left:auto">235 of 235</span>
+</div>
+<div class="panel" style="padding:0">
+${LEDGER.map(([d,l,m,v,c,r,note])=>`
+<div style="padding:9px 13px;border-bottom:1px solid var(--line)">
+ <div style="display:flex;align-items:center;gap:11px;flex-wrap:wrap">
+  <span class="mono" style="font-size:11.5px;color:var(--ink-2);width:86px;flex:0 0 auto">${d}</span>
+  <span class="lg" style="background:${lgc(l)}">${l}</span>
+  <span style="font-size:13.5px">${m}</span>
+  ${r?`<span class="wl ${r.toLowerCase()}" title="Result for the team you follow">${r}</span>`:''}
+  <span style="font-size:11.5px;color:var(--ink-3)">${v} · ${c}</span>
+  <span style="font-size:11.5px;color:var(--ink-3);margin-left:auto">${note?'📝':''}</span>
+  <span style="display:flex;gap:6px">
+    <span style="font-size:11px;color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:2px 8px">Notes</span>
+    <span style="font-size:11px;color:var(--loss);border:1px solid var(--line);border-radius:4px;padding:2px 8px">Remove</span>
+  </span>
+ </div>
+ ${note?`<p style="margin:6px 0 0 97px;font-size:12.5px;font-style:italic;font-family:Georgia,serif;
+   color:var(--ink-2);border-left:2px solid var(--stamp);padding-left:10px">${note}</p>`:''}
+</div>`).join('')}
+</div>
+<p class="hint">The dead gutter now carries the <b>city</b> (previously truncated away) and a <b>W/L</b> chip.
+The header count updates as you filter, so the list tells you how much of the log you're looking at.</p>`;
+
+e2.innerHTML=`
+<style>.e2row .acts{opacity:0;transition:opacity .12s}.e2row:hover .acts{opacity:1}
+.e2row:hover{background:var(--panel-2)}</style>
+<div class="panel" style="padding:0">
+  <div style="padding:9px 13px;background:var(--panel-2);border-bottom:1px solid var(--line);
+    display:flex;align-items:baseline;gap:10px">
+    <span style="font-weight:800;font-size:14px">2025</span>
+    <span class="kicker" style="font-size:10px">8 games · 5 venues · 6–2</span>
+  </div>
+${LEDGER.slice(0,3).map(([d,l,m,v,c,r])=>`
+<div class="e2row" style="padding:9px 13px;border-bottom:1px solid var(--line);display:flex;
+  align-items:center;gap:11px">
+  <span class="mono" style="font-size:11.5px;color:var(--ink-2);width:52px">${d.slice(0,6)}</span>
+  <span class="lg" style="background:${lgc(l)}">${l}</span>
+  <span style="font-size:13.5px">${m}</span>
+  <span style="font-size:11.5px;color:var(--ink-3)">${v}</span>
+  <span class="acts" style="margin-left:auto;display:flex;gap:6px">
+    <span style="font-size:11px;color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:2px 8px">Notes</span>
+    <span style="font-size:11px;color:var(--loss);border:1px solid var(--line);border-radius:4px;padding:2px 8px">Remove</span>
+  </span>
+</div>`).join('')}
+  <div style="padding:9px 13px;background:var(--panel-2);border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:10px">
+    <span style="font-weight:800;font-size:14px">2024</span>
+    <span class="kicker" style="font-size:10px">15 games · 9 venues · 11–4</span>
+  </div>
+${LEDGER.slice(3).map(([d,l,m,v])=>`
+<div class="e2row" style="padding:9px 13px;border-bottom:1px solid var(--line);display:flex;
+  align-items:center;gap:11px">
+  <span class="mono" style="font-size:11.5px;color:var(--ink-2);width:52px">${d.slice(0,6)}</span>
+  <span class="lg" style="background:${lgc(l)}">${l}</span>
+  <span style="font-size:13.5px">${m}</span>
+  <span style="font-size:11.5px;color:var(--ink-3)">${v}</span>
+  <span class="acts" style="margin-left:auto;display:flex;gap:6px">
+    <span style="font-size:11px;color:var(--ink-3);border:1px solid var(--line);border-radius:4px;padding:2px 8px">Notes</span>
+    <span style="font-size:11px;color:var(--loss);border:1px solid var(--line);border-radius:4px;padding:2px 8px">Remove</span>
+  </span>
+</div>`).join('')}
+</div>
+<p class="hint">Hover a row to reveal the actions. Season headers double as mini-summaries — the per-season
+record is a stat the app computes nowhere today.</p>`;
+
+/* ---------------- F: top teams ---------------- */
+const REAL_LOGO={'Alabama':'bama','New York Yankees':'yankees'};
+const MONO={'Auburn':'AUB','New York Rangers':'NYR','LSU':'LSU','Florida':'FLA',
+  'Tennessee':'TENN','Georgia':'UGA'};
+function teamBars(host,scale,useLogos){
+  const max=TOPTEAMS[0][1], second=TOPTEAMS[1][1];
+  host.innerHTML='<div class="panel">'+TOPTEAMS.map(([t,c],i)=>{
+    let pct;
+    if(scale==='linear') pct=c/max*100;
+    else if(scale==='runner') pct=i===0?100:Math.min(c/second*100,100);
+    else pct=Math.sqrt(c)/Math.sqrt(max)*100;
+    const capped=scale==='runner'&&i===0;
+    const lg=t==='New York Rangers'?'NHL':t==='New York Yankees'?'MLB':'CFB';
+    return `<div style="display:flex;align-items:center;gap:9px;margin-bottom:7px">
+      ${useLogos?(REAL_LOGO[t]
+          ? `<img src="${LOGOS[REAL_LOGO[t]]}" style="width:19px;height:19px;object-fit:contain;flex:0 0 auto;`
+            +`${t!=='Alabama'?'background:#f4f4f1;border-radius:4px;padding:1px':''}" alt="">`
+          /* teams whose logo isn't inlined in this mockup fall back to the app's real monogram badge */
+          : `<span style="width:19px;height:19px;border-radius:4px;flex:0 0 auto;display:inline-flex;
+              align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff;
+              background:${lgc(lg)}">${MONO[t]}</span>`)
+        :`<span class="dot" style="background:${lgc(lg)}"></span>`}
+      <span style="font-size:12px;width:118px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+        title="${t}">${t}</span>
+      <span style="flex:1;height:10px;border-radius:3px;background:var(--panel-2);overflow:hidden;position:relative">
+        <span style="display:block;height:100%;width:${pct.toFixed(1)}%;border-radius:3px;
+          background:${capped?`repeating-linear-gradient(115deg,var(--focus),var(--focus) 7px,color-mix(in srgb,var(--focus) 62%,transparent) 7px,color-mix(in srgb,var(--focus) 62%,transparent) 12px)`:'var(--focus)'}"></span>
+      </span>
+      <span class="mono" style="font-size:11.5px;color:var(--ink-2);width:26px;text-align:right">${c}</span>
+    </div>`;
+  }).join('')
+  +(scale==='runner'?'<p class="hint" style="margin-top:9px">Alabama\'s bar is hatched to signal it\'s off-scale — '
+    +'everything else is measured against Auburn\'s 29.</p>'
+    :scale==='sqrt'?'<p class="hint" style="margin-top:9px">√-scaled. Ranks 2–8 separate, but the bar lengths '
+    +'no longer mean what a reader assumes they mean.</p>':'')
+  +'</div>';
+}
+teamBars(f0,'linear',false); teamBars(f1,'runner',true); teamBars(f2,'sqrt',false);
+
+/* ---------------- G: map shading ---------------- */
+/* Schematic US grid — real geometry comes from usOutline.ts */
+const GRID=[['WA',1,1],['MT',2,1],['ND',3,1],['MN',4,1],['WI',5,1],['MI',6,1],['NY',8,1],['VT',9,1],['ME',10,1],
+['OR',1,2],['ID',2,2],['SD',3,2],['IA',4,2],['IL',5,2],['IN',6,2],['OH',7,2],['PA',8,2],['NJ',9,2],['MA',10,2],
+['CA',1,3],['NV',2,3],['WY',3,3],['NE',4,3],['MO',5,3],['KY',6,3],['WV',7,3],['VA',8,3],['MD',9,3],['CT',10,3],
+['UT',2,4],['CO',3,4],['KS',4,4],['AR',5,4],['TN',6,4],['NC',7,4],['SC',8,4],
+['AZ',2,5],['NM',3,5],['OK',4,5],['LA',5,5],['MS',6,5],['AL',7,5],['GA',8,5],
+['TX',4,6],['FL',9,6]];
+function usMap(host,shade){
+  const dots=[['AL',7,5,76,'CFB'],['NY',8,1,47,'NHL'],['GA',8,5,17,'CFB'],['NJ',9,2,15,'NHL'],
+    ['LA',5,5,11,'CFB'],['FL',9,6,10,'NHL'],['CA',1,3,5,'MLB'],['TX',4,6,5,'MLB'],['TN',6,4,7,'CFB']];
+  const ink=n=>{if(!n)return 'var(--panel-2)';const p=n>=40?70:n>=15?50:n>=7?34:n>=3?22:13;
+    return `color-mix(in srgb,var(--focus) ${p}%,var(--panel-2))`};
+  let s=`<svg viewBox="0 0 460 300" width="100%" style="display:block">`;
+  GRID.forEach(([c,x,y])=>{
+    const n=STATES[c]||0;
+    s+=`<rect x="${x*42-4}" y="${y*42-4}" width="38" height="38" rx="4" `
+      +`fill="${shade?ink(n):'var(--panel-2)'}" stroke="var(--line)"/>`
+      +`<text x="${x*42+15}" y="${y*42+32}" text-anchor="middle" font-size="9.5" font-family="Consolas,monospace" `
+      +`fill="var(--ink-3)">${c}</text>`;
+  });
+  /* dots sit above the label so both stay readable in the schematic */
+  dots.forEach(([c,x,y,n,lg])=>{
+    s+=`<circle cx="${x*42+15}" cy="${y*42+13}" r="${(2.8+Math.sqrt(n)*1.1).toFixed(1)}" fill="${lgc(lg)}" `
+      +`fill-opacity=".92" stroke="var(--page)" stroke-width="1.4"/>`;
+  });
+  host.innerHTML=s+'</svg>'+(shade
+    ?`<p class="hint">Fill = games in that state (same scale as the Stats tile map); dots = venues, sized by
+      games and coloured by league.</p>`
+    :`<p class="hint">Every state the same fill — the boundaries are drawn but carry no information.</p>`);
+}
+usMap(document.getElementById('g0'),false);
+usMap(document.getElementById('g1'),true);
+
+/* ---------------- theme toggle ---------------- */
+const btn=document.getElementById('tbtn');
+btn.onclick=()=>{
+  const dark=document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme',dark?'light':'dark');
+  btn.textContent=dark?'Dark':'Light';
+};
+</script>
+</body>
+</html>

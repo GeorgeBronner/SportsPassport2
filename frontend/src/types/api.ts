@@ -147,6 +147,24 @@ export interface AttendanceUpdate {
   notes?: string | null; // explicit null clears the saved note
 }
 
+export interface TopTeamCount {
+  team_id: number;
+  name: string;
+  league_code: string;
+  logo_url: string | null;
+  abbreviation: string | null;
+  count: number;
+}
+
+export interface SeasonBreakdown {
+  games: number;
+  venues: number;
+  leagues: Record<string, number>;
+  home_wins: number;
+  home_losses: number;
+  home_ties: number;
+}
+
 export interface AttendanceStats {
   total_games: number;
   unique_stadiums: number;
@@ -160,6 +178,20 @@ export interface AttendanceStats {
   venues: TeamVenueCount[];
   first_game_date: string | null;
   last_game_date: string | null;
+  /** Record from the home team's perspective — there is no "your team" for
+   *  the log as a whole, so this is the one well-defined aggregate record. */
+  home_wins: number;
+  home_losses: number;
+  home_ties: number;
+  /** Same ranking as games_by_team, with the identity needed for badges/links. */
+  top_teams: TopTeamCount[];
+  games_by_weekday: Record<number, number>; // 0 = Monday
+  games_by_month: Record<number, number>; // 1 = January
+  season_breakdown: Record<number, SeasonBreakdown>;
+  new_venues_by_season: Record<number, number>;
+  longest_gap_days: number | null;
+  longest_gap_start: string | null;
+  longest_gap_end: string | null;
 }
 
 export interface AttendanceVenuePoint {

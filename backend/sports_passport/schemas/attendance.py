@@ -38,6 +38,31 @@ class AttendanceVenueCount(BaseModel):
     count: int
 
 
+class TopTeamCount(BaseModel):
+    """A most-seen team with enough identity to render its badge and link.
+
+    `games_by_team` is keyed by name alone, which is fine for a bare count but
+    can't produce a logo or a link to the team workspace — and two teams can
+    share a name across leagues (Alabama fields both a CFB and a CBB side).
+    """
+    team_id: int
+    name: str
+    league_code: str
+    logo_url: str | None = None
+    abbreviation: str | None = None
+    count: int
+
+
+class SeasonBreakdown(BaseModel):
+    """One season's slice of the log — feeds season headers and chart tooltips."""
+    games: int
+    venues: int
+    leagues: dict[str, int] = {}
+    home_wins: int = 0
+    home_losses: int = 0
+    home_ties: int = 0
+
+
 class AttendanceStats(BaseModel):
     total_games: int
     unique_stadiums: int
@@ -52,7 +77,32 @@ class AttendanceStats(BaseModel):
     first_game_date: datetime | None = None  # naive, stored as UTC — see field_serializer below
     last_game_date: datetime | None = None
 
-    @field_serializer("first_game_date", "last_game_date")
+    # --- additions below are all defaulted, so older clients keep working ---
+
+    # Record from the *home* team's perspective. There is no "your team" for the
+    # log as a whole, so this is the one well-defined aggregate record available:
+    # how often the home side won with you in the building.
+    home_wins: int = 0
+    home_losses: int = 0
+    home_ties: int = 0
+
+    # Same ranking as games_by_team, but carrying team identity so the UI can
+    # show logos and link through. Capped server-side; the old name-keyed map
+    # stays for compatibility.
+    top_teams: list[TopTeamCount] = []
+
+    games_by_weekday: dict[int, int] = {}  # 0 = Monday, matching date.weekday()
+    games_by_month: dict[int, int] = {}  # 1 = January
+    season_breakdown: dict[int, SeasonBreakdown] = {}
+    # Venues stamped for the first time in each season — the "collector" metric.
+    new_venues_by_season: dict[int, int] = {}
+    longest_gap_days: int | None = None
+    longest_gap_start: datetime | None = None
+    longest_gap_end: datetime | None = None
+
+    @field_serializer(
+        "first_game_date", "last_game_date", "longest_gap_start", "longest_gap_end"
+    )
     def _serialize_game_dates(self, value: datetime | None) -> str | None:
         return naive_utc_isoformat(value)
 
