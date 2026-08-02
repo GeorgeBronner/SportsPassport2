@@ -513,7 +513,7 @@ nflverse owns would silently reset the 31 clubs the backfill widened.
 Noticed 2026-08-01 while adding ruff/pyright. `uv run alembic check` against a
 long-lived local `backend/sports_passport.db` fails with:
 
-```
+```text
 Detected removed unique constraint 'uq_sync_state_league' on 'sync_state'
 Detected changed index 'ix_sync_state_league_id' on 'sync_state': unique=False to unique=True
 ```
@@ -553,7 +553,7 @@ SELECT sql FROM sqlite_master WHERE name = 'ix_sync_state_league_id';
 -- "CREATE UNIQUE INDEX ..." = current;  "CREATE INDEX ..." = the old shape
 ```
 
-To clear it locally, rebuild from migrations (`rm backend/sports_passport.db &&
+To clear it locally, rebuild from migrations (`cd backend && rm sports_passport.db &&
 uv run alembic upgrade head`, then re-import). The production volume predates the
 `create_all()` removal, so assume it has the old shape until that query says
 otherwise — check it there before ever trusting `alembic check` in CI.

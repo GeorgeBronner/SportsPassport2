@@ -27,11 +27,20 @@ def _hash_token(token: str) -> str:
 
 def _send_reset_email(to_email: str, to_name: str, reset_url: str) -> None:
     if not settings.mailtrap_api_key:
-        logger.warning(
-            "MAILTRAP_API_KEY not set — skipping email send for %s. Link: %s",
-            to_email,
-            reset_url,
-        )
+        # The URL carries the raw token, which authorizes a reset until it expires,
+        # so it reaches the log only under DEBUG — where the developer has no other
+        # way to get at it, the token being stored hashed. A key left unset in
+        # production must not leave live reset links sitting in the log stream.
+        if settings.debug:
+            logger.warning(
+                "MAILTRAP_API_KEY not set — skipping email send for %s. Link: %s",
+                to_email,
+                reset_url,
+            )
+        else:
+            logger.warning(
+                "MAILTRAP_API_KEY not set — skipping password reset email for %s", to_email
+            )
         return
 
     client = mt.MailtrapClient(token=settings.mailtrap_api_key)
