@@ -536,6 +536,16 @@ class MlsAdapter(LeagueAdapter):
         by_source_id = self._teams_by_source_id(league.id)
         venue_cache: dict[str, Optional[int]] = {}
 
+        # Both ends are clamped to the era this source owns, rather than
+        # trusting the caller's range: `admin.py` accepts start_season down to
+        # 1850, and a bare `start_season <= season` would then import whatever
+        # the file happened to contain below MLS's first season. Today's file
+        # starts exactly at 1996 so nothing leaks, but the maps in this module
+        # (teams, venues, round labels) were built against 1996-2012 and only
+        # that range is validated — a refreshed export that reached further
+        # back would otherwise arrive silently and unmapped.
+        floor = max(start_season, FIRST_MLS_SEASON)
+
         def resolve_team(raw: str) -> Optional[int]:
             raw = (raw or "").strip()
             if raw in DEFUNCT_TEAMS:
@@ -549,7 +559,7 @@ class MlsAdapter(LeagueAdapter):
             except (KeyError, TypeError, ValueError):
                 continue
             # ASA owns everything from FIRST_ASA_SEASON on, whatever was asked for.
-            if not (start_season <= season <= end_season) or season >= FIRST_ASA_SEASON:
+            if not (floor <= season <= end_season) or season >= FIRST_ASA_SEASON:
                 continue
 
             home_raw, away_raw = (row.get("home") or "").strip(), (row.get("away") or "").strip()

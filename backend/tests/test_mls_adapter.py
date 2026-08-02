@@ -452,6 +452,28 @@ class TestSourceBoundary:
         assert asa_row.source_game_id == "asa-nyc-rbny-2015"
 
     @pytest.mark.asyncio
+    async def test_kaggle_rows_before_the_first_mls_season_are_ignored(
+        self, adapter, db_session
+    ):
+        """The floor is clamped to FIRST_MLS_SEASON rather than trusted from the
+        caller: admin.py accepts start_season down to 1850, and this module's
+        team/venue/round maps were built against 1996-2012 only. Today's file
+        starts exactly at 1996, so this guards a refreshed export rather than
+        the current one."""
+        rows = [
+            _kaggle_row(home="Tampa Bay", away="New England", date="4/6/1994",
+                        year="1994", venue="Houlihan's Stadium"),
+            _kaggle_row(date="7/31/1996", year="1996"),
+        ]
+        with patch.object(adapter, "_get", _fake_get()), \
+             patch.object(adapter, "_read_matches_csv", return_value=rows):
+            await adapter.import_teams()
+            result = await adapter.import_historical(1850, 2012)
+
+        assert [g.season for g in db_session.query(Game).all()] == [1996]
+        assert not result.errors
+
+    @pytest.mark.asyncio
     async def test_sync_never_requests_a_pre_asa_season(self, adapter, db_session):
         fake = _fake_get()
         with patch.object(adapter, "_get", fake):

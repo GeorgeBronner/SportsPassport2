@@ -227,7 +227,12 @@ uniqueness and 28 of the 29 seed rows were checked and found correct.
 - [x] Recorded the reused-abbreviation and single-span limitations in
       `docs/SP3_open_issues.md` #9, which the first pass left out.
 
-**Not fixed, flagged instead:** `mls.py` has the identical missing-floor bug
-(`FIRST_MLS_SEASON` is equally dead, and `_import_kaggle` only enforces the upper
-bound). Left alone rather than changing a working league in an NFL PR — worth a
-follow-up.
+- [x] **The same missing-floor bug in `mls.py`** (`FIRST_MLS_SEASON` was declared and
+      never used, so `_import_kaggle` clamped only against the caller's `start_season`).
+      Fixed alongside, on request. Unlike the NFL one this was **latent, not live**: the
+      MLS bulk file starts at exactly 1996, so no row could leak. It is now clamped so a
+      refreshed export reaching further back can't arrive silently against maps that were
+      only validated for 1996–2012. Verified the real import is unchanged —
+      `import_historical(1850, 2012)` still yields exactly 3,601 games, 0 errors,
+      seasons 1996–2012 — and that the new test fails without the clamp. **338 tests
+      green.**
