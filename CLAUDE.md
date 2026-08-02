@@ -25,7 +25,9 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
   Hand-built venue location lookups (city/state/lat-lon) for leagues whose live
   source doesn't carry them — `backend/sports_passport/data/seed/{nfl_stadiums,nhl_arenas,nba_arenas,mls_stadiums}.csv`,
   loaded via `services/adapters/venue_seed.py` — are committed and wired into
-  their adapters; see `docs/SP3_plan.md` Phase 4/7 for scope notes.
+  their adapters; see `docs/SP3_plan.md` Phase 4/7 for scope notes. `nfl_stadiums.csv`
+  also carries 29 `hist-`-prefixed rows for pre-1999 grounds nflverse never saw; the
+  prefix keeps them from ever colliding with a real nflverse `stadium_id`.
   `games.start_date` is **always UTC**; the NBA (Kaggle) and NFL (nflverse) bulk
   files publish US Eastern instead, and are converted on import via
   `services/adapters/local_time.py` — see `docs/SP3_open_issues.md` #7.
@@ -33,11 +35,20 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
   **noon** UTC via `local_time.date_only()`, never midnight — midnight renders as
   the previous day anywhere west of Greenwich if a consumer forgets to pin the row
   to UTC. Use the helper rather than restating the hour; see `SP3_open_issues.md` #8.
-  MLS is the one league on two sources, split at a hard season boundary: the ASA
-  API owns 2013+ and sync, a Kaggle bulk file owns 1996–2012, and neither supplies
-  *games* outside its range (`FIRST_ASA_SEASON`). ASA's `/stadia` is the one
+  **MLS and NFL are each on two sources, split at a hard season boundary**, so the
+  same game can never arrive twice. MLS: the ASA API owns 2013+ and sync, a Kaggle
+  bulk file owns 1996–2012 (`FIRST_ASA_SEASON`). ASA's `/stadia` is the one
   crossover — the Kaggle era reads it so a ground both eras used lands on one venue
   row — and is allowed to fail so a pre-2013 import stays a local CSV read.
+  NFL: nflverse owns 1999+ and all sync, the Kaggle "Spreadspoke" bulk file owns
+  1970–1998 (`FIRST_NFLVERSE_SEASON`). The split is on the **season**, not the date,
+  so the January-1999 playoffs of the 1998 season stay with their own season. Both
+  NFL eras share `source = "nflverse"` deliberately: 31 of the 64 pre-1999 stadiums
+  are buildings nflverse also knows, and `upsert_venue` keys on
+  `(source, source_venue_id)`, so a separate source string would duplicate every one
+  of them. Team identity is keyed on `source_team_id`, never `abbreviation` — the
+  pre-1999 era reuses codes the modern league reassigned (the Oilers were "HOU",
+  now the Texans).
   `venues.state` is a **2-letter code** in every league; the attendance stats group
   on it directly, so long-form names split a state into two buckets.
   These live **inside the package**, not under `settings.data_dir`: `data_dir` is the

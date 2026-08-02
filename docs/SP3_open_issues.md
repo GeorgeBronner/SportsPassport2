@@ -459,3 +459,44 @@ is why those rows are `has_time=False` to begin with.
 rows and is unaffected: a game crossing midnight in the *viewer's* timezone still
 displays on the following day. Closing that still means rendering in the venue's
 timezone.
+
+---
+
+## 9. NFL team eras: reused abbreviations and single-span coverage — open (cosmetic)
+
+Introduced 2026-08-01 by the NFL 1970–1998 backfill (SP3_plan.md Phase 11), which
+adds 7 pre-merger-era team identities alongside the 35 nflverse ones. Both points
+are recorded here rather than treated as defects: games are attributed correctly
+in every case, and the fixes are schema changes, not adapter changes.
+
+**a. Five abbreviations now appear twice in the NFL.** The pre-1999 era reuses codes
+the league later reassigned, so `teams.abbreviation` is no longer unique per league:
+
+| Abbreviation | Historical holder | Modern holder |
+|---|---|---|
+| `BAL` | Baltimore Colts (1953–83) | Baltimore Ravens |
+| `STL` | St. Louis Cardinals (1960–87) | St. Louis Rams |
+| `HOU` | Houston Oilers (1960–96) | Houston Texans |
+| `TEN` | Tennessee Oilers (1997–98) | Tennessee Titans |
+| `LA` | Los Angeles Raiders (1982–94) | Los Angeles Rams |
+
+This is historically accurate — those clubs really did carry those codes — and the
+column has no uniqueness constraint, being display-only (`TeamBadge` initials and
+the like). The identity key is `teams.source_team_id`, which stays unique; `nfl.py`'s
+`_team_lookup` is keyed on it for exactly this reason, and keying it on the
+abbreviation instead is the bug this table exists to warn about. The visible
+consequence is that a team badge alone no longer disambiguates an era.
+
+**b. A team's era is one `(first_season, last_season)` span, so a club that used one
+identity in two separate stretches reads as continuous.** Two cases, both NFL:
+
+- `OAK` — Oakland Raiders, 1970–81 and 1995–2019. The Los Angeles years between
+  are carried by their own `LA-RAIDERS` row, so no game is misfiled, but the
+  Oakland row claims 1970–2019.
+- `CLE` — Cleveland Browns, with the 1996–98 hiatus (the franchise moved to
+  Baltimore; the modern Browns are the 1999 revival) shown as unbroken.
+
+Closing this needs a `team_seasons`-style table holding multiple ranges per team,
+which no other league currently needs. `nfl.py`'s `import_teams` clamps
+`first_season` so it only ever moves earlier — without that, re-importing a range
+nflverse owns would silently reset the 31 clubs the backfill widened.

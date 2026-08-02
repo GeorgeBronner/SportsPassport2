@@ -41,3 +41,8 @@ Thumbs.db
 
 # Playwright CLI session artifacts
 .playwright-cli/
+
+# Claude Code — skills and shared settings are committed; personal ones are not.
+# Machine-local runtime state (locks, worktrees, checkpoints) is handled
+# separately in .git/info/exclude.
+.claude/settings.local.json
