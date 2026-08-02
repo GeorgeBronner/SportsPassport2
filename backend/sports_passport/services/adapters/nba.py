@@ -53,7 +53,6 @@ import logging
 import os
 from collections import Counter
 from datetime import date, datetime, timedelta
-from typing import Optional
 
 import httpx
 
@@ -61,8 +60,8 @@ from sports_passport.core.config import settings
 from sports_passport.models.game import Game
 from sports_passport.models.team import Team
 from sports_passport.services.adapters import local_time, venue_seed
-from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
-from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
+from sports_passport.services.adapters.base import ImportResult, LeagueAdapter
+from sports_passport.services.importer import get_league, upsert_game, upsert_team, upsert_venue
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +128,7 @@ def _team_key(team_id: str, city: str, name: str) -> str:
     return f"{team_id}:{city}:{name}"
 
 
-def _int_or_none(value) -> Optional[int]:
+def _int_or_none(value) -> int | None:
     """ESPN reports scores as strings, and as '' for a game not yet played."""
     try:
         return int(value)
@@ -197,10 +196,10 @@ class NbaAdapter(LeagueAdapter):
 
     def _team_lookup(self, league_id: int) -> dict[str, int]:
         teams = self.db.query(Team).filter(Team.league_id == league_id).all()
-        return {t.source_team_id: t.id for t in teams}
+        return {t.source_team_id: t.id for t in teams if t.source_team_id}
 
     def _upsert_row(self, league_id: int, row: dict, by_key: dict, venue_cache: dict,
-                    result: ImportResult, synced_index: Optional[dict] = None) -> None:
+                    result: ImportResult, synced_index: dict | None = None) -> None:
         game_type = row["gameType"]
         season_type = GAME_TYPES.get(game_type)
         if season_type is None:
@@ -346,7 +345,11 @@ class NbaAdapter(LeagueAdapter):
             self._upsert_row(league.id, row, by_key, venue_cache, result, synced_index)
 
         self.db.commit()
-        logger.info("NBA import: %s games imported, %s updated", result.games_imported, result.games_updated)
+        logger.info(
+            "NBA import: %s games imported, %s updated",
+            result.games_imported,
+            result.games_updated,
+        )
         return result
 
     # ------------------------------------------------------------------
@@ -443,7 +446,7 @@ class NbaAdapter(LeagueAdapter):
 
     def _find_by_natural_key(
         self, league_id: int, home_id: int, away_id: int, start: datetime
-    ) -> tuple[Optional[Game], bool]:
+    ) -> tuple[Game | None, bool]:
         """The existing row for this matchup. Returns (game, ambiguous).
 
         ESPN cannot supply the NBA's own 8-char gameId, so a synced row and
@@ -494,9 +497,9 @@ class NbaAdapter(LeagueAdapter):
         return result
 
     def _espn_venue_id(
-        self, competition: dict, home_franchise_id: Optional[str], season: int,
+        self, competition: dict, home_franchise_id: str | None, season: int,
         venue_cache: dict, result: ImportResult,
-    ) -> Optional[int]:
+    ) -> int | None:
         """Resolve the arena, preferring the seed so rows stay deduplicated.
 
         The seed (team + season era) is the same lookup the bulk import and
@@ -561,7 +564,10 @@ class NbaAdapter(LeagueAdapter):
         competition = competitions[0]
 
         season_info = event.get("season") or {}
-        season_type = ESPN_SEASON_TYPES.get(season_info.get("type"))
+        raw_season_type = season_info.get("type")
+        season_type = (
+            ESPN_SEASON_TYPES.get(raw_season_type) if isinstance(raw_season_type, int) else None
+        )
         if not season_type:
             skips[f"season type {season_info.get('type')!r}"] += 1
             return False
@@ -612,24 +618,27 @@ class NbaAdapter(LeagueAdapter):
             home_score = away_score = None
 
         home_franchise = self.db.get(Team, home_id)
+        franchise_id = (
+            str(home_franchise.franchise_id)
+            if home_franchise and home_franchise.franchise_id
+            else None
+        )
         venue_id = self._espn_venue_id(
-            competition,
-            str(home_franchise.franchise_id) if home_franchise and home_franchise.franchise_id else None,
-            season, venue_cache, result,
+            competition, franchise_id, season, venue_cache, result,
         )
 
-        fields = dict(
-            home_team_id=home_id,
-            away_team_id=away_id,
-            home_score=home_score,
-            away_score=away_score,
-            start_date=start_date,
-            has_time=True,
-            season=season,
-            season_type=season_type,
-            venue_id=venue_id,
-            neutral_site=bool(competition.get("neutralSite")),
-        )
+        fields = {
+            "home_team_id": home_id,
+            "away_team_id": away_id,
+            "home_score": home_score,
+            "away_score": away_score,
+            "start_date": start_date,
+            "has_time": True,
+            "season": season,
+            "season_type": season_type,
+            "venue_id": venue_id,
+            "neutral_site": bool(competition.get("neutralSite")),
+        }
 
         existing, ambiguous = self._find_by_natural_key(league_id, home_id, away_id, start_date)
         if ambiguous:
@@ -647,7 +656,11 @@ class NbaAdapter(LeagueAdapter):
                 # its own type because it counts toward nobody's record. ESPN
                 # reports it as an ordinary regular-season game, so let the
                 # more specific classification stand rather than flattening it.
-                if key == "season_type" and existing.season_type == "cup_final" and value == "regular":
+                if (
+                    key == "season_type"
+                    and existing.season_type == "cup_final"
+                    and value == "regular"
+                ):
                     continue
                 setattr(existing, key, value)
             result.games_updated += 1

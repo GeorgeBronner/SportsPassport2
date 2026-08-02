@@ -62,16 +62,15 @@ import logging
 import os
 import re
 from datetime import date, datetime
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
-from sports_passport.models.venue import Venue
 from sports_passport.services.adapters import local_time, venue_seed
-from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
-from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
+from sports_passport.services.adapters.base import ImportResult, LeagueAdapter
+from sports_passport.services.importer import get_league, upsert_game, upsert_team, upsert_venue
 
 logger = logging.getLogger(__name__)
 
@@ -227,7 +226,7 @@ MONTHS = {
 }
 
 
-def _state_code(province: Optional[str], venue_name: str) -> Optional[str]:
+def _state_code(province: str | None, venue_name: str) -> str | None:
     """ASA's `province` -> the 2-letter code `venues.state` is defined to hold.
 
     Three steps, so a source that changes its spelling can't silently reintroduce
@@ -257,7 +256,7 @@ def _state_code(province: Optional[str], venue_name: str) -> Optional[str]:
     return province
 
 
-def _canonical_venue(raw: str) -> Optional[str]:
+def _canonical_venue(raw: str | None) -> str | None:
     """Kaggle's venue string -> canonical building name, or None if unusable.
 
     The raw column mixes in a city suffix ("BMO Field, Toronto") and a
@@ -271,7 +270,7 @@ def _canonical_venue(raw: str) -> Optional[str]:
     return KAGGLE_VENUE_ALIASES.get(name, name)
 
 
-def _season_type(part_of_competition: str) -> str:
+def _season_type(part_of_competition: str | None) -> str:
     """Kaggle's free-text round label -> 'regular' | 'postseason' | 'preseason'.
 
     27 variants appear, differing by leading whitespace, hyphenation and an
@@ -292,7 +291,7 @@ def _season_type(part_of_competition: str) -> str:
     return "postseason"
 
 
-def _parse_kaggle_date(raw_date: str, year: int) -> Optional[datetime]:
+def _parse_kaggle_date(raw_date: str | None, year: int) -> datetime | None:
     """The local game day. Two formats appear: '7/31/1996' and 'Friday, March 6'.
 
     The second carries no year, which is why `year` is passed alongside it.
@@ -368,7 +367,7 @@ class MlsAdapter(LeagueAdapter):
 
     def _teams_by_source_id(self, league_id: int) -> dict[str, int]:
         teams = self.db.query(Team).filter(Team.league_id == league_id).all()
-        return {t.source_team_id: t.id for t in teams}
+        return {t.source_team_id: t.id for t in teams if t.source_team_id}
 
     async def _asa_venues(self, result: ImportResult) -> tuple[dict[str, int], dict[str, str]]:
         """Upsert ASA's stadia. Returns (stadium_id -> venue.id, name -> stadium_id).
@@ -488,11 +487,11 @@ class MlsAdapter(LeagueAdapter):
     def _kaggle_venue_id(
         self,
         canonical: str,
-        cache: dict[str, Optional[int]],
+        cache: dict[str, int | None],
         stadium_id_by_name: dict[str, str],
         asa_venues: dict[str, int],
         result: ImportResult,
-    ) -> Optional[int]:
+    ) -> int | None:
         if canonical in cache:
             return cache[canonical]
 
@@ -534,7 +533,7 @@ class MlsAdapter(LeagueAdapter):
         league = get_league(self.db, self.league_code)
         by_name = self._teams_by_name(league.id)
         by_source_id = self._teams_by_source_id(league.id)
-        venue_cache: dict[str, Optional[int]] = {}
+        venue_cache: dict[str, int | None] = {}
 
         # Both ends are clamped to the era this source owns, rather than
         # trusting the caller's range: `admin.py` accepts start_season down to
@@ -546,7 +545,7 @@ class MlsAdapter(LeagueAdapter):
         # back would otherwise arrive silently and unmapped.
         floor = max(start_season, FIRST_MLS_SEASON)
 
-        def resolve_team(raw: str) -> Optional[int]:
+        def resolve_team(raw: str) -> int | None:
             raw = (raw or "").strip()
             if raw in DEFUNCT_TEAMS:
                 return by_source_id.get(f"defunct-{_slug(raw)}")
@@ -573,12 +572,16 @@ class MlsAdapter(LeagueAdapter):
 
             game_day = _parse_kaggle_date(row.get("date"), season)
             if game_day is None:
-                result.errors.append(f"{season} {away_raw} @ {home_raw}: bad date {row.get('date')!r}")
+                result.errors.append(
+                    f"{season} {away_raw} @ {home_raw}: bad date {row.get('date')!r}"
+                )
                 continue
 
             canonical = _canonical_venue(row.get("venue"))
             venue_id = (
-                self._kaggle_venue_id(canonical, venue_cache, stadium_id_by_name, asa_venues, result)
+                self._kaggle_venue_id(
+                    canonical, venue_cache, stadium_id_by_name, asa_venues, result
+                )
                 if canonical
                 else None
             )
@@ -653,7 +656,7 @@ class MlsAdapter(LeagueAdapter):
         return result
 
 
-def _int_or_none(value: Any) -> Optional[int]:
+def _int_or_none(value: Any) -> int | None:
     """Kaggle writes attendance with thousands separators and blanks for null."""
     text = str(value or "").strip().replace(",", "")
     return int(text) if text.isdigit() else None

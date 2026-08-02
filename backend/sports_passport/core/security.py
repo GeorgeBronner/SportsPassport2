@@ -1,8 +1,9 @@
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
+
 import bcrypt
 from fastapi import HTTPException, status
 from jose import JWTError, jwt
+
 from sports_passport.core.config import settings
 
 # bcrypt operates on at most the first 72 bytes of the password and raises a
@@ -46,20 +47,20 @@ def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(_encode_password(password), bcrypt.gensalt()).decode("utf-8")
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Create a JWT access token"""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
+        expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
 
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> Optional[dict]:
+def decode_access_token(token: str) -> dict | None:
     """Decode and verify a JWT access token"""
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])

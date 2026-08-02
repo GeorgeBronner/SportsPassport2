@@ -1,8 +1,9 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from sports_passport.db.database import get_db
+
 from sports_passport.core.security import decode_access_token
+from sports_passport.db.database import get_db
 from sports_passport.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -23,7 +24,7 @@ def get_current_user(
     if payload is None:
         raise credentials_exception
 
-    email: str = payload.get("sub")
+    email = payload.get("sub")
     if email is None:
         raise credentials_exception
 

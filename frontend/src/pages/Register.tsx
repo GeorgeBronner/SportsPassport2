@@ -5,6 +5,7 @@ import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Card from '../components/common/Card';
 import Alert from '../components/common/Alert';
+import { apiErrorMessage } from '../utils/errors';
 
 const Register: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -23,8 +24,8 @@ const Register: React.FC = () => {
     try {
       await register(email, password, fullName);
       navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
     }

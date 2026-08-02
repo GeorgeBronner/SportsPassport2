@@ -13,6 +13,7 @@ import { attendanceApi } from '../api/attendance';
 import type { GameListItem, Team, TeamAttendanceStats } from '../types/api';
 import { leagueColor } from '../utils/leagues';
 import { formatDateShort, yearOf } from '../utils/format';
+import { apiErrorMessage } from '../utils/errors';
 
 const CURRENT_SEASON = new Date().getFullYear();
 
@@ -106,8 +107,8 @@ const TeamDetail: React.FC = () => {
       const attendance = await attendanceApi.createAttendance({ game_id: gameId });
       setAttendanceByGame((prev) => new Map(prev).set(gameId, attendance.id));
       refreshStats();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to mark game as attended');
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Failed to mark game as attended'));
     }
   };
 

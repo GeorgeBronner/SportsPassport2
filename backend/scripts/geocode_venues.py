@@ -24,7 +24,7 @@ import httpx
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from sports_passport.db.database import SessionLocal  # noqa: E402
-from sports_passport.models import Venue, Game, UserGameAttendance  # noqa: E402
+from sports_passport.models import Game, UserGameAttendance, Venue  # noqa: E402
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 HEADERS = {"User-Agent": "SportsPassport/0.2 (personal game-attendance tracker; venue geocoding)"}
@@ -46,7 +46,9 @@ def save_cache(cache: dict) -> None:
     CACHE_PATH.write_text(json.dumps(cache, indent=1, sort_keys=True), encoding="utf-8")
 
 
-def geocode_city(client: httpx.Client, cache: dict, city: str, state: str, country: str) -> tuple | None:
+def geocode_city(
+    client: httpx.Client, cache: dict, city: str, state: str, country: str
+) -> tuple | None:
     key = f"{city}|{state}|{country}".lower()
     if key in cache:
         return tuple(cache[key]) if cache[key] else None
@@ -68,7 +70,9 @@ def geocode_city(client: httpx.Client, cache: dict, city: str, state: str, count
 
 def main():
     parser = argparse.ArgumentParser(description="Geocode venue cities")
-    parser.add_argument("--all", action="store_true", help="geocode every venue, not just attended ones")
+    parser.add_argument(
+        "--all", action="store_true", help="geocode every venue, not just attended ones"
+    )
     parser.add_argument("--dry-run", action="store_true", help="report what would be geocoded")
     args = parser.parse_args()
 
@@ -96,7 +100,9 @@ def main():
         done = missed = 0
         with httpx.Client() as client:
             for v in venues:
-                coords = geocode_city(client, cache, v.city, v.state or "", v.country or "USA")
+                coords = geocode_city(
+                    client, cache, v.city or "", v.state or "", v.country or "USA"
+                )
                 if coords:
                     v.latitude, v.longitude = coords
                     done += 1

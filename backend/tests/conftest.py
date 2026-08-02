@@ -13,24 +13,24 @@ os.environ["RATE_LIMIT_ENABLED"] = "false"
 # whatever SHA happens to be checked out.
 os.environ["SENTRY_DSN"] = ""
 
+from datetime import datetime
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from datetime import datetime, date
 
-from sports_passport.main import app
+from sports_passport.core.security import get_password_hash
 from sports_passport.db.database import Base, get_db
 from sports_passport.db.seed import seed_leagues
-from sports_passport.models.user import User
+from sports_passport.main import app
+from sports_passport.models.attendance import UserGameAttendance
+from sports_passport.models.game import Game
 from sports_passport.models.league import League
 from sports_passport.models.team import Team
+from sports_passport.models.user import User
 from sports_passport.models.venue import Venue
-from sports_passport.models.game import Game
-from sports_passport.models.attendance import UserGameAttendance
-from sports_passport.core.security import get_password_hash
-
 
 # Test database setup - using in-memory SQLite
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"

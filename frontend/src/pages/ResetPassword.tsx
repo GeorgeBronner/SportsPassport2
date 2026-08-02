@@ -5,6 +5,7 @@ import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Card from '../components/common/Card';
 import Alert from '../components/common/Alert';
+import { apiErrorMessage } from '../utils/errors';
 
 const ResetPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -33,9 +34,8 @@ const ResetPassword: React.FC = () => {
     try {
       await authApi.resetPassword(token!, password);
       setSuccess(true);
-    } catch (err: any) {
-      const detail = err.response?.data?.detail;
-      setError(typeof detail === 'string' ? detail : 'Something went wrong. Please try again.');
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Something went wrong. Please try again.'));
     } finally {
       setLoading(false);
     }

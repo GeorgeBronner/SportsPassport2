@@ -2,9 +2,10 @@
 Tests for the NHL adapter using mocked API payloads (shapes verified against
 the live API on 2026-07-11).
 """
-import pytest
 from datetime import date
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from sports_passport.models.game import Game
 from sports_passport.models.team import Team

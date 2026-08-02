@@ -1,32 +1,32 @@
-from pydantic import BaseModel, ConfigDict
-from typing import Optional
 from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
 
 
 class TeamBase(BaseModel):
     name: str
-    nickname: Optional[str] = None
-    abbreviation: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    conference: Optional[str] = None
-    division: Optional[str] = None
-    classification: Optional[str] = None
-    first_season: Optional[int] = None
-    last_season: Optional[int] = None
+    nickname: str | None = None
+    abbreviation: str | None = None
+    city: str | None = None
+    state: str | None = None
+    conference: str | None = None
+    division: str | None = None
+    classification: str | None = None
+    first_season: int | None = None
+    last_season: int | None = None
 
 
 class TeamCreate(TeamBase):
     league_id: int
     source: str
-    source_team_id: Optional[str] = None
+    source_team_id: str | None = None
 
 
 class TeamResponse(TeamBase):
     id: int
     league_id: int
-    franchise_id: Optional[int] = None
-    logo_url: Optional[str] = None
+    franchise_id: int | None = None
+    logo_url: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -40,8 +40,8 @@ class TeamSearchResult(TeamResponse):
 class TeamVenueCount(BaseModel):
     """How often the caller has seen a team at one venue."""
     name: str
-    city: Optional[str] = None
-    state: Optional[str] = None
+    city: str | None = None
+    state: str | None = None
     count: int
 
 
@@ -54,5 +54,5 @@ class TeamAttendanceStats(BaseModel):
     ties: int
     games_by_season: dict[int, int]
     venues: list[TeamVenueCount]
-    first_game_date: Optional[datetime] = None
-    last_game_date: Optional[datetime] = None
+    first_game_date: datetime | None = None
+    last_game_date: datetime | None = None

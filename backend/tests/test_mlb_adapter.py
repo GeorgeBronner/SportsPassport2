@@ -3,9 +3,10 @@ Tests for the MLB adapter using mocked Retrosheet CSV/gamelog rows and a
 mocked MLB Stats API schedule payload (shapes verified against the live
 sources on 2026-07-11).
 """
-import pytest
 from datetime import date
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from sports_passport.models.game import Game
 from sports_passport.models.team import Team

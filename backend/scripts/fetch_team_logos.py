@@ -56,7 +56,9 @@ ALIASES = {
 }
 
 LOGOS_DIR = Path(__file__).resolve().parent.parent / "data" / "logos"
-HEADERS = {"User-Agent": "SportsPassport/0.2 (personal game-attendance tracker; one-time logo fetch)"}
+HEADERS = {
+    "User-Agent": "SportsPassport/0.2 (personal game-attendance tracker; one-time logo fetch)"
+}
 THROTTLE_SECONDS = 0.15
 
 

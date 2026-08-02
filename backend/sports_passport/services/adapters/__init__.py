@@ -5,14 +5,14 @@ Adding a league = writing one adapter module and registering it here
 """
 from sqlalchemy.orm import Session
 
-from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
-from sports_passport.services.adapters.cfb import CfbAdapter
-from sports_passport.services.adapters.nhl import NhlAdapter
-from sports_passport.services.adapters.nfl import NflAdapter
-from sports_passport.services.adapters.mlb import MlbAdapter
-from sports_passport.services.adapters.nba import NbaAdapter
+from sports_passport.services.adapters.base import ImportResult, LeagueAdapter
 from sports_passport.services.adapters.cbb import CbbAdapter
+from sports_passport.services.adapters.cfb import CfbAdapter
+from sports_passport.services.adapters.mlb import MlbAdapter
 from sports_passport.services.adapters.mls import MlsAdapter
+from sports_passport.services.adapters.nba import NbaAdapter
+from sports_passport.services.adapters.nfl import NflAdapter
+from sports_passport.services.adapters.nhl import NhlAdapter
 
 ADAPTERS: dict[str, type[LeagueAdapter]] = {
     CfbAdapter.league_code: CfbAdapter,

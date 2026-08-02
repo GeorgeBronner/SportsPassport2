@@ -17,7 +17,7 @@ spot-check of Pistons @ Warriors 2026-01-30 against ESPN confirmed the
 stored 22:00 is 10:00pm ET, not 10:00pm Pacific. See
 docs/SP3_open_issues.md #7.
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
 EASTERN = ZoneInfo("America/New_York")
@@ -43,7 +43,7 @@ def eastern_to_utc(eastern: datetime) -> datetime:
     On the autumn DST repeat an hour is genuinely ambiguous; `fold=0` (the
     default) takes the first pass, which is the earlier real instant.
     """
-    return eastern.replace(tzinfo=EASTERN).astimezone(timezone.utc).replace(tzinfo=None)
+    return eastern.replace(tzinfo=EASTERN).astimezone(UTC).replace(tzinfo=None)
 
 
 def date_only(day: datetime) -> datetime:

@@ -1,16 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_, func
-from typing import List, Optional
+
+from sports_passport.core.dependencies import get_current_user
 from sports_passport.core.queries import LIKE_ESCAPE, contains_pattern
 from sports_passport.db.database import get_db
-from sports_passport.models.game import Game
 from sports_passport.models.attendance import UserGameAttendance
-from sports_passport.models.team import Team
+from sports_passport.models.game import Game
 from sports_passport.models.league import League
-from sports_passport.schemas.game import GameResponse, GameListResponse, SeasonInfo
-from sports_passport.core.dependencies import get_current_user
+from sports_passport.models.team import Team
 from sports_passport.models.user import User
+from sports_passport.schemas.game import GameListResponse, GameResponse, SeasonInfo
 
 router = APIRouter(prefix="/api/games", tags=["games"])
 
@@ -25,7 +26,7 @@ def _with_relations(query):
     )
 
 
-def _apply_league_filter(query, db: Session, league: Optional[str]):
+def _apply_league_filter(query, db: Session, league: str | None):
     """Filter a Game query by league code (e.g. 'NFL'). 404s on unknown code."""
     if not league:
         return query
@@ -47,11 +48,11 @@ def _team_ids_by_name(db: Session, name: str, exact: bool = True) -> list[int]:
     return [t[0] for t in query.all()]
 
 
-@router.get("/", response_model=List[GameListResponse])
+@router.get("/", response_model=list[GameListResponse])
 def list_games(
-    league: Optional[str] = None,
-    season: Optional[int] = None,
-    team: Optional[str] = None,
+    league: str | None = None,
+    season: int | None = None,
+    team: str | None = None,
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
@@ -79,10 +80,10 @@ def list_games(
     return games
 
 
-@router.get("/search/", response_model=List[GameListResponse])
+@router.get("/search/", response_model=list[GameListResponse])
 def search_games(
     q: str = Query(..., min_length=2),
-    league: Optional[str] = None,
+    league: str | None = None,
     skip: int = 0,
     limit: int = 50,
     db: Session = Depends(get_db),
@@ -103,9 +104,9 @@ def search_games(
     return games
 
 
-@router.get("/seasons", response_model=List[SeasonInfo])
+@router.get("/seasons", response_model=list[SeasonInfo])
 def list_seasons(
-    league: Optional[str] = None,
+    league: str | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -125,9 +126,9 @@ def list_seasons(
 
 @router.get("/count")
 def count_games(
-    league: Optional[str] = None,
-    season: Optional[int] = None,
-    team: Optional[str] = None,
+    league: str | None = None,
+    season: int | None = None,
+    team: str | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -151,10 +152,10 @@ def count_games(
     return {"count": count}
 
 
-@router.get("/team/{team_id}", response_model=List[GameListResponse])
+@router.get("/team/{team_id}", response_model=list[GameListResponse])
 def list_team_games(
     team_id: int,
-    season: Optional[int] = None,
+    season: int | None = None,
     attended_only: bool = False,
     skip: int = 0,
     limit: int = 100,

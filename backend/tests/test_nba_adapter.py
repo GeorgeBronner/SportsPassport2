@@ -4,9 +4,10 @@ the real Kaggle "historical-nba-data-and-player-box-scores" dataset on
 2026-07-11/12) and a mocked ESPN scoreboard payload (shape verified against
 the live endpoint on 2026-08-01, when NBA sync moved off stats.nba.com).
 """
-import pytest
 from datetime import date, datetime, timedelta
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from sports_passport.models.game import Game
 from sports_passport.models.team import Team

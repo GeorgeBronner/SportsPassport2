@@ -82,19 +82,24 @@ import logging
 import os
 import re
 from datetime import date, datetime
-from typing import Optional
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
 from sports_passport.services.adapters import local_time, venue_seed
-from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
-from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
+from sports_passport.services.adapters.base import ImportResult, LeagueAdapter
+from sports_passport.services.importer import get_league, upsert_game, upsert_team, upsert_venue
 
 logger = logging.getLogger(__name__)
 
 GAMES_URL = "https://github.com/nflverse/nfldata/raw/master/data/games.csv"
 TEAMS_URL = "https://github.com/nflverse/nfldata/raw/master/data/teams.csv"
-GAME_TYPES = {"REG": "regular", "WC": "postseason", "DIV": "postseason", "CON": "postseason", "SB": "postseason"}
+GAME_TYPES = {
+    "REG": "regular",
+    "WC": "postseason",
+    "DIV": "postseason",
+    "CON": "postseason",
+    "SB": "postseason",
+}
 
 # nflverse's first season. Spreadspoke covers everything earlier; neither
 # source is consulted outside its own range, so no game can arrive from both.
@@ -281,7 +286,7 @@ class NflAdapter(LeagueAdapter):
         return list(csv.DictReader(io.StringIO(response.text)))
 
     async def import_teams(
-        self, historical_seasons: Optional[dict[str, list[int]]] = None
+        self, historical_seasons: dict[str, list[int]] | None = None
     ) -> ImportResult:
         """Upsert every team, from nflverse and optionally the Spreadspoke era.
 
@@ -421,8 +426,8 @@ class NflAdapter(LeagueAdapter):
 
     async def _import_games(
         self, result: ImportResult, *,
-        min_season: Optional[int] = None, max_season: Optional[int] = None,
-        since: Optional[date] = None,
+        min_season: int | None = None, max_season: int | None = None,
+        since: date | None = None,
     ) -> None:
         league = get_league(self.db, self.league_code)
         by_abbrev = self._team_lookup(league.id)
@@ -439,7 +444,11 @@ class NflAdapter(LeagueAdapter):
                     continue
             self._upsert_row(league.id, row, by_abbrev, result)
         self.db.commit()
-        logger.info("NFL import: %s games imported, %s updated", result.games_imported, result.games_updated)
+        logger.info(
+            "NFL import: %s games imported, %s updated",
+            result.games_imported,
+            result.games_updated,
+        )
 
     # ---------------------------------------------------------- Spreadspoke
 
@@ -484,10 +493,10 @@ class NflAdapter(LeagueAdapter):
         self,
         row: dict,
         season: int,
-        cache: dict[str, Optional[int]],
+        cache: dict[str, int | None],
         unmapped: set[str],
         result: ImportResult,
-    ) -> Optional[int]:
+    ) -> int | None:
         name = (row.get("stadium") or "").strip()
         if not name:
             return None
@@ -528,7 +537,7 @@ class NflAdapter(LeagueAdapter):
         self, rows: list[dict], result: ImportResult, by_key: dict[str, int]
     ) -> None:
         league = get_league(self.db, self.league_code)
-        venue_cache: dict[str, Optional[int]] = {}
+        venue_cache: dict[str, int | None] = {}
         unmapped_venues: set[str] = set()
 
         for row in rows:
@@ -570,7 +579,8 @@ class NflAdapter(LeagueAdapter):
                 season=season,
                 season_type=(
                     "postseason"
-                    if row.get("schedule_playoff") == "TRUE" or week_raw in SPREADSPOKE_PLAYOFF_WEEKS
+                    if row.get("schedule_playoff") == "TRUE"
+                    or week_raw in SPREADSPOKE_PLAYOFF_WEEKS
                     else "regular"
                 ),
                 # Playoff rounds are named, not numbered, in this file; the
@@ -631,7 +641,7 @@ class NflAdapter(LeagueAdapter):
         return result
 
     @staticmethod
-    def _parse_spreadspoke_date(raw: Optional[str]) -> Optional[datetime]:
+    def _parse_spreadspoke_date(raw: str | None) -> datetime | None:
         """The local game day, written `M/D/YYYY`. No time component exists."""
         try:
             return datetime.strptime((raw or "").strip(), "%m/%d/%Y")
@@ -639,7 +649,7 @@ class NflAdapter(LeagueAdapter):
             return None
 
     @staticmethod
-    def _parse_start(row: dict) -> Optional[datetime]:
+    def _parse_start(row: dict) -> datetime | None:
         gameday = row.get("gameday")
         if not gameday:
             return None
@@ -661,7 +671,7 @@ def _slug(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
-def _int_or_none(value: Optional[str]) -> Optional[int]:
+def _int_or_none(value: str | None) -> int | None:
     """Parse a score, treating anything unparseable as absent.
 
     `int()` rather than an isdigit() guard: "--5" passes `lstrip("-").isdigit()`

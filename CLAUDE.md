@@ -65,6 +65,18 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
 
 ## Conventions
 - **Git**: feature branches (`feature-name`); merge to `main` when complete and tested. Commit messages concise; **never mention Claude/AI/code-generation tools**.
+- **Before opening a PR**, all four must be clean — nothing here runs in CI, so the
+  only thing standing between a defect and `main` is running them locally:
+  ```bash
+  cd backend && uv run ruff check . && uv run pyright && uv run pytest tests/ -q
+  cd frontend && npm run lint
+  ```
+  All four are at **zero** errors and warnings, and must stay there — any output at
+  all is something the branch introduced. Prefer fixing the cause over adding a
+  `noqa` / `pyright: ignore` / `eslint-disable`; when a suppression really is right
+  (a third-party stub is wrong, an import exists only for its side effect), scope it
+  to the one rule and say why in a comment — see `alembic/env.py` and
+  `core/config.py` for the shape.
 - **Code organization**: routers focused by domain (auth, leagues, games, teams, attendance, admin); add schemas to the matching schema file; test new endpoints before committing.
 - Keep documentation (this file, `docs/SP3_plan.md` phase checkboxes) updated when features change.
 
@@ -72,8 +84,11 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
 ```bash
 cd backend && uv run alembic upgrade head    # apply migrations — required before first run
 cd backend && uv run pytest tests/ -q        # run tests
+cd backend && uv run ruff check .            # lint (--fix to auto-fix)
+cd backend && uv run pyright                 # type check
 cd backend && uv run uvicorn sports_passport.main:app --reload   # dev server (localhost:8000)
 cd frontend && npm run dev                   # frontend hot-reload dev (localhost:5173)
+cd frontend && npm run lint                  # frontend lint (ESLint)
 docker compose up -d --build                 # full build (backend + frontend)
 ```
 
@@ -86,3 +101,9 @@ create-if-absent using `sports_passport/db/migration_guards.py`, so `upgrade
 head` is safe from any existing database state. `tests/test_migrations.py`
 pins both properties, including that a migration-built schema matches the
 models — keep it green when adding migrations.
+
+Models use SQLAlchemy 2.0 typed declarative: `name: Mapped[str] = mapped_column(...)`,
+never bare `Column(...)`. **The annotation is what sets nullability** — `Mapped[str]`
+is `NOT NULL`, `Mapped[str | None]` is nullable — so a wrong annotation silently
+changes the schema rather than failing loudly. Don't restate `nullable=` alongside
+it. `tests/test_migrations.py` is what catches a mistake here.

@@ -1,5 +1,6 @@
 """Static seed data — leagues are fixed reference rows, inserted at startup."""
 from sqlalchemy.orm import Session
+
 from sports_passport.models.league import League
 
 LEAGUES = [

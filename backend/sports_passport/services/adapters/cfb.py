@@ -6,12 +6,12 @@ ongoing source for CFB (1990+), authenticated with an optional API key.
 """
 import logging
 from datetime import date, datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
-from sports_passport.services.adapters.base import LeagueAdapter, ImportResult
-from sports_passport.services.importer import get_league, upsert_team, upsert_venue, upsert_game
+from sports_passport.services.adapters.base import ImportResult, LeagueAdapter
+from sports_passport.services.importer import get_league, upsert_game, upsert_team, upsert_venue
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class CfbAdapter(LeagueAdapter):
         if settings.cfb_api_key:
             self.headers["Authorization"] = f"Bearer {settings.cfb_api_key}"
 
-    async def _get(self, endpoint: str, params: Dict[str, Any] = None) -> Any:
+    async def _get(self, endpoint: str, params: dict[str, Any] | None = None) -> Any:
         response = await self.http.get(
             f"{self.base_url}{endpoint}",
             headers=self.headers,
@@ -36,7 +36,9 @@ class CfbAdapter(LeagueAdapter):
         response.raise_for_status()
         return response.json()
 
-    def _upsert_team_row(self, league_id: int, team_data: dict, default_classification: str) -> bool:
+    def _upsert_team_row(
+        self, league_id: int, team_data: dict, default_classification: str
+    ) -> bool:
         _, created = upsert_team(
             self.db,
             source=self.source,
@@ -181,7 +183,7 @@ class CfbAdapter(LeagueAdapter):
         return await self.import_season(season)
 
     @staticmethod
-    def _parse_date(raw: Optional[str]) -> Optional[datetime]:
+    def _parse_date(raw: str | None) -> datetime | None:
         if not raw:
             return None
         try:

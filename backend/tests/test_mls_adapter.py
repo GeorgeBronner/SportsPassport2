@@ -6,9 +6,10 @@ The Kaggle rows here reproduce the real file's quirks — two date formats, a
 city-suffixed venue string, thousands-separated attendance, free-text round
 labels — because those are what the adapter exists to normalize.
 """
-import pytest
 from datetime import date, datetime
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from sports_passport.models.game import Game
 from sports_passport.models.team import Team

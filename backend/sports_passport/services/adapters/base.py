@@ -11,7 +11,6 @@ All methods are idempotent upserts keyed on (source, source_*_id).
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Optional
 
 import httpx
 from sqlalchemy.orm import Session
@@ -46,7 +45,7 @@ class LeagueAdapter(ABC):
 
     def __init__(self, db: Session):
         self.db = db
-        self._http: Optional[httpx.AsyncClient] = None
+        self._http: httpx.AsyncClient | None = None
 
     @property
     def http(self) -> httpx.AsyncClient:

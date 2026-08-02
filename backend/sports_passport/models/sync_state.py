@@ -1,6 +1,13 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, true
-from sqlalchemy.orm import relationship
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, true
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from sports_passport.db.database import Base
+
+if TYPE_CHECKING:
+    from sports_passport.models.league import League
 
 
 class SyncState(Base):
@@ -12,19 +19,24 @@ class SyncState(Base):
     """
     __tablename__ = "sync_state"
 
-    id = Column(Integer, primary_key=True, index=True)
-    league_id = Column(Integer, ForeignKey("leagues.id"), unique=True, nullable=False, index=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    league_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("leagues.id"), unique=True, index=True
+    )
     # server_default mirrors migration d1f3a7c9e5b2, which every existing
     # database was built from. Without it here, create_all() emits a table
     # without the DEFAULT and --autogenerate reports a phantom change.
-    enabled = Column(Boolean, default=True, server_default=true(), nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
 
-    last_run_at = Column(DateTime, nullable=True)          # naive UTC, like game start_date — most recent attempt
-    last_success_at = Column(DateTime, nullable=True)      # most recent successful run; drives the adaptive lookback
-    last_status = Column(String, nullable=True)            # 'success' | 'error' | 'running'
-    last_games_imported = Column(Integer, nullable=True)
-    last_games_updated = Column(Integer, nullable=True)
-    last_error = Column(String, nullable=True)             # first error line, if any
-    last_duration_ms = Column(Integer, nullable=True)
+    # naive UTC, like game start_date — most recent attempt
+    last_run_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # most recent successful run; drives the adaptive lookback
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # 'success' | 'error' | 'running'
+    last_status: Mapped[str | None] = mapped_column(String)
+    last_games_imported: Mapped[int | None] = mapped_column(Integer)
+    last_games_updated: Mapped[int | None] = mapped_column(Integer)
+    last_error: Mapped[str | None] = mapped_column(String)  # first error line, if any
+    last_duration_ms: Mapped[int | None] = mapped_column(Integer)
 
-    league = relationship("League")
+    league: Mapped["League"] = relationship("League")

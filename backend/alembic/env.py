@@ -1,14 +1,23 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-
-# Import your models
-from sports_passport.db.database import Base
-from sports_passport.models import User, League, Team, Venue, Game, UserGameAttendance
 from sports_passport.core.config import settings
+
+# Importing the models is what populates Base.metadata, which is what
+# --autogenerate diffs the database against. They are never referenced by
+# name here, but dropping them would make autogenerate emit a migration
+# that deletes every table.
+from sports_passport.db.database import Base
+from sports_passport.models import (  # noqa: F401
+    Game,
+    League,
+    Team,
+    User,
+    UserGameAttendance,
+    Venue,
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -1,8 +1,7 @@
 """
 Tests for admin endpoints.
 """
-import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
 
 from sports_passport.services.adapters.base import ImportResult
 
@@ -217,8 +216,8 @@ class TestDemoteUser:
     def test_demote_admin_user(self, client, db_session, admin_headers):
         """Test admin can demote another admin to regular user."""
         # Create a second admin user
-        from sports_passport.models.user import User
         from sports_passport.core.security import get_password_hash
+        from sports_passport.models.user import User
 
         second_admin = User(
             email="secondadmin@example.com",

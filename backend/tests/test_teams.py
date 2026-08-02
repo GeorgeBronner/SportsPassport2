@@ -1,7 +1,6 @@
 """
 Tests for teams endpoints.
 """
-import pytest
 
 
 class TestListTeams:
