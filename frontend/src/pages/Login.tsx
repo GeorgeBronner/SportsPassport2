@@ -5,6 +5,7 @@ import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Card from '../components/common/Card';
 import Alert from '../components/common/Alert';
+import { apiErrorMessage } from '../utils/errors';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -22,8 +23,8 @@ const Login: React.FC = () => {
     try {
       await login(email, password);
       navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Invalid email or password');
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Invalid email or password'));
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,7 @@ import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import Alert from '../components/common/Alert';
+import { apiErrorMessage } from '../utils/errors';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
@@ -37,9 +38,8 @@ const Profile: React.FC = () => {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail;
-      const message = typeof detail === 'string' ? detail : 'Failed to update password.';
+    } catch (err) {
+      const message = apiErrorMessage(err, 'Failed to update password.');
       setError(message === 'Current password is incorrect' ? 'Current password is incorrect.' : message);
     } finally {
       setSubmitting(false);

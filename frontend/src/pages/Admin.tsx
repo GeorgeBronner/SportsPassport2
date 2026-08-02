@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '../api/admin';
 import { leaguesApi } from '../api/leagues';
 import type { User, League, AdminStatusRow } from '../types/api';
@@ -7,6 +7,7 @@ import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Loading from '../components/common/Loading';
 import Alert from '../components/common/Alert';
+import { apiErrorMessage } from '../utils/errors';
 
 const currentYear = new Date().getFullYear();
 // Mirrors the backend default (settings.sync_hour); display-only.
@@ -25,11 +26,7 @@ const Admin: React.FC = () => {
   const [syncDays, setSyncDays] = useState(7);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    loadAll();
-  }, []);
-
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true);
     try {
       const [usersData, leaguesData, statusData] = await Promise.all([
@@ -40,20 +37,25 @@ const Admin: React.FC = () => {
       setUsers(usersData.sort((a, b) => a.email.localeCompare(b.email)));
       setLeagues(leaguesData);
       setStatus(statusData);
-      if (!selectedLeague && leaguesData.length) {
-        setSelectedLeague(leaguesData[0].code);
-      }
-    } catch (err) {
+      // Functional form so this doesn't close over selectedLeague: reading it
+      // here would put it in the dep list and re-fire the whole load whenever
+      // the league picker changed.
+      setSelectedLeague((prev) => (!prev && leaguesData.length ? leaguesData[0].code : prev));
+    } catch {
       setError('Failed to load admin data');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
 
   const refreshStatus = async () => {
     try {
       setStatus(await adminApi.getStatus());
-    } catch (err) {
+    } catch {
       setError('Failed to refresh status');
     }
   };
@@ -66,8 +68,8 @@ const Admin: React.FC = () => {
       const parts = [`${result.teams_imported} teams`, `${result.games_imported} games imported`, `${result.games_updated} updated`];
       setSuccess(`${label} complete: ${parts.join(', ')}${result.errors.length ? ` (${result.errors.length} errors)` : ''}`);
       await refreshStatus();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || `${label} failed`);
+    } catch (err) {
+      setError(apiErrorMessage(err, `${label} failed`));
     } finally {
       setBusy(false);
     }
@@ -92,8 +94,8 @@ const Admin: React.FC = () => {
       await adminApi.syncAll();
       setSuccess('Nightly sync started in the background — refresh status below to see progress.');
       await refreshStatus();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Nightly sync failed to start');
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Nightly sync failed to start'));
     } finally {
       setBusy(false);
     }
@@ -104,7 +106,7 @@ const Admin: React.FC = () => {
     setStatus((prev) => prev.map((r) => (r.league === league ? { ...r, sync_enabled: enabled } : r)));
     try {
       await adminApi.setSyncEnabled(league, enabled);
-    } catch (err) {
+    } catch {
       setError(`Failed to update auto-sync for ${league}`);
       setStatus((prev) => prev.map((r) => (r.league === league ? { ...r, sync_enabled: !enabled } : r)));
     }
@@ -128,7 +130,7 @@ const Admin: React.FC = () => {
       setUsers(users.map((u) => (u.id === userId ? updatedUser : u)));
       setSuccess('User promoted to admin');
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
+    } catch {
       setError('Failed to promote user');
     }
   };
@@ -139,7 +141,7 @@ const Admin: React.FC = () => {
       setUsers(users.map((u) => (u.id === userId ? updatedUser : u)));
       setSuccess('User demoted from admin');
       setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
+    } catch {
       setError('Failed to demote user');
     }
   };
