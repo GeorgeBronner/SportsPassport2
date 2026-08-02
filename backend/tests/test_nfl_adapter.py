@@ -180,6 +180,17 @@ class TestNflSync:
 # --- Spreadspoke historical era (1970-1998) -------------------------------
 # Row shapes verified against the live spreadspoke_scores.csv on 2026-08-01.
 
+# Every abbreviation appearing in nflverse games.csv for 1999+, read live on
+# 2026-08-01. A snapshot, so it can drift if the NFL adds a team -- but it only
+# ever gates "no minted historical key may collide with a real code", and a new
+# franchise arriving is exactly when someone should re-check that.
+TEAM_ABBREVS_1999_PLUS = {
+    "ARI", "ATL", "BAL", "BUF", "CAR", "CHI", "CIN", "CLE", "DAL", "DEN",
+    "DET", "GB", "HOU", "IND", "JAX", "KC", "LA", "LAC", "LV", "MIA", "MIN",
+    "NE", "NO", "NYG", "NYJ", "OAK", "PHI", "PIT", "SD", "SEA", "SF", "STL",
+    "TB", "TEN", "WAS",
+}
+
 SPREADSPOKE_ROWS = [
     {
         "schedule_date": "12/23/1972", "schedule_season": "1972", "schedule_week": "Division",
@@ -298,8 +309,11 @@ class TestNflSpreadspokeEra:
         assert game.away_team_id == oilers.id
 
     @pytest.mark.asyncio
-    async def test_shared_team_first_season_widens(self, spreadspoke, db_session):
-        """A club both eras know must not still claim first_season=1999."""
+    async def test_team_seen_only_in_the_historical_era_is_created(
+        self, spreadspoke, db_session
+    ):
+        """Dallas is an nflverse abbreviation but appears in no nflverse row
+        here, so it exists purely because the Spreadspoke era referenced it."""
         with patch.object(spreadspoke, "_get_csv", _fake_get_csv()):
             await spreadspoke.import_historical(1970, 2016)
 
@@ -390,6 +404,93 @@ class TestNflSpreadspokeEra:
         assert db_session.query(Game).one().venue_id is None
 
     @pytest.mark.asyncio
+    async def test_pre_1970_seasons_are_never_imported(self, adapter, db_session):
+        """The file starts in 1966, but this project's floor is 1970 and only
+        1970-1998 was validated. admin.py accepts start_season down to 1850, so
+        the floor has to be enforced here rather than trusted from the caller:
+        the pre-merger AFL grounds are deliberately unmapped."""
+        afl = {
+            "schedule_date": "9/11/1966", "schedule_season": "1966", "schedule_week": "1",
+            "schedule_playoff": "FALSE", "team_home": "San Diego Chargers", "score_home": "27",
+            "score_away": "7", "team_away": "Buffalo Bills", "stadium": "Balboa Stadium",
+            "stadium_neutral": "FALSE",
+        }
+        with patch.object(adapter, "_read_spreadspoke_csv",
+                          return_value=SPREADSPOKE_ROWS + [afl]), \
+             patch.object(adapter, "_get_csv", _fake_get_csv()):
+            result = await adapter.import_historical(1850, 1998)
+
+        assert result.games_imported == 3
+        assert not db_session.query(Game).filter(Game.season < 1970).count()
+        assert not result.errors  # no "unmapped stadium 'Balboa Stadium'"
+
+    @pytest.mark.asyncio
+    async def test_numbered_week_is_kept(self, spreadspoke, db_session):
+        with patch.object(spreadspoke, "_get_csv", _fake_get_csv()):
+            await spreadspoke.import_historical(1970, 1998)
+
+        game = db_session.query(Game).filter(Game.season == 1994).one()
+        assert game.week == 3
+        assert game.season_type == "regular"
+
+    @pytest.mark.asyncio
+    async def test_tight_seam_takes_each_season_from_one_source(
+        self, spreadspoke, db_session
+    ):
+        with patch.object(spreadspoke, "_get_csv", _fake_get_csv()):
+            await spreadspoke.import_historical(1998, 1999)
+
+        # 1998 has no Spreadspoke fixture row, so only the two nflverse 1999
+        # games land -- and neither arrives from the Spreadspoke 1999 row.
+        assert {g.season for g in db_session.query(Game).all()} == {1999}
+        assert not db_session.query(Game).filter(
+            Game.source_game_id.like("spreadspoke-%")
+        ).count()
+
+    @pytest.mark.asyncio
+    async def test_reversed_season_range_imports_nothing(self, spreadspoke, db_session):
+        with patch.object(spreadspoke, "_get_csv", _fake_get_csv()):
+            result = await spreadspoke.import_historical(1999, 1998)
+
+        assert result.games_imported == 0
+        assert db_session.query(Game).count() == 0
+
+    @pytest.mark.asyncio
+    async def test_unmatched_team_and_bad_date_are_errors_not_crashes(
+        self, adapter, db_session
+    ):
+        rows = [
+            dict(SPREADSPOKE_ROWS[0], team_away="Frankfurt Galaxy"),
+            dict(SPREADSPOKE_ROWS[2], schedule_date="not-a-date"),
+        ]
+        with patch.object(adapter, "_read_spreadspoke_csv", return_value=rows), \
+             patch.object(adapter, "_get_csv", _fake_get_csv()):
+            result = await adapter.import_historical(1970, 1998)
+
+        assert result.games_imported == 0
+        assert len(result.errors) == 2
+        assert any("unmatched team" in e for e in result.errors)
+        assert any("bad date" in e for e in result.errors)
+
+    @pytest.mark.asyncio
+    async def test_unmapped_stadium_reported_once_per_building(
+        self, adapter, db_session
+    ):
+        """One unmapped ground is one fact about the map; a season of home
+        games at it must not bury every other error in the run."""
+        rows = [
+            dict(SPREADSPOKE_ROWS[0], schedule_date=f"12/{day}/1972",
+                 stadium="Some Unbuilt Dome")
+            for day in range(10, 20)
+        ]
+        with patch.object(adapter, "_read_spreadspoke_csv", return_value=rows), \
+             patch.object(adapter, "_get_csv", _fake_get_csv()):
+            result = await adapter.import_historical(1970, 1998)
+
+        assert result.games_imported == 10
+        assert len([e for e in result.errors if "unmapped stadium" in e]) == 1
+
+    @pytest.mark.asyncio
     async def test_missing_bulk_file_explains_how_to_get_it(
         self, adapter, tmp_path, monkeypatch
     ):
@@ -417,3 +518,37 @@ class TestNflSpreadspokeMaps:
             HISTORICAL_TEAMS, SPREADSPOKE_TEAM_ALIASES,
         )
         assert set(HISTORICAL_TEAMS) <= set(SPREADSPOKE_TEAM_ALIASES.values())
+
+    def test_no_historical_key_shadows_an_nflverse_abbreviation(self):
+        """The 7 minted keys exist precisely because the abbreviation they
+        would want is taken, so none may equal a live nflverse code."""
+        from sports_passport.services.adapters.nfl import HISTORICAL_TEAMS
+
+        live = {a for a in TEAM_ABBREVS_1999_PLUS}
+        assert not (set(HISTORICAL_TEAMS) & live)
+
+    @pytest.mark.parametrize("raw,expected", [
+        ("13", 13), ("0", 0), ("-3", -3), ("", None), (None, None),
+        ("  7 ", 7),
+        # Would raise from an isdigit() guard rather than returning None.
+        ("--5", None),
+        ("13.0", None), ("1,234", None), ("N/A", None),
+    ])
+    def test_int_or_none_never_raises(self, raw, expected):
+        from sports_passport.services.adapters.nfl import _int_or_none
+        assert _int_or_none(raw) == expected
+
+    @pytest.mark.parametrize("raw", [
+        "", None, "1972-12-23", "12/23/72", "13/1/1972", "not-a-date",
+    ])
+    def test_bad_dates_return_none(self, raw):
+        assert NflAdapter._parse_spreadspoke_date(raw) is None
+
+    def test_slug_keeps_the_38_team_names_distinct(self):
+        """source_game_id is a natural key built from slugged team names, so a
+        slug collision between two clubs would merge two real games."""
+        from sports_passport.services.adapters.nfl import (
+            SPREADSPOKE_TEAM_ALIASES, _slug,
+        )
+        names = list(SPREADSPOKE_TEAM_ALIASES)
+        assert len({_slug(n) for n in names}) == len(names)

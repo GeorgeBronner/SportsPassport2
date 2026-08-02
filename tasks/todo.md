@@ -188,3 +188,46 @@ Verified against the predictions in the plan:
 as continuous — OAK (Oakland 1970–81 and 1995–2019) and CLE (the 1996–98 hiatus). Games are
 attributed correctly; only the summary span overreaches. Narrowing it needs a schema change
 to hold multiple ranges per team, which was out of scope here.
+
+## Code review fixes (2026-08-01)
+
+Subagent review of the commit. Six real defects found and fixed; the boundary logic,
+`first_season` clamp, `_team_lookup` re-key, Sun Devil override scoping, natural-key
+uniqueness and 28 of the 29 seed rows were checked and found correct.
+
+- [x] **No floor on the historical range** (the serious one). `FIRST_SPREADSPOKE_SEASON`
+      was declared and never used, and the file actually starts in **1966**, not 1970.
+      `admin.py` accepts `start_season` down to 1850, so `import_historical(1850, 1998)`
+      pulled in **728 unvalidated pre-merger AFL games with 107 unmapped-stadium errors
+      and 107 null venues**. Now clamped at both ends; the same call yields exactly 6,367
+      games, 0 errors, 0 null venues.
+- [x] **`_int_or_none` could raise instead of returning None.** `"--5"` passes
+      `lstrip("-").isdigit()` and then throws, aborting an import part-way. Rewritten
+      around `int()` + `except ValueError`. Latent on today's file (0 bad cells), but
+      guarding malformed input is the helper's whole job.
+- [x] **Venue display name was non-deterministic.** The two paths disagreed for 4 shared
+      buildings — the historical path wrote the seed name, the nflverse path wrote
+      nflverse's naming-rights-of-the-moment name — so the map pin flipped between
+      "Arrowhead Stadium" and "GEHA Field at Arrowhead Stadium" depending on which import
+      ran last. The seed is now authoritative in both paths, with `stadium` as the
+      fallback for a ground the seed hasn't caught up with.
+- [x] **`hist-astrodome` carried NRG Stadium's exact coordinates** (0 m apart) rather
+      than the Astrodome's. Corrected to 29.6850, −95.4072.
+- [x] **Unmapped-stadium errors weren't deduped** — one per game rather than one per
+      building, unlike the adjacent seed-missing branch. Now once per building.
+- [x] **`test_shared_team_first_season_widens` was vacuous** — it passed with the entire
+      `first_season` clamp deleted, because its team appears in no nflverse fixture row.
+      Renamed to what it actually tests; the clamp is genuinely covered by
+      `test_later_nflverse_import_does_not_narrow_first_season`, which does fail without it.
+- [x] Added the coverage the review identified as missing: the pre-1970 floor, a numbered
+      week, the tight seam, a reversed range, the unmatched-team and bad-date error
+      branches, `_int_or_none`/`_parse_spreadspoke_date` edge cases, slug distinctness,
+      and that no minted key shadows a live nflverse abbreviation. **337 tests green**
+      (was 313).
+- [x] Recorded the reused-abbreviation and single-span limitations in
+      `docs/SP3_open_issues.md` #9, which the first pass left out.
+
+**Not fixed, flagged instead:** `mls.py` has the identical missing-floor bug
+(`FIRST_MLS_SEASON` is equally dead, and `_import_kaggle` only enforces the upper
+bound). Left alone rather than changing a working league in an NFL PR — worth a
+follow-up.

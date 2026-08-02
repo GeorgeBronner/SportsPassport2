@@ -383,7 +383,13 @@ class NflAdapter(LeagueAdapter):
                 self.db,
                 source=self.source,
                 source_venue_id=stadium_id,
-                name=row.get("stadium") or stadium_id,
+                # The seed wins where it knows the building, so both eras agree
+                # on one label. nflverse names a stadium by its naming-rights
+                # deal of the moment, so letting it write here made the map pin
+                # flip (Arrowhead <-> GEHA Field, Metrodome <-> Mall of America
+                # Field) depending on which import ran last. `stadium` is still
+                # the fallback for a ground the seed has not caught up with.
+                name=(seed["name"] if seed else row.get("stadium") or stadium_id),
                 **(venue_seed.venue_fields(seed) if seed else {}),
             )
             venue_id = venue.id
@@ -453,20 +459,34 @@ class NflAdapter(LeagueAdapter):
             return list(csv.DictReader(f))
 
     def _spreadspoke_rows(self, start_season: int, end_season: int) -> list[dict]:
-        """The rows this run owns. nflverse owns FIRST_NFLVERSE_SEASON onward,
-        whatever season range was asked for."""
+        """The rows this run owns: FIRST_SPREADSPOKE_SEASON up to (not
+        including) FIRST_NFLVERSE_SEASON, intersected with what was asked for.
+
+        Both ends are clamped. The file actually starts in 1966, three seasons
+        before the merger, but this project's floor is 1970 and only 1970-1998
+        was validated — so `import_historical(1850, 1998)`, which `admin.py`
+        happily accepts, must not quietly pull in 728 pre-merger AFL games
+        whose grounds (Balboa Stadium, Fenway Park, Pitt Stadium...) are
+        deliberately absent from SPREADSPOKE_VENUE_IDS.
+        """
+        floor = max(start_season, FIRST_SPREADSPOKE_SEASON)
         rows = []
         for row in self._read_spreadspoke_csv():
             try:
                 season = int(row["schedule_season"])
             except (KeyError, TypeError, ValueError):
                 continue
-            if start_season <= season <= end_season and season < FIRST_NFLVERSE_SEASON:
+            if floor <= season <= end_season and season < FIRST_NFLVERSE_SEASON:
                 rows.append(row)
         return rows
 
     def _spreadspoke_venue_id(
-        self, row: dict, season: int, cache: dict[str, Optional[int]], result: ImportResult
+        self,
+        row: dict,
+        season: int,
+        cache: dict[str, Optional[int]],
+        unmapped: set[str],
+        result: ImportResult,
     ) -> Optional[int]:
         name = (row.get("stadium") or "").strip()
         if not name:
@@ -474,7 +494,12 @@ class NflAdapter(LeagueAdapter):
 
         stadium_id = SPREADSPOKE_VENUE_IDS.get(name)
         if stadium_id is None:
-            result.errors.append(f"{season}: unmapped stadium {name!r}")
+            # Once per building, not once per game: an unmapped ground is one
+            # fact about the map, and a season of home games would otherwise
+            # bury every other error in the run.
+            if name not in unmapped:
+                unmapped.add(name)
+                result.errors.append(f"{season}: unmapped stadium {name!r}")
             return None
         # The one systematic venue defect in this file — see the module docstring.
         if stadium_id == "PHO00" and season < FIRST_CARDINALS_GLENDALE_SEASON:
@@ -504,6 +529,7 @@ class NflAdapter(LeagueAdapter):
     ) -> None:
         league = get_league(self.db, self.league_code)
         venue_cache: dict[str, Optional[int]] = {}
+        unmapped_venues: set[str] = set()
 
         for row in rows:
             season = int(row["schedule_season"])
@@ -550,7 +576,9 @@ class NflAdapter(LeagueAdapter):
                 # Playoff rounds are named, not numbered, in this file; the
                 # round is carried by season_type instead of inventing a number.
                 week=int(week_raw) if week_raw.isdigit() else None,
-                venue_id=self._spreadspoke_venue_id(row, season, venue_cache, result),
+                venue_id=self._spreadspoke_venue_id(
+                    row, season, venue_cache, unmapped_venues, result
+                ),
                 neutral_site=row.get("stadium_neutral") == "TRUE",
             )
             if created:
@@ -634,5 +662,13 @@ def _slug(name: str) -> str:
 
 
 def _int_or_none(value: Optional[str]) -> Optional[int]:
-    text = (value or "").strip()
-    return int(text) if text.lstrip("-").isdigit() else None
+    """Parse a score, treating anything unparseable as absent.
+
+    `int()` rather than an isdigit() guard: "--5" passes `lstrip("-").isdigit()`
+    and then raises, which would abort a whole import part-way through for one
+    malformed cell.
+    """
+    try:
+        return int((value or "").strip())
+    except ValueError:
+        return None
