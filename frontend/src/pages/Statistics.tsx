@@ -120,6 +120,7 @@ const Statistics: React.FC = () => {
         {heroTiles.map((tile) => (
           <div
             key={tile.label}
+            role="group"
             className="bg-panel border border-line rounded-xl p-4"
             {...bind({ title: tile.label, lines: tile.tip })}
           >
@@ -132,6 +133,7 @@ const Statistics: React.FC = () => {
       {/* Second row of totals — all derived from the log, none of it shown before. */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div
+          role="group"
           className="bg-panel border border-line rounded-xl p-4"
           {...bind({
             title: 'Home teams when you were there',
@@ -153,6 +155,7 @@ const Statistics: React.FC = () => {
         </div>
 
         <div
+          role="group"
           className="bg-panel border border-line rounded-xl p-4"
           {...bind({
             title: 'Busiest day of the week',
@@ -168,6 +171,7 @@ const Statistics: React.FC = () => {
         </div>
 
         <div
+          role="group"
           className="bg-panel border border-line rounded-xl p-4"
           {...bind({
             title: 'Busiest month',
@@ -183,6 +187,7 @@ const Statistics: React.FC = () => {
         </div>
 
         <div
+          role="group"
           className="bg-panel border border-line rounded-xl p-4"
           {...bind({
             title: 'Longest gap between games',
@@ -212,6 +217,7 @@ const Statistics: React.FC = () => {
             return (
               <div
                 key={code}
+                role="group"
                 className={`flex items-center gap-2 rounded-full border px-3.5 py-2 ${
                   count ? 'border-line-strong' : 'border-line opacity-55'
                 }`}
@@ -349,6 +355,7 @@ const Statistics: React.FC = () => {
             {stats.venues.slice(0, 8).map((venue) => (
               <div
                 key={venue.venue_id}
+                role="group"
                 className="flex items-center gap-2"
                 {...bind({
                   title: venue.name,

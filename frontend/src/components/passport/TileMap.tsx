@@ -47,9 +47,9 @@ interface TileMapProps {
   gamesByState: Record<string, number>;
 }
 
-/** "Where you've been": US states as tiles, ink depth = games attended there. */
 const TILED = new Set(TILES.map(([code]) => code));
 
+/** "Where you've been": US states as tiles, ink depth = games attended there. */
 const TileMap: React.FC<TileMapProps> = ({ gamesByState }) => {
   const counts = countsByStateCode(gamesByState);
   const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
@@ -71,6 +71,7 @@ const TileMap: React.FC<TileMapProps> = ({ gamesByState }) => {
           return (
             <div
               key={code}
+              role="img"
               className={`rounded flex flex-col items-center justify-center text-[10px] font-semibold border ${
                 count === 0 ? 'border-line text-ink-3' : 'border-transparent'
               } ${strong ? 'text-white' : count > 0 ? 'text-ink' : ''}`}

@@ -5,10 +5,10 @@
 > recommended variant in each mockup (A1 · B1 · C1 · D1 · E1 · F1 · G1). See
 > [What shipped](#what-shipped) for the mapping from finding → change.
 >
-> A second-pass code review then found further defects. **Read
-> [Review pass & where we left off](#review-pass--where-we-left-off) at the very
-> bottom before resuming** — it lists what the review found, what is already
-> fixed, and the three items still outstanding.
+> A second-pass code review then found further defects — all fixed. See
+> [Review pass](#review-pass--where-we-left-off) at the bottom for what it
+> found, including one real bug (weekday grouping computed off UTC, putting
+> Friday night football on Saturday) and two things still owed.
 
 Full pass over every view in the running app (Vite dev server + live SQLite, 235 attended
 games, 7 leagues), in **both themes**, driven through Chrome. Findings are grouped by
@@ -504,34 +504,27 @@ fixed and committed; the ⏳ items are the ones to pick up.**
 | **F9** | `truncate` on an inline `<span>` in the omnibox was inert (`overflow` doesn't apply to non-replaced inline boxes). | Moved to the block wrapper. |
 | **F10** | Find printed the year with raw `getFullYear()` and MapView hard-coded `has_time=false`, both bypassing the timezone-aware `yearOf`. | Both use `yearOf` with the row's real `has_time`. |
 
-### ⏳ Outstanding — pick up here
+### Also fixed (second sitting)
 
-1. **Tests for the B1 timezone fix are not written yet.** This is the important one. The
-   existing `test_weekday_month_and_longest_gap` passes either way, because the fixture
-   sits at 23:30 UTC on a Saturday, which is still Saturday in Eastern — so **nothing
-   currently pins the fix**. I was part-way through adding three cases when we paused:
-   - a night kickoff stored past midnight UTC (the 2024 CFP final, played Monday
-     8 Jan 7:30pm ET, stored `2024-01-09 00:30`) asserting Monday, not Tuesday;
-   - a `has_time=False` row at noon UTC asserting the conversion does **not** roll it off
-     its own calendar day;
-   - `venues[].venue_id` present and unique.
+| ✅ | Finding | Fix |
+|---|---|---|
+| **B1 tests** | Nothing pinned the timezone fix — `test_weekday_month_and_longest_gap` passes either way, because its fixture sits at 23:30 UTC on a Saturday, which is Saturday in Eastern too. | Three cases added, and **verified to fail without the fix**: reverting the conversion makes the night-kickoff case report Tuesday instead of Monday. The 2024 CFP final (played Monday 8 Jan 7:30pm ET, stored `2024-01-09 00:30`) is the fixture. A companion case pins that `has_time=False` rows at noon UTC are *not* rolled off their own day by the conversion, and a third checks `venues[].venue_id` is present and unique. |
+| **F2** | The tooltip rewrite was mouse-only — `useTooltip` bound only mouse events, the triggers were non-interactive elements with no `tabIndex`, and nothing exposed the text to assistive tech. Replacing native `title=` had made the information *less* reachable than what it replaced. | `bind()` now covers three paths and says so in its docstring: mouse (enter + move), keyboard/touch (focus/blur, anchored to the element's own rect since focus carries no coordinates, plus Escape to dismiss), and assistive tech (the same text as an `aria-label`, so it is in the accessible tree without needing hover or focus at all). Trigger elements gained roles that make the label legitimate — `role="group"` on the stat tiles, chips and venue rows, `role="img"` on tile-map cells, `role="graphics-symbol"` on chart bars and state fills; `aria-label` on a role-less `<div>` is unreliable and can mask the element's own text. |
+| **F2 follow-on** | The map's venue dots were **not keyboard-operable at all** — selecting a venue was mouse-only, which the review surfaced while looking at tooltips. | Dots are now `role="button" tabIndex={0}` with Enter/Space handling and a visible focus ring. They are the map's primary control, so unlike the ~30 chart bars per chart they earn a tab stop; the bars deliberately stay out of the tab order and rely on their accessible names. |
 
-2. **F2 — the tooltip rewrite is mouse-only.** The stated reason for replacing native
-   `title=` was that title doesn't work on touch, but `useTooltip` binds only
-   `mouseenter`/`mousemove`/`mouseleave`; the triggers are non-interactive
-   `<div>`/`<rect>`/`<path>` with no `tabIndex`, and nothing points `aria-describedby` at
-   the `role="tooltip"` node. On touch and by keyboard the information is now *less*
-   reachable than before. A `<title>` child has been restored inside each SeasonChart
-   `<rect>` (that one was genuinely exposed to assistive tech), but **the stat tiles,
-   league chips, top-team rows, tile-map states and map dots still have no non-mouse
-   path.** Options: give the triggers `tabIndex={0}` + focus handlers, or keep a native
-   `title` alongside the styled card.
+### ⏳ Outstanding
 
-3. **Mobile is still unverified** (§4.7) — unchanged from before. Additionally the
-   reviewer noted **R2**: `.sticky-head` is inert below `lg`, because `max-lg:overflow-x-auto`
-   makes the panel a scroll container on both axes (the exact trap documented in CLAUDE.md)
-   and its auto height means it never scrolls vertically. Deliberate scoping — the sticky
-   header is an `lg+` feature — but worth knowing.
+1. **Mobile is still unverified** (§4.7) — unchanged. The reviewer also noted **R2**:
+   `.sticky-head` is inert below `lg`, because `max-lg:overflow-x-auto` makes the panel a
+   scroll container on both axes (the exact trap documented in CLAUDE.md) and its auto
+   height means it never scrolls vertically. Deliberate scoping — the sticky header is an
+   `lg+` feature — but worth knowing.
+
+2. **The a11y changes were not re-verified in a browser.** The Chrome extension
+   disconnected before the last pass, and installing Playwright purely for this check
+   wasn't worth polluting the project. They are attribute- and handler-level changes and
+   tsc/eslint/build/tests are all green, but a real screen-reader and keyboard pass on the
+   Passport and Map pages is still owed.
 
 ### Checked and explicitly found fine
 
@@ -550,9 +543,8 @@ The reviewer also verified the aggregation against the **real** 235-game databas
 
 ### State of the branch
 
-`frontend-refactor-8-2-26`, two commits, all four checks green
-(ruff · pyright · 345 pytest · eslint · tsc · build). **No PR has been opened yet** — that
-was the next step, and should wait for item 1 above at minimum.
+`frontend-refactor-8-2-26`, three commits, all four checks green
+(ruff · pyright · **348** pytest · eslint · tsc · build).
 
 One repo hazard worth remembering: `npm run build` empties `backend/static/` and deletes
 the tracked `backend/static/.gitkeep`. Restore it (`git checkout backend/static/.gitkeep`)

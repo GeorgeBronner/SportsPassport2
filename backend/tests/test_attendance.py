@@ -352,13 +352,90 @@ class TestAttendanceStats:
         assert data["new_venues_by_season"] == {"2023": 1}
 
     def test_weekday_month_and_longest_gap(self, client, sample_attendance, auth_headers):
-        """Both attended games fall on a Saturday, 84 days apart."""
+        """Both attended games fall on a Saturday, 84 days apart.
+
+        Note this case alone does NOT pin the timezone handling: 23:30 UTC is
+        6:30pm Eastern on the same Saturday, so it reads correctly either way.
+        The two tests below are the ones that would catch a regression.
+        """
         data = client.get("/api/attendance/stats", headers=auth_headers).json()
         assert data["games_by_weekday"] == {"5": 2}
         assert data["games_by_month"] == {"9": 1, "11": 1}
         assert data["longest_gap_days"] == 84
         assert data["longest_gap_start"].startswith("2023-09-02")
         assert data["longest_gap_end"].startswith("2023-11-25")
+
+    def test_weekday_uses_local_wall_clock_not_the_stored_utc(
+        self, client, db_session, test_user, cfb_league, sample_teams,
+        sample_venues, auth_headers
+    ):
+        """A night kickoff is stored past midnight UTC, on the following day.
+
+        The 2024 CFP final was played Monday 8 January, 7:30pm Eastern —
+        stored as 2024-01-09 00:30 UTC. Grouped off the raw instant it counts
+        as Tuesday; converted to Eastern it is Monday. This is the shape of
+        the bug that put ~40% of a real 235-game log on the wrong weekday,
+        most visibly turning Friday night football into Saturday.
+        """
+        night = Game(
+            league_id=cfb_league.id,
+            source="cfbd",
+            source_game_id="night-1",
+            home_team_id=sample_teams[0].id,
+            away_team_id=sample_teams[1].id,
+            home_score=34,
+            away_score=7,
+            start_date=datetime(2024, 1, 9, 0, 30, 0),
+            season=2023,
+            season_type="postseason",
+            venue_id=sample_venues[0].id,
+        )
+        db_session.add(night)
+        db_session.commit()
+        db_session.add(UserGameAttendance(user_id=test_user.id, game_id=night.id))
+        db_session.commit()
+
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        assert data["games_by_weekday"] == {"0": 1}, "Monday the 8th, not Tuesday the 9th"
+        assert data["games_by_month"] == {"1": 1}
+
+    def test_date_only_games_survive_the_local_conversion(
+        self, client, db_session, test_user, cfb_league, sample_teams,
+        sample_venues, auth_headers
+    ):
+        """has_time=False rows are parked at noon UTC by DATE_ONLY_HOUR.
+
+        Converting them to Eastern must not roll them off their own calendar
+        day — that would undo the whole reason noon was chosen over midnight.
+        """
+        dateless = Game(
+            league_id=cfb_league.id,
+            source="cfbd",
+            source_game_id="dateonly-1",
+            home_team_id=sample_teams[0].id,
+            away_team_id=sample_teams[1].id,
+            start_date=datetime(2023, 10, 1, 12, 0, 0),  # a Sunday, noon UTC
+            has_time=False,
+            season=2023,
+            season_type="regular",
+            venue_id=sample_venues[0].id,
+        )
+        db_session.add(dateless)
+        db_session.commit()
+        db_session.add(UserGameAttendance(user_id=test_user.id, game_id=dateless.id))
+        db_session.commit()
+
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        assert data["games_by_weekday"] == {"6": 1}, "still Sunday"
+        assert data["games_by_month"] == {"10": 1}
+
+    def test_venues_carry_their_id(self, client, sample_attendance, auth_headers):
+        """Name+city is not unique, so consumers need the id to key on."""
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        assert data["venues"], "fixture attends two games at two venues"
+        ids = [v["venue_id"] for v in data["venues"]]
+        assert all(isinstance(vid, int) for vid in ids)
+        assert len(ids) == len(set(ids))
 
     def test_single_game_has_no_gap(
         self, client, db_session, test_user, sample_games, auth_headers

@@ -65,10 +65,14 @@ const SeasonChart: React.FC<SeasonChartProps> = ({ data, color, height = 132, to
       const x = PAD_LEFT + (y - y0) * barWidth;
       if (value > 0) {
         const extra = tooltipLines?.(y, value).filter(Boolean) ?? [];
-        const summary = `${y} — ${value} game${value === 1 ? '' : 's'}`;
         bars.push(
+          // Deliberately not a tab stop. `bind` puts the same text on the bar
+          // as an aria-label, so it is in the accessible tree and reachable by
+          // element navigation — but making every bar focusable would put 30+
+          // tab stops per chart in the way of everything after it.
           <rect
             key={y}
+            role="graphics-symbol"
             x={(x + 0.6).toFixed(1)}
             y={gy(value).toFixed(1)}
             width={Math.max(barWidth - 1.6, 1.4).toFixed(1)}
@@ -76,13 +80,12 @@ const SeasonChart: React.FC<SeasonChartProps> = ({ data, color, height = 132, to
             rx={1.5}
             fill={color}
             className="cursor-default hover:opacity-70 transition-opacity"
-            {...bind({ title: summary, lines: extra, color })}
-          >
-            {/* The styled hover card is mouse-only. This <title> keeps the same
-                figures reachable by touch and to assistive tech, which is what
-                the native tooltip it replaced already did. */}
-            <title>{[summary, ...extra].join(' · ')}</title>
-          </rect>
+            {...bind({
+              title: `${y} — ${value} game${value === 1 ? '' : 's'}`,
+              lines: extra,
+              color,
+            })}
+          />
         );
       }
       if (y % tickEvery === 0) {

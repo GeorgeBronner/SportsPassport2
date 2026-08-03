@@ -208,6 +208,7 @@ const MapView: React.FC = () => {
               return (
                 <path
                   key={code}
+                  role="graphics-symbol"
                   d={d}
                   fill={stateFill(count)}
                   stroke="none"
@@ -235,8 +236,21 @@ const MapView: React.FC = () => {
                     fillOpacity={selected && !isSelected ? 0.4 : 0.85}
                     stroke={isSelected ? 'var(--ink)' : 'var(--page)'}
                     strokeWidth={isSelected ? 2.5 : 2}
-                    className="cursor-pointer"
+                    className="cursor-pointer focus:outline-2 focus:outline-focus"
+                    // Selecting a venue was mouse-only — these are the map's
+                    // primary control, so unlike the chart bars they earn a tab
+                    // stop. Focus also surfaces the tooltip, which is what makes
+                    // the dots usable on touch.
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isSelected}
                     onClick={() => setSelected(v)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelected(v);
+                      }
+                    }}
                     {...bind({
                       title: v.name,
                       lines: [
