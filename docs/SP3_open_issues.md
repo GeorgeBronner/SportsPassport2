@@ -557,3 +557,58 @@ To clear it locally, rebuild from migrations (`cd backend && rm sports_passport.
 uv run alembic upgrade head`, then re-import). The production volume predates the
 `create_all()` removal, so assume it has the old shape until that query says
 otherwise — check it there before ever trusting `alembic check` in CI.
+
+---
+
+## 11. Every venue sat on its city's centroid, not its own site — **RESOLVED 2026-08-03**
+
+`scripts/geocode_venues.py` geocoded venues by city+state, on the reasoning
+stated in its own docstring: *"City-level precision is all the venue map
+needs."* That held while the Atlas was a fixed continental overview. It stopped
+holding the moment the map learned to zoom (`8-3-26-map-fixes`), because every
+venue in a city resolved to one point.
+
+**50 of the 63 attended venues were on a city centroid.** New York was the
+worst: both Yankee Stadiums, Citi Field and a Madison Square Garden row all sat
+at `40.7127, -74.0060` — City Hall, which is none of them. Chicago and Atlanta
+had the same pile. The symptom is invisible at continental scale and obvious at
+40x, which is why it survived this long.
+
+The script now geocodes the venue itself. Each name candidate — an alias if we
+have one, the name as stored, the name with our own suffixes stripped
+(Retrosheet's `Yankee Stadium II`, our `(Norman, OK)`) — is tried against the
+city and then against the state alone, and the first hit within
+`MAX_DRIFT_KM` (100km) of the city centroid wins.
+
+Three details worth keeping:
+
+- **The state-only tier does more work than the aliases.** Our `city` is the
+  postal town, and OSM often files a ground under a different one — Michie
+  Stadium is at West Point, which OSM calls Town of Highlands. Dropping the
+  city is what resolves those.
+- **The distance guard is not optional.** Without a yardstick, the state tier
+  will happily answer "Memorial Stadium" with one three states over. The city
+  centroid is looked up first precisely so there is something to measure
+  against, and it remains the fallback.
+- **Re-runs are safe and idempotent.** Only NULL coordinates and coordinates
+  that *are* a known city centroid are touched, so the hand-verified seed CSVs
+  (`nfl_stadiums`, `nhl_arenas`, `nba_arenas`, `mls_stadiums`) and the ASA
+  API's building-precise coordinates are never overwritten. A second run
+  reports `0 venue(s) to place`.
+
+`NAME_ALIASES` covers four buildings OSM files under another name: a
+naming-rights era we didn't follow (`High Point Solutions` → SHI,
+`Kroger Field` → Commonwealth), an abbreviation of ours
+(`DKR-Texas Memorial Stadium`), and one demolished ground — the Georgia Dome,
+aliased to the successor built ~200m away on the adjacent site, which is the
+convention `venue_seed.py` already documents for demolished grounds.
+
+Result: all 50 placed at building level, 0 city fallbacks. The only attended
+venues still sharing coordinates are the three Yankee Stadium rows, which are
+genuinely one site (the original stood across the street) and are separated
+visually by the map's fan-out.
+
+**Still city-level:** the ~2k unattended venues in the table. Only attended
+venues are ever plotted, and `--all` is a ~30-minute Nominatim run at the
+policy's 1 req/sec, so it was left for whenever one of them is first attended —
+the script is idempotent, so re-running it then costs only the new lookups.
