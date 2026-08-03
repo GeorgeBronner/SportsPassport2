@@ -541,11 +541,25 @@ text on a saturated background in light mode.
    height means it never scrolls vertically. Deliberate scoping — the sticky header is an
    `lg+` feature — but worth knowing.
 
-2. **The a11y changes were not re-verified in a browser.** The Chrome extension
-   disconnected before the last pass, and installing Playwright purely for this check
-   wasn't worth polluting the project. They are attribute- and handler-level changes and
-   tsc/eslint/build/tests are all green, but a real screen-reader and keyboard pass on the
-   Passport and Map pages is still owed.
+2. ~~The a11y changes were not re-verified in a browser.~~ **Done** — verified live on
+   2026-08-02, in the explicit `data-theme="dark"` path:
+
+   | Checked | Result |
+   |---|---|
+   | `--logo-plate-ring` on the theme-toggle path (the one that was broken) | resolves to `rgba(11,11,11,0.18)`, plate `#f1f1ee` |
+   | `aria-label` opt-in | tile-map cell → `"AL — 96 games attended — 41% of your located games"`; stat tile and top-team link → **no** `aria-label`, keeping their own text |
+   | Map dots in the tab order | reachable by <kbd>Tab</kbd>; 63 dots, each with a descriptive label |
+   | Keyboard selection | <kbd>Enter</kbd> sets `aria-pressed=true` and populates the venue panel |
+   | Focus indicator | solid 2px `rgb(57,135,229)` outline |
+   | Tooltip on focus | appears, correctly positioned, league-coloured title |
+   | <kbd>Esc</kbd> dismiss | clears the card |
+   | My log row actions on touch | `opacity .45`, `pointer-events: auto`, and `elementFromPoint` at the button centre hits the button |
+   | H/A column | no native `title`; `aria-label="Home — at Alabama"` and the shared card shows the same |
+
+   One trap worth recording: **programmatic `el.focus()` on an SVG shape fires no focus
+   event in Chrome**, so it looks like the focus tooltip is broken. Real <kbd>Tab</kbd>
+   focus fires `focus`/`focusin` normally and everything works. Test SVG focus behaviour
+   with real key events, not `.focus()`.
 
 ### Checked and explicitly found fine
 
