@@ -1,7 +1,8 @@
 import { geoAlbersUsa, geoPath } from 'd3-geo';
-import { mesh, merge } from 'topojson-client';
+import { mesh, merge, feature } from 'topojson-client';
 import type { Topology, GeometryCollection, Polygon, MultiPolygon } from 'topojson-specification';
 import usTopology from '../../data/us-states-10m.json';
+import { toStateCode } from '../../utils/states';
 
 // Real US Census state boundaries (via us-atlas, 10m resolution) through a
 // proper Albers USA projection — the same projection/data family behind most
@@ -41,3 +42,15 @@ export const US_PATH: string = path(nationGeo) ?? '';
 
 /** Interior state boundary lines, drawn lighter than the coastline. */
 export const STATE_BORDERS_PATH: string = path(mesh(topology, continentalStates, (a, b) => a !== b)) ?? '';
+
+/** Per-state fill paths keyed by 2-letter code, for shading the map by games
+ *  attended. Keyed by code rather than the topology's FIPS id so callers can
+ *  index straight into `games_by_state`, which the API returns by code. */
+export const STATE_PATHS: Record<string, string> = Object.fromEntries(
+  feature(topology, continentalStates).features.flatMap((f) => {
+    const name = (f.properties as { name?: string } | null)?.name;
+    const d = path(f);
+    // A state with no name or no projected geometry has nothing to shade.
+    return name && d ? [[toStateCode(name), d] as [string, string]] : [];
+  })
+);

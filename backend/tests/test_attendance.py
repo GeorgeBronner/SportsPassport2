@@ -1,7 +1,12 @@
 """
 Tests for attendance endpoints.
 """
+from datetime import datetime
+
 import pytest
+
+from sports_passport.models.attendance import UserGameAttendance
+from sports_passport.models.game import Game
 
 
 class TestMarkAttendance:
@@ -274,6 +279,175 @@ class TestAttendanceStats:
         """Test getting stats requires authentication."""
         response = client.get("/api/attendance/stats")
         assert response.status_code == 401
+
+    def test_home_team_record(self, client, sample_attendance, auth_headers):
+        """The home side won both attended games (35-28 and 42-27)."""
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        assert (data["home_wins"], data["home_losses"], data["home_ties"]) == (2, 0, 0)
+
+    def test_unplayed_game_is_not_scored_as_a_tie(
+        self, client, db_session, test_user, sample_games, cfb_league,
+        sample_teams, sample_venues, auth_headers
+    ):
+        """A future fixture has both scores null — it must not count as 0-0."""
+        future = Game(
+            league_id=cfb_league.id,
+            source="cfbd",
+            source_game_id="future-1",
+            home_team_id=sample_teams[0].id,
+            away_team_id=sample_teams[1].id,
+            home_score=None,
+            away_score=None,
+            start_date=datetime(2026, 9, 5, 23, 30, 0),
+            season=2026,
+            season_type="regular",
+            venue_id=sample_venues[0].id,
+        )
+        db_session.add(future)
+        db_session.commit()
+        db_session.add(UserGameAttendance(user_id=test_user.id, game_id=future.id))
+        db_session.commit()
+
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        assert data["total_games"] == 1
+        assert (data["home_wins"], data["home_losses"], data["home_ties"]) == (0, 0, 0)
+
+    def test_top_teams_carries_identity(self, client, sample_attendance, auth_headers):
+        """Ranked like games_by_team, but with the id/logo the UI needs."""
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        top = data["top_teams"]
+        # Michigan appears in both attended games; Alabama and Ohio State in one.
+        assert top[0]["name"] == "Michigan"
+        assert top[0]["count"] == 2
+        assert top[0]["league_code"] == "CFB"
+        assert isinstance(top[0]["team_id"], int)
+        # Counts must agree with the legacy name-keyed map.
+        assert {t["name"]: t["count"] for t in top} == data["games_by_team"]
+
+    def test_season_breakdown(self, client, sample_attendance, auth_headers):
+        """Per-season slice powers the season headers and chart tooltips."""
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        season = data["season_breakdown"]["2023"]
+        assert season["games"] == 2
+        assert season["venues"] == 2
+        assert season["leagues"] == {"CFB": 2}
+        assert (season["home_wins"], season["home_losses"], season["home_ties"]) == (2, 0, 0)
+
+    def test_new_venues_by_season_counts_each_venue_once(
+        self, client, db_session, test_user, sample_games, auth_headers
+    ):
+        """Returning to a venue in a later season doesn't make it new again."""
+        # sample_games[2] is a 2023 postseason game back at sample_venues[0],
+        # which sample_games[0] already stamped in the same season.
+        db_session.add(
+            UserGameAttendance(user_id=test_user.id, game_id=sample_games[0].id)
+        )
+        db_session.add(
+            UserGameAttendance(user_id=test_user.id, game_id=sample_games[2].id)
+        )
+        db_session.commit()
+
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        assert data["unique_stadiums"] == 1
+        assert data["new_venues_by_season"] == {"2023": 1}
+
+    def test_weekday_month_and_longest_gap(self, client, sample_attendance, auth_headers):
+        """Both attended games fall on a Saturday, 84 days apart.
+
+        Note this case alone does NOT pin the timezone handling: 23:30 UTC is
+        6:30pm Eastern on the same Saturday, so it reads correctly either way.
+        The two tests below are the ones that would catch a regression.
+        """
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        assert data["games_by_weekday"] == {"5": 2}
+        assert data["games_by_month"] == {"9": 1, "11": 1}
+        assert data["longest_gap_days"] == 84
+        assert data["longest_gap_start"].startswith("2023-09-02")
+        assert data["longest_gap_end"].startswith("2023-11-25")
+
+    def test_weekday_uses_local_wall_clock_not_the_stored_utc(
+        self, client, db_session, test_user, cfb_league, sample_teams,
+        sample_venues, auth_headers
+    ):
+        """A night kickoff is stored past midnight UTC, on the following day.
+
+        The 2024 CFP final was played Monday 8 January, 7:30pm Eastern —
+        stored as 2024-01-09 00:30 UTC. Grouped off the raw instant it counts
+        as Tuesday; converted to Eastern it is Monday. This is the shape of
+        the bug that put ~40% of a real 235-game log on the wrong weekday,
+        most visibly turning Friday night football into Saturday.
+        """
+        night = Game(
+            league_id=cfb_league.id,
+            source="cfbd",
+            source_game_id="night-1",
+            home_team_id=sample_teams[0].id,
+            away_team_id=sample_teams[1].id,
+            home_score=34,
+            away_score=7,
+            start_date=datetime(2024, 1, 9, 0, 30, 0),
+            season=2023,
+            season_type="postseason",
+            venue_id=sample_venues[0].id,
+        )
+        db_session.add(night)
+        db_session.commit()
+        db_session.add(UserGameAttendance(user_id=test_user.id, game_id=night.id))
+        db_session.commit()
+
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        assert data["games_by_weekday"] == {"0": 1}, "Monday the 8th, not Tuesday the 9th"
+        assert data["games_by_month"] == {"1": 1}
+
+    def test_date_only_games_survive_the_local_conversion(
+        self, client, db_session, test_user, cfb_league, sample_teams,
+        sample_venues, auth_headers
+    ):
+        """has_time=False rows are parked at noon UTC by DATE_ONLY_HOUR.
+
+        Converting them to Eastern must not roll them off their own calendar
+        day — that would undo the whole reason noon was chosen over midnight.
+        """
+        dateless = Game(
+            league_id=cfb_league.id,
+            source="cfbd",
+            source_game_id="dateonly-1",
+            home_team_id=sample_teams[0].id,
+            away_team_id=sample_teams[1].id,
+            start_date=datetime(2023, 10, 1, 12, 0, 0),  # a Sunday, noon UTC
+            has_time=False,
+            season=2023,
+            season_type="regular",
+            venue_id=sample_venues[0].id,
+        )
+        db_session.add(dateless)
+        db_session.commit()
+        db_session.add(UserGameAttendance(user_id=test_user.id, game_id=dateless.id))
+        db_session.commit()
+
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        assert data["games_by_weekday"] == {"6": 1}, "still Sunday"
+        assert data["games_by_month"] == {"10": 1}
+
+    def test_venues_carry_their_id(self, client, sample_attendance, auth_headers):
+        """Name+city is not unique, so consumers need the id to key on."""
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        assert data["venues"], "fixture attends two games at two venues"
+        ids = [v["venue_id"] for v in data["venues"]]
+        assert all(isinstance(vid, int) for vid in ids)
+        assert len(ids) == len(set(ids))
+
+    def test_single_game_has_no_gap(
+        self, client, db_session, test_user, sample_games, auth_headers
+    ):
+        """One game means no interval to measure."""
+        db_session.add(
+            UserGameAttendance(user_id=test_user.id, game_id=sample_games[0].id)
+        )
+        db_session.commit()
+        data = client.get("/api/attendance/stats", headers=auth_headers).json()
+        assert data["longest_gap_days"] is None
+        assert data["longest_gap_start"] is None
 
 
 class TestUpdateAttendance:

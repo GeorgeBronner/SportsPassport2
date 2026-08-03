@@ -12,7 +12,20 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
 
 ## Tech Stack
 - **Backend**: FastAPI, SQLAlchemy, Alembic, SQLite, Pydantic; JWT auth + bcrypt; package `sports_passport`
-- **Frontend**: React 18 + TypeScript, Vite, Tailwind CSS v4, React Router v6, Axios — built to `backend/static/`, served by FastAPI. Views: Find (omnibox + team workspace), Map (venue atlas), My log (stamps + ledger), Stats (passport page), Admin. Light/dark via CSS-var tokens (see `docs/SP3_frontend_redesign.md`).
+- **Frontend**: React 18 + TypeScript, Vite, Tailwind CSS v4, React Router v6, Axios — built to `backend/static/`, served by FastAPI. Views: Find (omnibox + team workspace), Map (venue atlas), My log (stamps + ledger), Passport (stats/identity page), Admin. Light/dark via CSS-var tokens (see `docs/SP3_frontend_redesign.md`; the 2026-08-02 refactor pass is `docs/8-2-26-frontend-refactor.md`).
+  **Every page is on the token system** — there is no legacy `primary-*`/`accent-*`/`sage-*`
+  palette any more, so a new page should reach for `bg-panel` / `text-ink` / `border-line`,
+  never a fixed Tailwind colour that can't follow the theme.
+  Two traps worth knowing before touching layout:
+  `overflow-x: auto` computes the **other** axis to `auto` as well — that silently turns a
+  panel into a scroll container, which breaks any `position: sticky` inside it and adds
+  stray vertical scrollbars; scope it (`max-lg:overflow-x-auto`) or pair it with an explicit
+  `overflow-y-hidden`. Its companion: a grid/flex **item** won't shrink below its content
+  unless it is *itself* the scroll container, so when the scroller is a descendant (the tile
+  map inside its panel, the stamp shelf inside its) the item stays content-width and pushes
+  the whole page sideways on narrow screens — give those items `min-w-0`. And an SVG with a fixed `viewBox` plus `w-full` scales its **text**
+  with the box, so a chart sized for a 300px rail renders 37px labels in a full-width panel —
+  size the viewBox from the measured container instead (`components/find/SeasonChart.tsx`).
 - **Deploy**: Docker + Docker Compose, single port 8000
 
 ## Architecture

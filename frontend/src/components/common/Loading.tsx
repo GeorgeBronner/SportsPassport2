@@ -1,12 +1,25 @@
 import React from 'react';
+import Layout from '../layout/Layout';
 
-const Loading: React.FC<{ message?: string }> = ({ message = 'Loading...' }) => {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary-200 border-t-primary-600"></div>
-      <p className="mt-6 text-gray-700 font-semibold text-lg">{message}</p>
-    </div>
-  );
-};
+/** Inline spinner — for a panel that is still filling while the page is up. */
+export const Spinner: React.FC<{ message?: string }> = ({ message }) => (
+  <div className="flex flex-col items-center justify-center py-16">
+    <div className="animate-spin rounded-full h-12 w-12 border-4 border-line-strong border-t-focus" />
+    {message && <p className="mt-5 text-ink-2 font-medium">{message}</p>}
+  </div>
+);
+
+/**
+ * Full-page loading state.
+ *
+ * Rendered *inside* `<Layout>` deliberately: returning it in place of the
+ * layout unmounted the header on every navigation, so the nav visibly
+ * disappeared and reappeared each time a page fetched.
+ */
+const Loading: React.FC<{ message?: string }> = ({ message = 'Loading...' }) => (
+  <Layout>
+    <Spinner message={message} />
+  </Layout>
+);
 
 export default Loading;

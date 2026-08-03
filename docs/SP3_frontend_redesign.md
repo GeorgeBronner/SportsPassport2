@@ -161,6 +161,28 @@ Match results (2026-07-15 run):
       timeouts in `api/client.ts` (30s default, 10m for admin imports/syncs)
       so a stalled backend surfaces as an error rather than a forever-spinner.
 
+## Phase 7 — Refactor pass (2026-08-02)
+
+Full review of every view in the running app, then implementation. Findings, mockups and
+the finding→change mapping live in [`8-2-26-frontend-refactor.md`](8-2-26-frontend-refactor.md)
+and `mockups/8-2-26-frontend-refactor-mockups.html`.
+
+- [x] `SeasonChart` sized from the measured container — it was rendering at 3.94× on the
+      map view (433px tall, 37px axis labels) and clipping its last tick to `'2` everywhere
+- [x] Dark-mode fixes: Profile was unreadable, `Loading` was below contrast *and* unmounted
+      the nav on every page load, and black/navy team logos were invisible on dark panels
+- [x] Sticky stats rail + sticky game-log header on the team workspace
+- [x] Find home page filled (on-this-date, latest stamps); My log gained search /
+      league / season filtering over its 235 rows
+- [x] Map choropleth (`STATE_PATHS` in `usOutline.ts`), enriched venue panel, selection ring
+- [x] Shared `useTooltip()` + portalled `<Tooltip>` replaces native `title=` tooltips
+- [x] **Legacy palette fully removed** — Admin and all four auth pages moved to tokens,
+      `primary-*`/`accent-*`/`sage-*` and `.card-elevated`/`.gradient-*` deleted from `index.css`
+- [x] `/api/attendance/stats` additions (all defaulted): `top_teams` (keyed by team id, so
+      Alabama's CFB and CBB sides stop merging), home-team record, weekday/month
+      distributions, `season_breakdown`, `new_venues_by_season`, longest gap
+- [ ] Mobile polish pass — still open, still unverified (see Phase 6)
+
 ## Compliance
 
 - ESPN hidden API: unofficial — one-time/occasional scrapes only, throttled, with a

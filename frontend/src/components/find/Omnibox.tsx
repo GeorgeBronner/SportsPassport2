@@ -15,6 +15,8 @@ interface OmniboxProps {
   onLeagueChange?: (code: string, queryEmpty: boolean) => void;
 }
 
+const CURRENT_SEASON = new Date().getFullYear();
+
 /** Cross-league team finder: debounced typeahead, league tabs, keyboard nav. */
 const Omnibox: React.FC<OmniboxProps> = ({
   onSelect,
@@ -184,6 +186,15 @@ const Omnibox: React.FC<OmniboxProps> = ({
                 </div>
                 {teams.map((team) => {
                   const idx = indexById.get(team.id) ?? -1;
+                  // A search for "michigan" surfaces Michigan A.C. and Michigan
+                  // Military Academy — 1890s programs — above Michigan State,
+                  // with nothing marking them as long gone. The era does that.
+                  const historical =
+                    team.last_season !== null && team.last_season < CURRENT_SEASON - 1;
+                  const era =
+                    team.first_season && team.last_season
+                      ? `${team.first_season}–${team.last_season}`
+                      : null;
                   return (
                     <button
                       key={team.id}
@@ -204,13 +215,19 @@ const Omnibox: React.FC<OmniboxProps> = ({
                         leagueCode={team.league_code}
                         size="md"
                       />
-                      <span className="text-ink">
+                      <span className={`min-w-0 truncate ${historical ? 'text-ink-2' : 'text-ink'}`}>
                         {team.name}{' '}
                         {team.nickname && team.nickname !== team.name && (
                           <span className="text-ink-3">{team.nickname}</span>
                         )}
                       </span>
-                      <span className="ml-auto text-xs text-ink-3 whitespace-nowrap">
+                      {/* Fills what was ~400px of empty row. */}
+                      <span className="hidden sm:block text-[11px] text-ink-3 truncate max-w-56">
+                        {historical
+                          ? era ?? 'historical'
+                          : [team.conference, team.city].filter(Boolean).join(' · ')}
+                      </span>
+                      <span className="ml-auto text-xs text-ink-3 whitespace-nowrap shrink-0">
                         {team.attended_count > 0 ? (
                           <>
                             <b className="text-ink">{team.attended_count}</b> attended

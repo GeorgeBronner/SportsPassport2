@@ -1,25 +1,38 @@
-import React from 'react';
+import React, { useId } from 'react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
 }
 
-const Input: React.FC<InputProps> = ({ label, error, className = '', ...props }) => {
+const Input: React.FC<InputProps> = ({ label, error, className = '', id, ...props }) => {
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const errorId = `${inputId}-error`;
+
   return (
-    <div className="mb-5">
+    <div className="mb-4">
       {label && (
-        <label className="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+        <label htmlFor={inputId} className="kicker block mb-1.5">
           {label}
         </label>
       )}
       <input
-        className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all ${
-          error ? 'border-accent-500 focus:ring-accent-500' : ''
-        } ${className}`}
+        id={inputId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        // `placeholder:text-ink-3` is the fix for placeholders that were
+        // rendering at nearly the same lightness as the field itself.
+        className={`w-full px-3.5 py-2.5 rounded-lg bg-panel-2 text-ink border
+          placeholder:text-ink-3 focus:outline-2 focus:outline-focus transition-colors
+          ${error ? 'border-loss' : 'border-line'} ${className}`}
         {...props}
       />
-      {error && <p className="mt-2 text-sm text-accent-600 font-medium">{error}</p>}
+      {error && (
+        <p id={errorId} className="mt-1.5 text-sm text-loss font-medium">
+          {error}
+        </p>
+      )}
     </div>
   );
 };

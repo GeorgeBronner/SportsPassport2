@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
-import Card from '../components/common/Card';
 import Alert from '../components/common/Alert';
+import AuthShell from '../components/layout/AuthShell';
 import { apiErrorMessage } from '../utils/errors';
 
 const Register: React.FC = () => {
@@ -32,61 +32,53 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-sage-50 flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-primary-700 mb-3">SportsPassport2</h1>
-          <p className="text-lg text-gray-700 font-medium">Create your account</p>
-        </div>
+    <AuthShell tagline="Create your account" title="Sign up">
+      {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-        <Card className="bg-gradient-to-br from-white to-gray-50 shadow-elevated">
-          <h2 className="text-3xl font-bold mb-8 text-gray-900">Sign Up</h2>
+      <form onSubmit={handleSubmit}>
+        <Input
+          label="Full name"
+          type="text"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          placeholder="John Doe"
+          autoComplete="name"
+          required
+        />
 
-          {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+        <Input
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          autoComplete="email"
+          required
+        />
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <Input
-              label="Full Name"
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="John Doe"
-              required
-            />
+        <Input
+          label="Password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+          autoComplete="new-password"
+          required
+          minLength={8}
+        />
 
-            <Input
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-            />
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? 'Creating account...' : 'Create account'}
+        </Button>
+      </form>
 
-            <Input
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={8}
-            />
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Create account'}
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-sm text-gray-700">
-            Already have an account?{' '}
-            <Link to="/login" className="text-primary-600 hover:text-primary-700 font-bold">
-              Sign in
-            </Link>
-          </p>
-        </Card>
-      </div>
-    </div>
+      <p className="mt-4 text-center text-sm text-ink-2">
+        Already have an account?{' '}
+        <Link to="/login" className="text-focus hover:underline font-semibold">
+          Sign in
+        </Link>
+      </p>
+    </AuthShell>
   );
 };
 

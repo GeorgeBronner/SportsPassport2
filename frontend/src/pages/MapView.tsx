@@ -1,12 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Loading from '../components/common/Loading';
+import Alert from '../components/common/Alert';
 import SeasonChart from '../components/find/SeasonChart';
+import Tooltip from '../components/common/Tooltip';
+import { useTooltip } from '../hooks/useTooltip';
 import { attendanceApi } from '../api/attendance';
 import type { Attendance, AttendanceStats, AttendanceVenuePoint } from '../types/api';
 import { LEAGUE_ORDER, leagueColor } from '../utils/leagues';
-import { MAP_H, MAP_W, US_PATH, STATE_BORDERS_PATH, projectPoint } from '../components/map/usOutline';
-import { formatDateShort } from '../utils/format';
+import {
+  MAP_H,
+  MAP_W,
+  US_PATH,
+  STATE_BORDERS_PATH,
+  STATE_PATHS,
+  projectPoint,
+} from '../components/map/usOutline';
+import { countsByStateCode } from '../utils/states';
+import { formatDateShort, yearOf } from '../utils/format';
 
 const dotRadius = (count: number) => 3.5 + Math.sqrt(count) * 2;
 
@@ -33,6 +45,14 @@ const spreadOverlaps = (venues: AttendanceVenuePoint[]) => {
   });
 };
 
+/** Shading for the choropleth, matching the Stats tile-map scale. Kept
+ *  deliberately low-contrast so the league-coloured dots stay the top layer. */
+const stateFill = (count: number) => {
+  if (!count) return 'var(--panel)';
+  const pct = count >= 20 ? 40 : count >= 10 ? 30 : count >= 7 ? 22 : count >= 3 ? 15 : 9;
+  return `color-mix(in srgb, var(--focus) ${pct}%, var(--panel))`;
+};
+
 /** Atlas: every attended venue on one map — dot size is games, color is league. */
 const MapView: React.FC = () => {
   const [venues, setVenues] = useState<AttendanceVenuePoint[]>([]);
@@ -41,8 +61,9 @@ const MapView: React.FC = () => {
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [activeLeagues, setActiveLeagues] = useState<Set<string>>(new Set(LEAGUE_ORDER));
   const [selected, setSelected] = useState<AttendanceVenuePoint | null>(null);
-  const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const { tip, bind } = useTooltip();
 
   useEffect(() => {
     Promise.all([
@@ -56,15 +77,21 @@ const MapView: React.FC = () => {
         setStats(statsData);
         setAttendances(attendedData);
       })
+      .catch((err) => {
+        console.error('Failed to load map data', err);
+        // Without this the page renders "0 games · 0 venues · 0 states" over an
+        // empty map, which reads exactly like an empty log.
+        setError('Failed to load the map. Please try again later.');
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  const leaguesPresent = useMemo(
-    () => new Set(venues.flatMap((v) => v.leagues)),
-    [venues]
-  );
-
+  const leaguesPresent = useMemo(() => new Set(venues.flatMap((v) => v.leagues)), [venues]);
   const points = useMemo(() => spreadOverlaps(venues), [venues]);
+  const stateCounts = useMemo(
+    () => countsByStateCode(stats?.games_by_state ?? {}),
+    [stats]
+  );
 
   const visible = points.filter(
     (v) => v.x !== null && v.leagues.some((code) => activeLeagues.has(code))
@@ -76,6 +103,40 @@ const MapView: React.FC = () => {
       .filter((a) => a.game.venue?.id === selected.venue_id)
       .sort((a, b) => b.game.start_date.localeCompare(a.game.start_date));
   }, [selected, attendances]);
+
+  /** Home-team record and the span of visits at the selected venue. */
+  const selectedSummary = useMemo(() => {
+    if (selectedGames.length === 0) return null;
+    let wins = 0;
+    let losses = 0;
+    let ties = 0;
+    const teams = new Map<string, number>();
+    for (const { game } of selectedGames) {
+      if (game.home_score !== null && game.away_score !== null) {
+        if (game.home_score > game.away_score) wins += 1;
+        else if (game.home_score < game.away_score) losses += 1;
+        else ties += 1;
+      }
+      for (const team of [game.home_team, game.away_team]) {
+        teams.set(team.name, (teams.get(team.name) ?? 0) + 1);
+      }
+    }
+    // Keep has_time alongside the date — yearOf needs it to pick the right
+    // timezone, and hard-coding false rolls an evening game back a year on
+    // New Year's Eve.
+    const dates = selectedGames.map((a) => ({
+      date: a.game.start_date,
+      hasTime: a.game.has_time,
+    }));
+    return {
+      wins,
+      losses,
+      ties,
+      first: dates[dates.length - 1],
+      last: dates[0],
+      topTeams: [...teams.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3),
+    };
+  }, [selectedGames]);
 
   const toggleLeague = (code: string) => {
     setActiveLeagues((prev) => {
@@ -101,6 +162,8 @@ const MapView: React.FC = () => {
           <b className="text-ink font-mono">{stats?.unique_states ?? 0}</b> states
         </p>
       </div>
+
+      {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
       <div className="flex flex-wrap gap-1.5 mb-3">
         {LEAGUE_ORDER.map((code) => {
@@ -131,97 +194,170 @@ const MapView: React.FC = () => {
         })}
         {withoutVenue > 0 && (
           <span className="text-xs text-ink-3 self-center ml-2">
-            {withoutVenue} attended game{withoutVenue !== 1 ? 's' : ''} missing venue data — not shown
+            {withoutVenue} attended game{withoutVenue !== 1 ? 's' : ''} missing venue data — not
+            shown
           </span>
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_300px] items-stretch">
+      <div className="grid gap-4 lg:grid-cols-[1fr_320px] items-stretch">
         <div className="relative bg-panel-2 border border-line rounded-xl overflow-hidden">
           <svg
             viewBox={`0 0 ${MAP_W} ${MAP_H}`}
             className="block w-full h-auto"
             role="img"
             aria-label="Map of venues where you have attended games"
-            onMouseLeave={() => setTip(null)}
           >
-            <path
-              d={US_PATH}
-              fill="var(--panel)"
-              stroke="var(--line-strong)"
-              strokeWidth={1.4}
-              strokeLinejoin="round"
-            />
-            <path
-              d={STATE_BORDERS_PATH}
-              fill="none"
-              stroke="var(--line)"
-              strokeWidth={0.75}
-              strokeLinejoin="round"
-            />
+            <path d={US_PATH} fill="var(--panel)" stroke="var(--line-strong)" strokeWidth={1.4} strokeLinejoin="round" />
+            {/* Choropleth: the state boundaries were already drawn but carried
+                no information. Same scale as the Stats page tile map. */}
+            {Object.entries(STATE_PATHS).map(([code, d]) => {
+              const count = stateCounts[code] ?? 0;
+              if (!count) return null;
+              return (
+                <path
+                  key={code}
+                  role="graphics-symbol"
+                  d={d}
+                  fill={stateFill(count)}
+                  stroke="none"
+                  {...bind(
+                    {
+                      title: code,
+                      lines: [`${count} game${count === 1 ? '' : 's'} attended in this state`],
+                    },
+                    { label: true }
+                  )}
+                />
+              );
+            })}
+            <path d={STATE_BORDERS_PATH} fill="none" stroke="var(--line)" strokeWidth={0.75} strokeLinejoin="round" />
             {[...visible]
               .sort((a, b) => b.count - a.count)
-              .map((v) => (
-                <circle
-                  key={v.venue_id}
-                  cx={v.x!}
-                  cy={v.y!}
-                  r={dotRadius(v.count)}
-                  fill={leagueColor(v.leagues[0] ?? '')}
-                  fillOpacity={0.85}
-                  stroke="var(--page)"
-                  strokeWidth={2}
-                  className="cursor-pointer"
-                  onClick={() => setSelected(v)}
-                  onMouseMove={(e) =>
-                    setTip({
-                      x: e.clientX,
-                      y: e.clientY,
-                      text: `${v.name} · ${v.count} game${v.count > 1 ? 's' : ''}`,
-                    })
-                  }
-                  onMouseLeave={() => setTip(null)}
-                />
-              ))}
+              .map((v) => {
+                const isSelected = selected?.venue_id === v.venue_id;
+                return (
+                  <circle
+                    key={v.venue_id}
+                    cx={v.x!}
+                    cy={v.y!}
+                    r={dotRadius(v.count)}
+                    fill={leagueColor(v.leagues[0] ?? '')}
+                    // Non-selected dots dim once something is picked, so the
+                    // selection is findable on a map with 63 dots.
+                    fillOpacity={selected && !isSelected ? 0.4 : 0.85}
+                    stroke={isSelected ? 'var(--ink)' : 'var(--page)'}
+                    strokeWidth={isSelected ? 2.5 : 2}
+                    className="cursor-pointer focus:outline-2 focus:outline-focus"
+                    // Selecting a venue was mouse-only — these are the map's
+                    // primary control, so unlike the chart bars they earn a tab
+                    // stop. Focus also surfaces the tooltip, which is what makes
+                    // the dots usable on touch.
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isSelected}
+                    onClick={() => setSelected(v)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelected(v);
+                      }
+                    }}
+                    {...bind(
+                      {
+                        title: v.name,
+                        lines: [
+                          [v.city, v.state].filter(Boolean).join(', '),
+                          `${v.count} game${v.count === 1 ? '' : 's'} attended`,
+                          v.leagues.join(' · '),
+                        ],
+                        color: leagueColor(v.leagues[0] ?? ''),
+                      },
+                      { label: true }
+                    )}
+                  />
+                );
+              })}
           </svg>
           <span className="absolute left-3.5 bottom-2.5 text-[11px] italic text-ink-3 font-serif">
-            Dot size = games attended · click a dot
+            Dot size = games attended · shading = games per state · click a dot
           </span>
-          {tip && (
-            <div
-              className="fixed z-30 pointer-events-none bg-panel border border-line-strong rounded-md px-2.5 py-1.5 text-xs text-ink shadow-elevated"
-              style={{ left: tip.x + 14, top: tip.y - 34 }}
-            >
-              {tip.text}
-            </div>
-          )}
         </div>
 
-        <aside className="bg-panel border border-line rounded-xl p-4 min-h-64">
+        {/* The panel is capped at the map's height and the game list scrolls
+            inside it. A venue with 76 games would otherwise stretch the grid
+            row far past the map and push the season chart off-screen.
+            The inner wrapper is absolutely positioned from `lg` up so the
+            panel contributes no intrinsic height — the row is then sized by
+            the map alone and `items-stretch` gives this column the same
+            height back. Below `lg` the columns stack and natural flow is
+            what you want, so the wrapper stays static there. */}
+        <aside className="relative bg-panel border border-line rounded-xl min-h-64">
+          <div className="lg:absolute lg:inset-0 p-4 flex flex-col">
           {selected ? (
             <>
-              <p className="kicker" style={{ color: leagueColor(selected.leagues[0] ?? '') }}>
-                {selected.leagues.join(' · ') || 'Venue'}
-              </p>
-              <h2 className="text-lg font-bold text-ink mt-0.5">{selected.name}</h2>
-              <p className="text-xs text-ink-2 mb-2">
-                {[selected.city, selected.state].filter(Boolean).join(', ')}
-              </p>
-              <div className="text-3xl font-bold font-mono text-ink">
-                {selected.count}
-                <span className="kicker ml-2">game{selected.count !== 1 ? 's' : ''} attended</span>
+              <div className="flex items-start gap-2">
+                <div className="min-w-0">
+                  <p
+                    className="kicker"
+                    style={{ color: leagueColor(selected.leagues[0] ?? '') }}
+                  >
+                    {selected.leagues.join(' · ') || 'Venue'}
+                  </p>
+                  <h2 className="text-lg font-bold text-ink mt-0.5">{selected.name}</h2>
+                  <p className="text-xs text-ink-2">
+                    {[selected.city, selected.state].filter(Boolean).join(', ')}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  aria-label="Clear selection"
+                  className="ml-auto text-ink-3 hover:text-ink text-lg leading-none shrink-0"
+                >
+                  ×
+                </button>
               </div>
-              <ul className="mt-3 border-t border-line max-h-72 overflow-y-auto">
+
+              <div className="flex items-baseline gap-3 flex-wrap mt-2.5">
+                <span className="text-3xl font-bold font-mono text-ink">{selected.count}</span>
+                <span className="kicker">game{selected.count !== 1 ? 's' : ''}</span>
+                {selectedSummary && (
+                  <span className="ml-auto text-xs font-mono">
+                    <span className="text-win">{selectedSummary.wins}</span>
+                    <span className="text-ink-2">–</span>
+                    <span className="text-loss">{selectedSummary.losses}</span>
+                    {selectedSummary.ties > 0 && (
+                      <span className="text-ink-2">–{selectedSummary.ties}</span>
+                    )}
+                    <span className="text-ink-3"> home</span>
+                  </span>
+                )}
+              </div>
+
+              {selectedSummary && (
+                <p className="text-[11px] text-ink-3 mt-1">
+                  {yearOf(selectedSummary.first.date, selectedSummary.first.hasTime)}–
+                  {yearOf(selectedSummary.last.date, selectedSummary.last.hasTime)} ·{' '}
+                  {selectedSummary.topTeams.map(([name, n]) => `${name} ${n}`).join(' · ')}
+                </p>
+              )}
+
+              <ul className="mt-3 border-t border-line flex-1 overflow-y-auto min-h-0">
                 {selectedGames.map((a) => (
                   <li key={a.id} className="py-2 border-b border-line">
                     <div className="text-[11px] font-mono text-ink-3">
                       {formatDateShort(a.game.start_date, a.game.has_time)}
                     </div>
                     <div className="text-[13px] text-ink">
-                      {a.game.away_team.name}{' '}
+                      <Link to={`/teams/${a.game.away_team.id}`} className="hover:underline">
+                        {a.game.away_team.name}
+                      </Link>{' '}
                       <span className="font-mono">{a.game.away_score ?? ''}</span>
                       <span className="text-ink-3"> at </span>
-                      {a.game.home_team.name}{' '}
+                      <Link to={`/teams/${a.game.home_team.id}`} className="hover:underline">
+                        {a.game.home_team.name}
+                      </Link>{' '}
                       <span className="font-mono">{a.game.home_score ?? ''}</span>
                     </div>
                   </li>
@@ -234,17 +370,33 @@ const MapView: React.FC = () => {
               <h2 className="text-lg font-bold text-ink mt-0.5">Click a dot</h2>
               <p className="text-sm text-ink-3 italic font-serif mt-3">
                 Dot size is games attended there; color is the league you've seen most at that
-                venue. Toggle leagues with the chips above.
+                venue. State shading is games attended in that state. Toggle leagues with the
+                chips above.
               </p>
             </>
           )}
+          </div>
         </aside>
       </div>
 
       <div className="bg-panel border border-line rounded-xl p-4 mt-4">
         <h2 className="kicker mb-2">Games per season, all leagues</h2>
-        <SeasonChart data={stats?.games_by_season ?? {}} color="var(--focus)" />
+        <SeasonChart
+          data={stats?.games_by_season ?? {}}
+          color="var(--focus)"
+          tooltipLines={(year) => {
+            const season = stats?.season_breakdown?.[year];
+            if (!season) return [];
+            return [
+              Object.entries(season.leagues)
+                .map(([code, n]) => `${code} ${n}`)
+                .join(' · '),
+              `${season.venues} venue${season.venues === 1 ? '' : 's'}`,
+            ];
+          }}
+        />
       </div>
+      <Tooltip tip={tip} />
     </Layout>
   );
 };

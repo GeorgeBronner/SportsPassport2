@@ -6,6 +6,8 @@ import Alert from '../components/common/Alert';
 import TeamBadge from '../components/common/TeamBadge';
 import Omnibox from '../components/find/Omnibox';
 import SeasonChart from '../components/find/SeasonChart';
+import Tooltip from '../components/common/Tooltip';
+import { useTooltip } from '../hooks/useTooltip';
 import { teamsApi } from '../api/teams';
 import { gamesApi } from '../api/games';
 import { leaguesApi } from '../api/leagues';
@@ -32,6 +34,7 @@ const TeamDetail: React.FC = () => {
   const [attendedOnly, setAttendedOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { tip, bind } = useTooltip();
 
   const loadAttendance = useCallback(async () => {
     const attended = await attendanceApi.getAttendedGames();
@@ -156,7 +159,9 @@ const TeamDetail: React.FC = () => {
 
   return (
     <Layout>
-      <div className="max-w-xl mb-6">
+      {/* Wide enough for all eight league chips on one line — at max-w-xl the
+          MLS chip wrapped to a second row and pushed the team identity down. */}
+      <div className="max-w-3xl mb-6">
         <Omnibox
           onSelect={(t) => navigate(`/teams/${t.id}`)}
           placeholder="Switch team…"
@@ -207,7 +212,10 @@ const TeamDetail: React.FC = () => {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px] items-start">
         {/* Game log */}
-        <div className="bg-panel border border-line rounded-xl p-4 md:p-5 overflow-x-auto">
+        {/* Horizontal scroll only where the table can't fit. `overflow-x: auto`
+            forces the other axis to `auto` too, which would make this panel the
+            scroll container for the sticky header below and stop it working. */}
+        <div className="bg-panel border border-line rounded-xl p-4 md:p-5 max-lg:overflow-x-auto">
           <div className="flex items-center gap-3 flex-wrap mb-3">
             <h2 className="kicker">Game log</h2>
             <div className="ml-auto flex items-center gap-2.5">
@@ -243,10 +251,14 @@ const TeamDetail: React.FC = () => {
                 : 'No games found for this selection.'}
             </p>
           ) : (
-            <table className="w-full text-sm border-collapse min-w-[560px]">
+            <table className="w-full text-sm border-collapse min-w-[600px] sticky-head">
               <thead>
                 <tr className="[&>th]:text-left [&>th]:py-1.5 [&>th]:px-2 [&>th]:text-[10px] [&>th]:uppercase [&>th]:tracking-[0.16em] [&>th]:text-ink-3 [&>th]:font-bold [&>th]:border-b [&>th]:border-line-strong">
                   <th>Date</th>
+                  <th>
+                    <span aria-hidden="true">H/A</span>
+                    <span className="sr-only">Home, away, or neutral site</span>
+                  </th>
                   <th>Matchup</th>
                   <th>Result</th>
                   <th>Venue</th>
@@ -262,13 +274,41 @@ const TeamDetail: React.FC = () => {
                   const won = played && my! > opp!;
                   const tied = played && my === opp;
                   const attended = attendanceByGame.has(game.id);
+                  const site = game.neutral_site ? 'N' : isHome ? 'H' : 'A';
                   return (
                     <tr
                       key={game.id}
-                      className={`border-b border-line hover:bg-panel-2 ${attended ? '' : 'opacity-75'}`}
+                      // Emphasis inverted: 90%+ of a team's log is unattended,
+                      // so dimming those made the whole table read as washed
+                      // out. Full ink for everything, tint the attended rows.
+                      //
+                      // A class, not an inline style: inline background beats
+                      // `hover:bg-panel-2`, which silently cost attended rows
+                      // their hover feedback while unattended rows kept it.
+                      className={`border-b border-line hover:bg-panel-2 ${
+                        attended ? 'attended-row' : ''
+                      }`}
                     >
                       <td className="py-2 px-2 whitespace-nowrap font-mono text-xs text-ink-2">
                         {formatDateShort(game.start_date, game.has_time)}
+                      </td>
+                      <td
+                        className="py-2 px-2 font-mono text-[11px] text-ink-3"
+                        // A single letter, so the expansion is the only way to
+                        // read it — too important to leave in a native title,
+                        // which is skipped on focus and announced erratically.
+                        {...bind(
+                          {
+                            title: game.neutral_site
+                              ? 'Neutral site'
+                              : isHome
+                                ? `Home — at ${team.name}`
+                                : `Away — ${team.name} on the road`,
+                          },
+                          { label: true }
+                        )}
+                      >
+                        {site}
                       </td>
                       <td className="py-2 px-2">
                         <span className="inline-flex items-center gap-1.5 text-ink flex-wrap">
@@ -320,7 +360,7 @@ const TeamDetail: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => unattend(game.id)}
-                            title="Remove attendance"
+                            aria-label={`Remove attendance — ${game.away_team.name} at ${game.home_team.name}`}
                             className="stamp-mark cursor-pointer hover:opacity-60"
                           >
                             Attended
@@ -348,8 +388,11 @@ const TeamDetail: React.FC = () => {
           )}
         </div>
 
-        {/* Stats rail */}
-        <div className="flex flex-col gap-4">
+        {/* Stats rail. Sticky because the log runs ~100 rows (~3,500px) while
+            the rail is ~500px — without this the right column is empty for the
+            rest of the scroll and the numbers you'd compare against are gone.
+            `top` clears the sticky page header. */}
+        <div className="flex flex-col gap-4 lg:sticky lg:top-20">
           <div className="bg-panel border border-line rounded-xl p-4">
             <h2 className="kicker mb-3">Your {team.name} record</h2>
             <div className="grid grid-cols-2 gap-2.5">
@@ -385,7 +428,14 @@ const TeamDetail: React.FC = () => {
 
           <div className="bg-panel border border-line rounded-xl p-4">
             <h2 className="kicker mb-3">Games by season</h2>
-            <SeasonChart data={stats?.games_by_season ?? {}} color={color} />
+            <SeasonChart
+              data={stats?.games_by_season ?? {}}
+              color={color}
+              height={110}
+              tooltipLines={(_year, count) => [
+                `${count} ${team.name} game${count === 1 ? '' : 's'} attended`,
+              ]}
+            />
           </div>
 
           {stats && stats.venues.length > 0 && (
@@ -395,7 +445,7 @@ const TeamDetail: React.FC = () => {
                 {stats.venues.slice(0, 5).map((venue) => {
                   const max = stats.venues[0].count;
                   return (
-                    <div key={`${venue.name}-${venue.city}`}>
+                    <div key={venue.venue_id}>
                       <div className="text-xs text-ink-2 mb-1">{venue.name}</div>
                       <div className="flex items-center gap-2">
                         <span className="block h-2.5 flex-1 rounded-[3px] bg-panel-2 overflow-hidden">
@@ -419,6 +469,7 @@ const TeamDetail: React.FC = () => {
           )}
         </div>
       </div>
+      <Tooltip tip={tip} />
     </Layout>
   );
 };

@@ -18,6 +18,8 @@
   --win: #006300;
   --loss: #c22a2a;
   --stamp: #a63d2f;
+  --logo-plate: #f1f1ee;
+  --logo-plate-ring: rgba(11, 11, 11, 0.18);
   --focus: #2a78d6;
   --lg-cfb: #2a78d6;
   --lg-mlb: #008300;
@@ -43,6 +45,8 @@
     --win: #0ca30c;
     --loss: #e66767;
     --stamp: #d0685a;
+    --logo-plate: #f1f1ee;
+    --logo-plate-ring: rgba(11, 11, 11, 0.18);
     --focus: #3987e5;
     --lg-cfb: #3987e5;
     --lg-mlb: #35a035;
@@ -68,6 +72,8 @@
   --win: #0ca30c;
   --loss: #e66767;
   --stamp: #d0685a;
+  --logo-plate: #f1f1ee;
+  --logo-plate-ring: rgba(11, 11, 11, 0.18);
   --focus: #3987e5;
   --lg-cfb: #3987e5;
   --lg-mlb: #35a035;
@@ -96,41 +102,6 @@
 }
 
 @theme {
-  /* Legacy palette — still referenced by Admin/Login/Register/MyGames until
-     those pages move to the token system. Remove with them. */
-  --color-primary-50: #f0fdf4;
-  --color-primary-100: #dcfce7;
-  --color-primary-200: #bbf7d0;
-  --color-primary-300: #86efac;
-  --color-primary-400: #4ade80;
-  --color-primary-500: #1B4332;
-  --color-primary-600: #16372a;
-  --color-primary-700: #122b21;
-  --color-primary-800: #0d1f18;
-  --color-primary-900: #09130f;
-
-  --color-accent-50: #fef2f2;
-  --color-accent-100: #fee2e2;
-  --color-accent-200: #fecaca;
-  --color-accent-300: #fca5a5;
-  --color-accent-400: #f87171;
-  --color-accent-500: #E76F51;
-  --color-accent-600: #dc5a3e;
-  --color-accent-700: #c4472a;
-  --color-accent-800: #a3391e;
-  --color-accent-900: #7f2d17;
-
-  --color-sage-50: #f0fdf4;
-  --color-sage-100: #dcfce7;
-  --color-sage-200: #bbf7d0;
-  --color-sage-300: #95D5B2;
-  --color-sage-400: #6ec89a;
-  --color-sage-500: #52b788;
-  --color-sage-600: #3a9b6f;
-  --color-sage-700: #2d7f5b;
-  --color-sage-800: #24654a;
-  --color-sage-900: #1e533d;
-
   --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -1px rgb(0 0 0 / 0.04);
   --shadow-card-hover: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
   --shadow-elevated: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
@@ -177,33 +148,48 @@ body {
   opacity: 0.9;
 }
 
-/* Legacy component styles — used by pages not yet rebuilt */
-.card-elevated {
+/* Team-logo backing plate.
+   Logos are transparent PNGs, and the teams whose primary mark is black or
+   navy (Spurs, Ducks, Yankees, Michigan State — roughly a quarter of the
+   pro-league rows) rendered as invisible gaps against the dark panels. A
+   light plate in dark mode only; light mode needs nothing. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo-plate {
+    background-color: var(--logo-plate);
+    box-shadow: 0 0 0 1px var(--logo-plate-ring);
+    padding: 1px;
+  }
+}
+
+:root[data-theme="dark"] .logo-plate {
+  background-color: var(--logo-plate);
+  box-shadow: 0 0 0 1px var(--logo-plate-ring);
+  padding: 1px;
+}
+
+/* Attended rows in a team's game log.
+   Both states are declared here on purpose. An inline background beat
+   `hover:bg-panel-2`, so attended rows lost their hover feedback while
+   unattended ones kept it — and moving the tint to an unlayered class alone
+   would not have fixed it, since unlayered rules outrank `@layer utilities`
+   whatever their specificity. The hover step deepens the same tint rather
+   than switching to panel-2, so the row keeps reading as attended. */
+.attended-row {
+  background-color: color-mix(in srgb, var(--stamp) 8%, transparent);
+}
+
+.attended-row:hover {
+  background-color: color-mix(in srgb, var(--stamp) 16%, transparent);
+}
+
+/* Sticky table header for long game logs — the column labels used to scroll
+   away after ~20 rows, leaving an unlabelled table. `top` clears the sticky
+   page header, which is ~3.4rem tall, so the labels don't slide under it. */
+.sticky-head th {
+  position: sticky;
+  top: 3.5rem;
+  z-index: 2;
   background-color: var(--panel);
-  border-radius: 1.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s ease-in-out;
-}
-
-.card-elevated:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  transform: translateY(-0.25rem);
-}
-
-.section-spacing {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.gradient-primary {
-  background: linear-gradient(135deg, #1B4332 0%, #2D7F5B 100%);
-}
-
-.gradient-sage {
-  background: linear-gradient(135deg, #95D5B2 0%, #52b788 100%);
-}
-
-.gradient-accent {
-  background: linear-gradient(135deg, #E76F51 0%, #c4472a 100%);
+  /* The row border scrolls with the cells, so redraw it as a shadow. */
+  box-shadow: inset 0 -1px 0 var(--line-strong);
 }

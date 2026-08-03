@@ -3,8 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { authApi } from '../api/auth';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
-import Card from '../components/common/Card';
 import Alert from '../components/common/Alert';
+import AuthShell from '../components/layout/AuthShell';
 import { apiErrorMessage } from '../utils/errors';
 
 const ResetPassword: React.FC = () => {
@@ -41,80 +41,68 @@ const ResetPassword: React.FC = () => {
     }
   };
 
+  const signInLink = (label: string) => (
+    <p className="mt-4 text-center text-sm text-ink-2">
+      <Link to="/login" className="text-focus hover:underline font-semibold">
+        {label}
+      </Link>
+    </p>
+  );
+
+  if (!token) {
+    return (
+      <AuthShell tagline="Set a new password" title="Invalid link">
+        <Alert type="error" message="This reset link is missing a token." />
+        {signInLink('← Back to sign in')}
+      </AuthShell>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-sage-50 flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-primary-700 mb-3">SportsPassport2</h1>
-          <p className="text-lg text-gray-700 font-medium">Set a new password</p>
-        </div>
+    <AuthShell tagline="Set a new password" title="New password">
+      {success ? (
+        <>
+          <Alert
+            type="success"
+            message="Password updated! You can now sign in with your new password."
+          />
+          {signInLink('Sign in →')}
+        </>
+      ) : (
+        <>
+          {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-        <Card className="bg-gradient-to-br from-white to-gray-50 shadow-elevated">
-          {!token ? (
-            <>
-              <h2 className="text-3xl font-bold mb-8 text-gray-900">Invalid link</h2>
-              <Alert type="error" message="This reset link is missing a token." />
-              <p className="mt-6 text-center text-sm text-gray-700">
-                <Link to="/login" className="text-primary-600 hover:text-primary-700 font-bold">
-                  ← Back to sign in
-                </Link>
-              </p>
-            </>
-          ) : success ? (
-            <>
-              <h2 className="text-3xl font-bold mb-8 text-gray-900">New password</h2>
-              <Alert
-                type="success"
-                message="Password updated! You can now sign in with your new password."
-              />
-              <p className="mt-6 text-center text-sm text-gray-700">
-                <Link to="/login" className="text-primary-600 hover:text-primary-700 font-bold">
-                  Sign in →
-                </Link>
-              </p>
-            </>
-          ) : (
-            <>
-              <h2 className="text-3xl font-bold mb-8 text-gray-900">New password</h2>
-              {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+          <form onSubmit={handleSubmit}>
+            <Input
+              label="New password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              minLength={8}
+              required
+            />
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <Input
-                  label="New Password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="new-password"
-                  minLength={8}
-                  required
-                />
+            <Input
+              label="Confirm password"
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              required
+            />
 
-                <Input
-                  label="Confirm Password"
-                  type="password"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="new-password"
-                  required
-                />
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Saving...' : 'Set new password'}
+            </Button>
+          </form>
 
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Saving...' : 'Set new password'}
-                </Button>
-              </form>
-
-              <p className="mt-6 text-center text-sm text-gray-700">
-                <Link to="/login" className="text-primary-600 hover:text-primary-700 font-bold">
-                  ← Back to sign in
-                </Link>
-              </p>
-            </>
-          )}
-        </Card>
-      </div>
-    </div>
+          {signInLink('← Back to sign in')}
+        </>
+      )}
+    </AuthShell>
   );
 };
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import Loading from '../common/Loading';
+import { Spinner } from '../common/Loading';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,7 +12,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireAdmin 
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <Loading />;
+    // Bare spinner, not the Layout-wrapped one: we don't yet know whether this
+    // visitor is signed in, so the nav and Logout button shouldn't flash.
+    return (
+      <div className="min-h-screen bg-page flex items-center justify-center">
+        <Spinner />
+      </div>
+    );
   }
 
   if (!user) {

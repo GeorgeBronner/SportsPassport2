@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { authApi } from '../api/auth';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
-import Card from '../components/common/Card';
 import Alert from '../components/common/Alert';
+import AuthShell from '../components/layout/AuthShell';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -26,59 +26,48 @@ const ForgotPassword: React.FC = () => {
     }
   };
 
+  const backToSignIn = (
+    <p className="mt-4 text-center text-sm text-ink-2">
+      <Link to="/login" className="text-focus hover:underline font-semibold">
+        ← Back to sign in
+      </Link>
+    </p>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-sage-50 flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-primary-700 mb-3">SportsPassport2</h1>
-          <p className="text-lg text-gray-700 font-medium">Reset your password</p>
-        </div>
+    <AuthShell tagline="Reset your password" title="Forgot password">
+      {submitted ? (
+        <>
+          <Alert
+            type="success"
+            message="If that email is registered, a reset link has been sent. Check your inbox."
+          />
+          {backToSignIn}
+        </>
+      ) : (
+        <>
+          {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-        <Card className="bg-gradient-to-br from-white to-gray-50 shadow-elevated">
-          <h2 className="text-3xl font-bold mb-8 text-gray-900">Forgot password</h2>
+          <form onSubmit={handleSubmit}>
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+            />
 
-          {submitted ? (
-            <div>
-              <Alert
-                type="success"
-                message="If that email is registered, a reset link has been sent. Check your inbox."
-              />
-              <p className="mt-6 text-center text-sm text-gray-700">
-                <Link to="/login" className="text-primary-600 hover:text-primary-700 font-bold">
-                  ← Back to sign in
-                </Link>
-              </p>
-            </div>
-          ) : (
-            <>
-              {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Sending...' : 'Send reset link'}
+            </Button>
+          </form>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <Input
-                  label="Email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  required
-                />
-
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Sending...' : 'Send reset link'}
-                </Button>
-              </form>
-
-              <p className="mt-6 text-center text-sm text-gray-700">
-                <Link to="/login" className="text-primary-600 hover:text-primary-700 font-bold">
-                  ← Back to sign in
-                </Link>
-              </p>
-            </>
-          )}
-        </Card>
-      </div>
-    </div>
+          {backToSignIn}
+        </>
+      )}
+    </AuthShell>
   );
 };
 
