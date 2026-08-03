@@ -80,11 +80,14 @@ const SeasonChart: React.FC<SeasonChartProps> = ({ data, color, height = 132, to
             rx={1.5}
             fill={color}
             className="cursor-default hover:opacity-70 transition-opacity"
-            {...bind({
-              title: `${y} — ${value} game${value === 1 ? '' : 's'}`,
-              lines: extra,
-              color,
-            })}
+            {...bind(
+              {
+                title: `${y} — ${value} game${value === 1 ? '' : 's'}`,
+                lines: extra,
+                color,
+              },
+              { label: true }
+            )}
           />
         );
       }

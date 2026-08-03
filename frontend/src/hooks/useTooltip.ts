@@ -61,15 +61,24 @@ export const useTooltip = () => {
     return () => document.removeEventListener('keydown', onKey);
   }, [tip]);
 
-  /** Spread onto any element to give it a tooltip. */
+  /**
+   * Spread onto any element to give it a tooltip.
+   *
+   * `label: true` also emits an `aria-label`. It is opt-in, not automatic: an
+   * unconditional label overrides the accessible name of whatever it lands on,
+   * which is right for a bare shape (a chart bar, a map dot, a grid cell) that
+   * has no text of its own, and wrong for a container whose visible text
+   * already says the same thing. Ask for it only where the element would
+   * otherwise be nameless.
+   */
   const bind = useCallback(
-    (content: TooltipContent) => ({
+    (content: TooltipContent, opts?: { label?: boolean }) => ({
       onMouseEnter: (e: React.MouseEvent) => show(e, content),
       onMouseMove: (e: React.MouseEvent) => show(e, content),
       onMouseLeave: hide,
       onFocus: (e: React.FocusEvent) => showAtElement(e.currentTarget, content),
       onBlur: hide,
-      'aria-label': describe(content),
+      ...(opts?.label ? { 'aria-label': describe(content) } : {}),
     }),
     [show, hide, showAtElement]
   );

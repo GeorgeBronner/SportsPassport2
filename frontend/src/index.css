@@ -19,6 +19,7 @@
   --loss: #c22a2a;
   --stamp: #a63d2f;
   --logo-plate: #f1f1ee;
+  --logo-plate-ring: rgba(11, 11, 11, 0.18);
   --focus: #2a78d6;
   --lg-cfb: #2a78d6;
   --lg-mlb: #008300;
@@ -45,6 +46,7 @@
     --loss: #e66767;
     --stamp: #d0685a;
     --logo-plate: #f1f1ee;
+    --logo-plate-ring: rgba(11, 11, 11, 0.18);
     --focus: #3987e5;
     --lg-cfb: #3987e5;
     --lg-mlb: #35a035;
@@ -71,6 +73,7 @@
   --loss: #e66767;
   --stamp: #d0685a;
   --logo-plate: #f1f1ee;
+  --logo-plate-ring: rgba(11, 11, 11, 0.18);
   --focus: #3987e5;
   --lg-cfb: #3987e5;
   --lg-mlb: #35a035;
@@ -153,16 +156,14 @@ body {
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .logo-plate {
     background-color: var(--logo-plate);
-    /* Dark ring, not var(--line): the plate is always light, and --line is a
-       9%-white hairline in dark mode, i.e. invisible on it. */
-    box-shadow: 0 0 0 1px rgba(11, 11, 11, 0.18);
+    box-shadow: 0 0 0 1px var(--logo-plate-ring);
     padding: 1px;
   }
 }
 
 :root[data-theme="dark"] .logo-plate {
   background-color: var(--logo-plate);
-  box-shadow: 0 0 0 1px var(--line);
+  box-shadow: 0 0 0 1px var(--logo-plate-ring);
   padding: 1px;
 }
 

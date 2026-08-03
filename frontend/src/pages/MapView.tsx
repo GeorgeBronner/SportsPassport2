@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Loading from '../components/common/Loading';
+import Alert from '../components/common/Alert';
 import SeasonChart from '../components/find/SeasonChart';
 import Tooltip from '../components/common/Tooltip';
 import { useTooltip } from '../hooks/useTooltip';
@@ -61,6 +62,7 @@ const MapView: React.FC = () => {
   const [activeLeagues, setActiveLeagues] = useState<Set<string>>(new Set(LEAGUE_ORDER));
   const [selected, setSelected] = useState<AttendanceVenuePoint | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const { tip, bind } = useTooltip();
 
   useEffect(() => {
@@ -75,7 +77,12 @@ const MapView: React.FC = () => {
         setStats(statsData);
         setAttendances(attendedData);
       })
-      .catch((err) => console.error('Failed to load map data', err))
+      .catch((err) => {
+        console.error('Failed to load map data', err);
+        // Without this the page renders "0 games · 0 venues · 0 states" over an
+        // empty map, which reads exactly like an empty log.
+        setError('Failed to load the map. Please try again later.');
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -156,6 +163,8 @@ const MapView: React.FC = () => {
         </p>
       </div>
 
+      {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+
       <div className="flex flex-wrap gap-1.5 mb-3">
         {LEAGUE_ORDER.map((code) => {
           const has = leaguesPresent.has(code);
@@ -212,10 +221,13 @@ const MapView: React.FC = () => {
                   d={d}
                   fill={stateFill(count)}
                   stroke="none"
-                  {...bind({
-                    title: code,
-                    lines: [`${count} game${count === 1 ? '' : 's'} attended in this state`],
-                  })}
+                  {...bind(
+                    {
+                      title: code,
+                      lines: [`${count} game${count === 1 ? '' : 's'} attended in this state`],
+                    },
+                    { label: true }
+                  )}
                 />
               );
             })}
@@ -251,15 +263,18 @@ const MapView: React.FC = () => {
                         setSelected(v);
                       }
                     }}
-                    {...bind({
-                      title: v.name,
-                      lines: [
-                        [v.city, v.state].filter(Boolean).join(', '),
-                        `${v.count} game${v.count === 1 ? '' : 's'} attended`,
-                        v.leagues.join(' · '),
-                      ],
-                      color: leagueColor(v.leagues[0] ?? ''),
-                    })}
+                    {...bind(
+                      {
+                        title: v.name,
+                        lines: [
+                          [v.city, v.state].filter(Boolean).join(', '),
+                          `${v.count} game${v.count === 1 ? '' : 's'} attended`,
+                          v.leagues.join(' · '),
+                        ],
+                        color: leagueColor(v.leagues[0] ?? ''),
+                      },
+                      { label: true }
+                    )}
                   />
                 );
               })}

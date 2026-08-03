@@ -1,14 +1,14 @@
 # Frontend Review — 2026-08-02
 
-> **Status: implemented, review fixes in progress, no PR yet.**
+> **Status: implemented, reviewed twice, open as PR #13.**
 > Everything below was fixed on branch `frontend-refactor-8-2-26`, taking the
 > recommended variant in each mockup (A1 · B1 · C1 · D1 · E1 · F1 · G1). See
 > [What shipped](#what-shipped) for the mapping from finding → change.
 >
-> A second-pass code review then found further defects — all fixed. See
-> [Review pass](#review-pass--where-we-left-off) at the bottom for what it
-> found, including one real bug (weekday grouping computed off UTC, putting
-> Friday night football on Saturday) and two things still owed.
+> Two review passes then found further defects — all fixed. See
+> [Review pass](#review-pass--where-we-left-off) at the bottom, including the
+> one real bug (weekday grouping computed off UTC, putting Friday night
+> football on Saturday) and what is still owed.
 
 Full pass over every view in the running app (Vite dev server + live SQLite, 235 attended
 games, 7 leagues), in **both themes**, driven through Chrome. Findings are grouped by
@@ -75,7 +75,7 @@ This is specifically a *Profile* problem, not an auth-page problem: Profile rend
 `<Layout>`**, so it inherits the themed `--page` background while its own text stays
 hard-coded dark. Login and Register paint their own full-page light gradient and are
 self-consistent — jarring next to the rest of the app, but readable. (Their input
-placeholders are very washed out, though — see §4.7.)
+placeholders are very washed out, though — see §4.6.)
 
 ### 1.4 The loading state is legacy-coloured and drops the app shell **[bug]**
 
@@ -511,6 +511,27 @@ fixed and committed; the ⏳ items are the ones to pick up.**
 | **B1 tests** | Nothing pinned the timezone fix — `test_weekday_month_and_longest_gap` passes either way, because its fixture sits at 23:30 UTC on a Saturday, which is Saturday in Eastern too. | Three cases added, and **verified to fail without the fix**: reverting the conversion makes the night-kickoff case report Tuesday instead of Monday. The 2024 CFP final (played Monday 8 Jan 7:30pm ET, stored `2024-01-09 00:30`) is the fixture. A companion case pins that `has_time=False` rows at noon UTC are *not* rolled off their own day by the conversion, and a third checks `venues[].venue_id` is present and unique. |
 | **F2** | The tooltip rewrite was mouse-only — `useTooltip` bound only mouse events, the triggers were non-interactive elements with no `tabIndex`, and nothing exposed the text to assistive tech. Replacing native `title=` had made the information *less* reachable than what it replaced. | `bind()` now covers three paths and says so in its docstring: mouse (enter + move), keyboard/touch (focus/blur, anchored to the element's own rect since focus carries no coordinates, plus Escape to dismiss), and assistive tech (the same text as an `aria-label`, so it is in the accessible tree without needing hover or focus at all). Trigger elements gained roles that make the label legitimate — `role="group"` on the stat tiles, chips and venue rows, `role="img"` on tile-map cells, `role="graphics-symbol"` on chart bars and state fills; `aria-label` on a role-less `<div>` is unreliable and can mask the element's own text. |
 | **F2 follow-on** | The map's venue dots were **not keyboard-operable at all** — selecting a venue was mouse-only, which the review surfaced while looking at tooltips. | Dots are now `role="button" tabIndex={0}` with Enter/Space handling and a visible focus ring. They are the map's primary control, so unlike the ~30 chart bars per chart they earn a tab stop; the bars deliberately stay out of the tab order and rely on their accessible names. |
+
+### Third pass — CodeRabbit on the PR
+
+An automated review of PR #13 caught several more, including two of my own fixes
+misfiring:
+
+| ✅ | Finding | Fix |
+|---|---|---|
+| **Ring never applied** | `.logo-plate`'s dark ring was only corrected in the `prefers-color-scheme` block; the explicit `:root[data-theme="dark"]` block still used `var(--line)` — and that is the path the in-app theme toggle uses, i.e. the common case. My earlier "replace all occurrences" edit had only matched one, because the two blocks had drifted. | Ring is now a `--logo-plate-ring` token declared beside `--logo-plate` in every theme block, so the two rules can't diverge again. |
+| **Touch regression** | Gating My log's row actions on `pointer-events: none` + `group-hover` fixed the phantom hit target but made them **unreachable on touch**, where there is no reliable hover — and that is the only place notes can be edited. My fix was worse than the bug. | Actions are de-emphasised (`opacity-45`) rather than hidden: visible, tappable and focusable everywhere, still quiet enough that `Remove` doesn't shout on 235 rows. |
+| **`aria-label` too blunt** | `bind()` emitted `aria-label` unconditionally, overriding the accessible name of any container that already had visible text. | `label` is now opt-in, and used only where the element is genuinely nameless — chart bars, map dots, state fills, tile-map cells (whose `role="img"` prunes their own text). Containers with visible text keep their own name; the trade is that their supplementary prose is visual-only. |
+| **Guard gap** | `home_wins`/`losses`/`ties` were read without the `?? 0` the comment two lines above claimed applied to every new field — `played` would go `NaN` and the tile render `undefined`. | Guarded. |
+| **Silent map failure** | MapView's catch logged and left the page rendering "0 games · 0 venues · 0 states" over an empty map — indistinguishable from an empty log. | Surfaces an `Alert`, matching Statistics. |
+| **Unscoped overflow** | TileMap used bare `overflow-x-auto` — the exact trap this PR documented in CLAUDE.md. | Scoped to `max-sm:` and paired with explicit `overflow-y-hidden`. |
+| **Native `title` on H/A** | The new H/A column is a single letter, so its expansion is the only way to read it — and a native `title` is skipped on focus and announced inconsistently. | Uses the shared tooltip, with a fuller string (`Home — at Alabama`). |
+| **Doc cross-refs** | §4.6/§4.7 pointers were swapped. | Fixed. |
+
+Declined: replacing `text-white` on Admin's status/role badges with a token. Those
+badges sit on solid `bg-win`/`bg-loss`/`bg-focus` fills, where white is the
+intended foreground in both themes — a theme-following token would invert to dark
+text on a saturated background in light mode.
 
 ### ⏳ Outstanding
 

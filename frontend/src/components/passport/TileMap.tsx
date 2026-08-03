@@ -60,7 +60,9 @@ const TileMap: React.FC<TileMapProps> = ({ gamesByState }) => {
   const { tip, bind } = useTooltip();
 
   return (
-    <div className="overflow-x-auto">
+    // Scoped, and paired with an explicit overflow-y: unscoped overflow-x
+    // makes this a scroll container on both axes. The grid is 11 x 2.5rem.
+    <div className="max-sm:overflow-x-auto overflow-y-hidden">
       <div
         className="grid gap-1 w-max"
         style={{ gridTemplateColumns: 'repeat(11, 2.5rem)', gridAutoRows: '2.5rem' }}
@@ -76,15 +78,20 @@ const TileMap: React.FC<TileMapProps> = ({ gamesByState }) => {
                 count === 0 ? 'border-line text-ink-3' : 'border-transparent'
               } ${strong ? 'text-white' : count > 0 ? 'text-ink' : ''}`}
               style={{ gridColumn: col, gridRow: row, backgroundColor: bg }}
-              {...bind({
-                title: code,
-                lines: count
-                  ? [
-                      `${count} game${count === 1 ? '' : 's'} attended`,
-                      total ? `${Math.round((count / total) * 100)}% of your located games` : '',
-                    ]
-                  : ['No games attended here yet.'],
-              })}
+              // role="img" prunes the cell's own "AL 96" text from the
+              // accessible tree, so the label is what carries it there.
+              {...bind(
+                {
+                  title: code,
+                  lines: count
+                    ? [
+                        `${count} game${count === 1 ? '' : 's'} attended`,
+                        total ? `${Math.round((count / total) * 100)}% of your located games` : '',
+                      ]
+                    : ['No games attended here yet.'],
+                },
+                { label: true }
+              )}
             >
               {code}
               {count > 0 && <span className="text-[9px] font-mono font-bold">{count}</span>}

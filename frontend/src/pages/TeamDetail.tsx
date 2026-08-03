@@ -6,6 +6,8 @@ import Alert from '../components/common/Alert';
 import TeamBadge from '../components/common/TeamBadge';
 import Omnibox from '../components/find/Omnibox';
 import SeasonChart from '../components/find/SeasonChart';
+import Tooltip from '../components/common/Tooltip';
+import { useTooltip } from '../hooks/useTooltip';
 import { teamsApi } from '../api/teams';
 import { gamesApi } from '../api/games';
 import { leaguesApi } from '../api/leagues';
@@ -32,6 +34,7 @@ const TeamDetail: React.FC = () => {
   const [attendedOnly, setAttendedOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { tip, bind } = useTooltip();
 
   const loadAttendance = useCallback(async () => {
     const attended = await attendanceApi.getAttendedGames();
@@ -288,9 +291,19 @@ const TeamDetail: React.FC = () => {
                       </td>
                       <td
                         className="py-2 px-2 font-mono text-[11px] text-ink-3"
-                        title={
-                          game.neutral_site ? 'Neutral site' : isHome ? 'Home' : 'Away'
-                        }
+                        // A single letter, so the expansion is the only way to
+                        // read it — too important to leave in a native title,
+                        // which is skipped on focus and announced erratically.
+                        {...bind(
+                          {
+                            title: game.neutral_site
+                              ? 'Neutral site'
+                              : isHome
+                                ? `Home — at ${team.name}`
+                                : `Away — ${team.name} on the road`,
+                          },
+                          { label: true }
+                        )}
                       >
                         {site}
                       </td>
@@ -453,6 +466,7 @@ const TeamDetail: React.FC = () => {
           )}
         </div>
       </div>
+      <Tooltip tip={tip} />
     </Layout>
   );
 };

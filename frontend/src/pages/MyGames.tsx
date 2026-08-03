@@ -311,13 +311,16 @@ const MyGames: React.FC = () => {
                           ✎
                         </span>
                       )}
-                      {/* Revealed on hover/focus. `Remove` is destructive and was
-                          permanently visible on all 235 rows. Kept reachable by
-                          keyboard via focus-within — opacity-0 elements are
-                          still focusable. pointer-events is gated with it:
-                          opacity alone leaves an invisible but clickable
-                          target sitting over the row. */}
-                      <span className="flex gap-2 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto transition-opacity">
+                      {/* De-emphasised until hover/focus rather than hidden.
+                          `Remove` is destructive and shouldn't shout on all 235
+                          rows, but the two earlier attempts both broke: plain
+                          `opacity-0` left an invisible yet clickable target, and
+                          gating pointer-events on `group-hover` made the row
+                          actions unreachable on touch, where there is no
+                          reliable hover at all — and this is the only place
+                          notes can be edited. Low opacity keeps them visible,
+                          tappable and focusable everywhere. */}
+                      <span className="flex gap-2 opacity-45 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                         <button
                           type="button"
                           onClick={() => {
