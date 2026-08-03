@@ -535,11 +535,32 @@ text on a saturated background in light mode.
 
 ### ⏳ Outstanding
 
-1. **Mobile is still unverified** (§4.7) — unchanged. The reviewer also noted **R2**:
-   `.sticky-head` is inert below `lg`, because `max-lg:overflow-x-auto` makes the panel a
-   scroll container on both axes (the exact trap documented in CLAUDE.md) and its auto
-   height means it never scrolls vertically. Deliberate scoping — the sticky header is an
-   `lg+` feature — but worth knowing.
+1. ~~Mobile is unverified~~ **Done** — checked at a 485px viewport (Chrome won't go
+   narrower), i.e. below every breakpoint the app uses. Two pages were scrolling
+   sideways and are fixed:
+
+   | Page | Result |
+   |---|---|
+   | Find | **was broken** — 714px wide in a 485px viewport. Fixed. |
+   | Passport | **was broken** — 530px. Fixed. |
+   | Map · My log · Team · Admin | no horizontal scroll, nothing overflowing outside its own scroller |
+
+   Cause in both cases: a grid item's automatic minimum size is its content's **unless the
+   item is itself a scroll container**. Where the scroller was a *descendant* — the tile map
+   inside its panel, the stamp shelf inside its — the item refused to shrink and dragged the
+   page with it. `[&>*]:min-w-0` on the two grid containers lets the nested scrollers do
+   their job. Recorded in CLAUDE.md next to the `overflow-x` trap it is a sibling of.
+
+   Also confirmed narrow: the map/venue-panel columns stack, the team log scrolls inside its
+   own panel, the My log filter bar wraps, and the nav collapses to a working drawer.
+
+   Still true that **R2** stands: `.sticky-head` is inert below `lg`, because
+   `max-lg:overflow-x-auto` makes the panel a scroll container on both axes and its auto
+   height means it never scrolls vertically. Deliberate — the sticky header is an `lg+`
+   feature.
+
+   Caveat: 485px, not a real 390px phone, and a desktop browser rather than a device. Touch
+   scrolling and iOS Safari specifics are still untested.
 
 2. ~~The a11y changes were not re-verified in a browser.~~ **Done** — verified live on
    2026-08-02, in the explicit `data-theme="dark"` path:

@@ -106,7 +106,7 @@ const Find: React.FC = () => {
         {byDate.length > 0 && (
           // items-start so the two panels size to their own content — stretched,
           // the shorter one grew a large empty tail.
-          <div className="grid gap-4 lg:grid-cols-2 mt-10 items-start">
+          <div className="grid gap-4 lg:grid-cols-2 mt-10 items-start [&>*]:min-w-0">
             <div className="bg-panel border border-line rounded-xl p-4">
               <h2 className="kicker mb-3">On this date · {todayLabel}</h2>
               {onThisDate.length === 0 ? (

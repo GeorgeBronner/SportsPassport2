@@ -245,7 +245,7 @@ const Statistics: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_340px] items-start mb-4">
+      <div className="grid gap-4 lg:grid-cols-[1fr_340px] items-start mb-4 [&>*]:min-w-0">
         <div className="bg-panel border border-line rounded-xl p-4">
           <h2 className="kicker mb-3">Where you've been</h2>
           <TileMap gamesByState={stats.games_by_state} />

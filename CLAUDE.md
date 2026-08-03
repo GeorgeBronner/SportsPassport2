@@ -20,7 +20,10 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
   `overflow-x: auto` computes the **other** axis to `auto` as well — that silently turns a
   panel into a scroll container, which breaks any `position: sticky` inside it and adds
   stray vertical scrollbars; scope it (`max-lg:overflow-x-auto`) or pair it with an explicit
-  `overflow-y-hidden`. And an SVG with a fixed `viewBox` plus `w-full` scales its **text**
+  `overflow-y-hidden`. Its companion: a grid/flex **item** won't shrink below its content
+  unless it is *itself* the scroll container, so when the scroller is a descendant (the tile
+  map inside its panel, the stamp shelf inside its) the item stays content-width and pushes
+  the whole page sideways on narrow screens — give those items `min-w-0`. And an SVG with a fixed `viewBox` plus `w-full` scales its **text**
   with the box, so a chart sized for a 300px rail renders 37px labels in a full-width panel —
   size the viewBox from the measured container instead (`components/find/SeasonChart.tsx`).
 - **Deploy**: Docker + Docker Compose, single port 8000
