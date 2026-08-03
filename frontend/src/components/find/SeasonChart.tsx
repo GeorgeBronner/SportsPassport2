@@ -2,6 +2,13 @@ import React, { useEffect, useRef, useState } from 'react';
 import Tooltip from '../common/Tooltip';
 import { useTooltip } from '../../hooks/useTooltip';
 
+/** One slice of a stacked bar. `value` is a share of that year's total. */
+export interface ChartSegment {
+  key: string;
+  value: number;
+  color: string;
+}
+
 interface SeasonChartProps {
   data: Record<number, number>;
   color: string;
@@ -9,6 +16,11 @@ interface SeasonChartProps {
   height?: number;
   /** Extra lines for a bar's hover card, e.g. the league split that season. */
   tooltipLines?: (year: number, count: number) => string[];
+  /** Per-year split. When a year has segments its bar is drawn in those colors
+   *  bottom-up instead of the flat `color` — on the map that makes each bar
+   *  show its league mix, matching the chips above it. Years without an entry
+   *  fall back to `color`, so a partial map is safe. */
+  segments?: Record<number, ChartSegment[]>;
 }
 
 const PAD_LEFT = 26;
@@ -25,7 +37,13 @@ const LABEL_PX = 10;
  * this at 3.9x on the map view — 433px tall with 37px axis numbers — while
  * staying ~1x in the page rails. Height is pinned for the same reason.
  */
-const SeasonChart: React.FC<SeasonChartProps> = ({ data, color, height = 132, tooltipLines }) => {
+const SeasonChart: React.FC<SeasonChartProps> = ({
+  data,
+  color,
+  height = 132,
+  tooltipLines,
+  segments,
+}) => {
   const hostRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const { tip, bind } = useTooltip();
@@ -65,31 +83,63 @@ const SeasonChart: React.FC<SeasonChartProps> = ({ data, color, height = 132, to
       const x = PAD_LEFT + (y - y0) * barWidth;
       if (value > 0) {
         const extra = tooltipLines?.(y, value).filter(Boolean) ?? [];
-        bars.push(
-          // Deliberately not a tab stop. `bind` puts the same text on the bar
-          // as an aria-label, so it is in the accessible tree and reachable by
-          // element navigation — but making every bar focusable would put 30+
-          // tab stops per chart in the way of everything after it.
-          <rect
-            key={y}
-            role="graphics-symbol"
-            x={(x + 0.6).toFixed(1)}
-            y={gy(value).toFixed(1)}
-            width={Math.max(barWidth - 1.6, 1.4).toFixed(1)}
-            height={(height - PAD_BOTTOM - gy(value)).toFixed(1)}
-            rx={1.5}
-            fill={color}
-            className="cursor-default hover:opacity-70 transition-opacity"
-            {...bind(
-              {
-                title: `${y} — ${value} game${value === 1 ? '' : 's'}`,
-                lines: extra,
-                color,
-              },
-              { label: true }
-            )}
-          />
+        const bx = (x + 0.6).toFixed(1);
+        const bw = Math.max(barWidth - 1.6, 1.4).toFixed(1);
+        const stack = segments?.[y];
+        // Deliberately not a tab stop. `bind` puts the same text on the bar
+        // as an aria-label, so it is in the accessible tree and reachable by
+        // element navigation — but making every bar focusable would put 30+
+        // tab stops per chart in the way of everything after it.
+        const hover = bind(
+          {
+            title: `${y} — ${value} game${value === 1 ? '' : 's'}`,
+            lines: extra,
+            color: stack?.length ? (stack[0].color ?? color) : color,
+          },
+          { label: true }
         );
+        const shared = 'cursor-default hover:opacity-70 transition-opacity';
+
+        if (stack?.length) {
+          // Stacked: each slice spans from the running total to the next, so
+          // adjacent rects share an exact edge and the bar has no seams. No
+          // `rx` here — a 1.5px radius on a three-game slice reads as a blob.
+          let cum = 0;
+          bars.push(
+            <g key={y} role="graphics-symbol" className={shared} {...hover}>
+              {stack.map((s) => {
+                const top = gy(cum + s.value);
+                const bottom = gy(cum);
+                cum += s.value;
+                return (
+                  <rect
+                    key={s.key}
+                    x={bx}
+                    y={top.toFixed(1)}
+                    width={bw}
+                    height={Math.max(bottom - top, 0).toFixed(1)}
+                    fill={s.color}
+                  />
+                );
+              })}
+            </g>
+          );
+        } else {
+          bars.push(
+            <rect
+              key={y}
+              role="graphics-symbol"
+              x={bx}
+              y={gy(value).toFixed(1)}
+              width={bw}
+              height={(height - PAD_BOTTOM - gy(value)).toFixed(1)}
+              rx={1.5}
+              fill={color}
+              className={shared}
+              {...hover}
+            />
+          );
+        }
       }
       if (y % tickEvery === 0) {
         // Centred, the final tick overflowed the right edge and every chart read
