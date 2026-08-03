@@ -284,9 +284,16 @@ const MapView: React.FC = () => {
           </span>
         </div>
 
-        {/* min-h-0 + flex lets the game list grow to the panel instead of being
-            capped at max-h-72 with its own scrollbar inside empty space. */}
-        <aside className="bg-panel border border-line rounded-xl p-4 flex flex-col min-h-64">
+        {/* The panel is capped at the map's height and the game list scrolls
+            inside it. A venue with 76 games would otherwise stretch the grid
+            row far past the map and push the season chart off-screen.
+            The inner wrapper is absolutely positioned from `lg` up so the
+            panel contributes no intrinsic height — the row is then sized by
+            the map alone and `items-stretch` gives this column the same
+            height back. Below `lg` the columns stack and natural flow is
+            what you want, so the wrapper stays static there. */}
+        <aside className="relative bg-panel border border-line rounded-xl min-h-64">
+          <div className="lg:absolute lg:inset-0 p-4 flex flex-col">
           {selected ? (
             <>
               <div className="flex items-start gap-2">
@@ -368,6 +375,7 @@ const MapView: React.FC = () => {
               </p>
             </>
           )}
+          </div>
         </aside>
       </div>
 
