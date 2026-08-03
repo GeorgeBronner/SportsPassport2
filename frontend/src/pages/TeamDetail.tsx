@@ -255,7 +255,10 @@ const TeamDetail: React.FC = () => {
               <thead>
                 <tr className="[&>th]:text-left [&>th]:py-1.5 [&>th]:px-2 [&>th]:text-[10px] [&>th]:uppercase [&>th]:tracking-[0.16em] [&>th]:text-ink-3 [&>th]:font-bold [&>th]:border-b [&>th]:border-line-strong">
                   <th>Date</th>
-                  <th title="Home, away, or neutral site">H/A</th>
+                  <th>
+                    <span aria-hidden="true">H/A</span>
+                    <span className="sr-only">Home, away, or neutral site</span>
+                  </th>
                   <th>Matchup</th>
                   <th>Result</th>
                   <th>Venue</th>
@@ -357,7 +360,7 @@ const TeamDetail: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => unattend(game.id)}
-                            title="Remove attendance"
+                            aria-label={`Remove attendance — ${game.away_team.name} at ${game.home_team.name}`}
                             className="stamp-mark cursor-pointer hover:opacity-60"
                           >
                             Attended

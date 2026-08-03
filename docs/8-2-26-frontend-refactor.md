@@ -1,11 +1,11 @@
 # Frontend Review — 2026-08-02
 
-> **Status: implemented, reviewed twice, open as PR #13.**
+> **Status: implemented, reviewed three times, open as PR #13.**
 > Everything below was fixed on branch `frontend-refactor-8-2-26`, taking the
 > recommended variant in each mockup (A1 · B1 · C1 · D1 · E1 · F1 · G1). See
 > [What shipped](#what-shipped) for the mapping from finding → change.
 >
-> Two review passes then found further defects — all fixed. See
+> Three review passes then found further defects — all fixed. See
 > [Review pass](#review-pass--where-we-left-off) at the bottom, including the
 > one real bug (weekday grouping computed off UTC, putting Friday night
 > football on Saturday) and what is still owed.
@@ -382,8 +382,10 @@ comparison is direct.
   games, 63 venues, 7 leagues), driven through Chrome, in both themes.
 - Measurements (chart widths, contrast, empty space) were taken from the live DOM, not
   estimated from source.
-- **Not verified:** narrow/mobile viewports. The browser window was maximised and could not
-  be resized in this session, so §4.6 is a code reading only.
+- **Not verified during the review sitting:** narrow/mobile viewports — the browser
+  window was maximised and would not resize, so §4.7 was a code reading only at the time.
+  It has since been checked at 485px; see the mobile entry under
+  [Outstanding](#-outstanding).
 - Written as a review; the implementation followed on the same branch (below).
 
 ---
@@ -472,10 +474,9 @@ frontend: eslint ✓   tsc ✓   vite build ✓
 
 ### Still open
 
-- **Mobile (§4.7) remains unverified.** The browser window would not resize in this
-  session, so narrow-viewport behaviour is still code-reading only. The changes here
-  should help (`lg:` guards on the sticky rail, `max-lg:` on the log's horizontal scroll,
-  a wrapping filter bar), but it wants a real device pass.
+- ~~Mobile (§4.7) remains unverified.~~ Since checked at 485px, which found and fixed
+  horizontal page scroll on Find and Passport — see the mobile entry under
+  [Outstanding](#-outstanding). A real device pass is still owed.
 - `stats.games_by_team` is now unused by the frontend. Kept deliberately; delete it when
   you're sure nothing external reads the endpoint.
 

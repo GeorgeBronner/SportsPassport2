@@ -277,7 +277,8 @@ const MyGames: React.FC = () => {
                     </span>
                     {homeResult && (
                       <span
-                        title={`Home team ${
+                        role="img"
+                        aria-label={`Home team ${
                           homeResult === 'W' ? 'won' : homeResult === 'L' ? 'lost' : 'tied'
                         }`}
                         className={`inline-block w-[17px] h-[17px] rounded text-center leading-[17px] text-[9.5px] font-extrabold text-white shrink-0 ${
@@ -307,7 +308,7 @@ const MyGames: React.FC = () => {
                     )}
                     <span className="ml-auto flex items-center gap-2 shrink-0">
                       {attendance.notes && editingId !== attendance.id && (
-                        <span className="text-xs text-ink-3" title="Has a note">
+                        <span className="text-xs text-ink-3" role="img" aria-label="Has a note">
                           ✎
                         </span>
                       )}
