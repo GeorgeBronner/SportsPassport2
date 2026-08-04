@@ -1,0 +1,1433 @@
+source,source_venue_id,name,latitude,longitude
+cbbd,1,Allen Fieldhouse,38.954313,-95.252821
+cbbd,10,Addition Financial Arena,28.607341,-81.197297
+cbbd,103,Bartow Arena,33.502124,-86.809244
+cbbd,106,Cintas Center,39.150438,-84.471785
+cbbd,107,Prudential Center,40.733430,-74.171148
+cbbd,108,Bryce Jordan Center,40.808572,-77.855468
+cbbd,109,Humphrey Coliseum,33.461495,-88.793980
+cbbd,11,Mackey Arena,40.433335,-86.916171
+cbbd,110,Stegeman Coliseum,33.942772,-83.378136
+cbbd,111,Jack Stephens Center,34.728477,-92.340457
+cbbd,112,CFSB Center,36.622668,-88.319882
+cbbd,113,Baxter Arena,41.236117,-96.013011
+cbbd,114,Scheels Center,46.883073,-96.772447
+cbbd,115,Reynolds Center,36.149002,-95.942178
+cbbd,116,UCCU Center,40.278937,-111.718493
+cbbd,117,Credit Union 1 Arena,41.874699,-87.656136
+cbbd,118,Joseph G. Echols Hall,36.847981,-76.258161
+cbbd,119,Memorial Gymnasium (TN),36.144521,-86.807277
+cbbd,12,Fiserv Forum,43.045010,-87.917487
+cbbd,120,CEFCU Arena,40.510684,-88.998791
+cbbd,121,Carver Arena,40.691861,-89.593553
+cbbd,127,Cajundome,30.218200,-92.040902
+cbbd,129,Mitchell Center,30.692283,-88.179688
+cbbd,13,T-Mobile Arena,36.102678,-115.178224
+cbbd,130,Reed Green Coliseum,31.330997,-89.337934
+cbbd,131,First National Bank Arena,35.845374,-90.670344
+cbbd,132,Rolle Activity Center,35.176814,-111.655325
+cbbd,133,Montagne Center,30.044059,-94.070721
+cbbd,136,Charles E. Smith Center,38.897814,-77.049353
+cbbd,139,McLeod Center,42.514236,-92.467303
+cbbd,14,Fifth Third Arena,39.131104,-84.514117
+cbbd,140,Finneran Pavilion,40.034047,-75.336576
+cbbd,141,Wintrust Arena,41.853699,-87.621355
+cbbd,142,Kohl Center,43.069421,-89.396878
+cbbd,143,Welsh-Ryan Arena,42.066869,-87.692441
+cbbd,144,Carver-Hawkeye Arena,41.664010,-91.554537
+cbbd,145,FedExForum,35.138233,-90.050769
+cbbd,147,Pinnacle Bank Arena,40.817856,-96.712528
+cbbd,148,Crisler Center,42.265041,-83.746671
+cbbd,149,State Farm Center,40.096291,-88.235897
+cbbd,15,VyStar Veterans Memorial Arena,30.325744,-81.644981
+cbbd,150,Schollmaier Arena,32.708830,-97.366697
+cbbd,151,Cassell Coliseum,37.222507,-80.418912
+cbbd,152,Conte Forum,42.335147,-71.167766
+cbbd,154,William R. Johnson Coliseum,31.622261,-94.640879
+cbbd,158,America First Events Center,37.675503,-113.072875
+cbbd,159,Moody Coliseum (Abilene),32.470354,-99.709215
+cbbd,16,Pauley Pavilion,34.070487,-118.446777
+cbbd,162,Moody Coliseum,32.840397,-96.780682
+cbbd,164,Lloyd Noble Center,35.187020,-97.444314
+cbbd,166,Don Haskins Center,31.777607,-106.505688
+cbbd,167,Pan American Center,32.283999,-106.742227
+cbbd,169,The Pit,35.066728,-106.632199
+cbbd,17,Rupp Arena,38.049412,-84.502359
+cbbd,170,Sanford Coyote Sports Center,42.790096,-96.927877
+cbbd,173,Jon M. Huntsman Center,40.762035,-111.838795
+cbbd,174,Dee Events Center,41.182357,-111.945007
+cbbd,175,Gallagher-Iba Arena,36.125735,-97.065153
+cbbd,176,CU Events Center,40.004687,-105.260607
+cbbd,177,Arena-Auditorium,41.313274,-105.569288
+cbbd,178,Moby Arena,40.575684,-105.093217
+cbbd,179,Clune Arena,39.014074,-104.883613
+cbbd,180,Gill Coliseum,44.561267,-123.280580
+cbbd,182,Alex G. Spanos Center,37.976672,-121.315117
+cbbd,183,Gersten Pavilion,33.967703,-118.415593
+cbbd,186,Lawlor Events Center,39.545074,-119.818301
+cbbd,187,Galen Center,34.020753,-118.279797
+cbbd,190,Walter Pyramid,33.787257,-118.114386
+cbbd,191,Matthew Knight Arena,44.044826,-123.066368
+cbbd,192,Bren Events Center,33.649457,-117.846906
+cbbd,193,Beasley Coliseum,46.735244,-117.158113
+cbbd,194,Thomas & Mack Center,36.104923,-115.144266
+cbbd,195,Haas Pavilion,37.869391,-122.262206
+cbbd,196,Beeghly Center,41.108246,-80.649014
+cbbd,197,Tudor Fieldhouse,29.714983,-95.403987
+cbbd,2,Coleman Coliseum,33.202704,-87.539713
+cbbd,20,Murphy Center,35.852395,-86.369547
+cbbd,200,The Super Pit,33.208718,-97.154063
+cbbd,201,United Supermarkets Arena,33.581251,-101.886571
+cbbd,202,Bramlage Coliseum,39.200316,-96.593846
+cbbd,203,Desert Financial Arena,33.424508,-111.931010
+cbbd,204,Marriott Center,40.254073,-111.649361
+cbbd,205,The Sobrato Center,37.428387,-121.916370
+cbbd,207,Alaska Airlines Arena,47.652178,-122.302125
+cbbd,208,Gampel Pavilion,41.805287,-72.254402
+cbbd,21,College Park Center,32.730505,-97.108074
+cbbd,210,CHI Health Center Omaha,41.263667,-95.927938
+cbbd,211,Bud Walton Arena,36.061570,-94.178107
+cbbd,212,Simon Skjodt Assembly Hall,39.180874,-86.522259
+cbbd,213,Jersey Mike’s Arena,40.525196,-74.441356
+cbbd,215,Nutter Center,39.782131,-84.052326
+cbbd,217,Wolstein Center,41.499234,-81.676650
+cbbd,22,Sanford Pentagon,43.591644,-96.754767
+cbbd,221,Templeton Center,34.465084,-81.868956
+cbbd,222,Qubein Center,35.978270,-79.996878
+cbbd,224,Robins Center,37.580682,-77.538943
+cbbd,226,Capital One Arena,38.898188,-77.020938
+cbbd,227,John Paul Jones Arena,38.045983,-78.506644
+cbbd,228,McCamish Pavilion,33.780603,-84.392762
+cbbd,23,Pete Mathews Coliseum,33.824145,-85.773493
+cbbd,231,Williams Arena,44.976978,-93.228270
+cbbd,232,Pete Maravich Assembly Center,30.414475,-91.184489
+cbbd,233,Firestone Fieldhouse,34.038545,-118.709713
+cbbd,234,ExtraMile Arena,43.603569,-116.198948
+cbbd,235,Dee Glen Smith Spectrum,41.747631,-111.812103
+cbbd,236,Reese Court,47.491366,-117.589402
+cbbd,237,Chiles Center,45.575098,-122.728533
+cbbd,238,Viejas Arena,32.773811,-117.074540
+cbbd,239,Jenny Craig Pavilion,32.774460,-117.183717
+cbbd,24,Chesapeake Employers Insurance Arena,39.251947,-76.707040
+cbbd,242,Flowers Hall,34.808375,-87.683819
+cbbd,243,Icardo Center,35.347585,-119.102598
+cbbd,244,Events Center (Binghamton),42.093392,-75.971927
+cbbd,245,Event Center,34.781099,-86.580692
+cbbd,246,Hawkins Arena,32.828965,-83.651787
+cbbd,247,McAlister Field House,32.798562,-79.962535
+cbbd,248,Hyland Arena,38.789169,-90.503593
+cbbd,249,M&T Bank Arena,41.413988,-72.911171
+cbbd,25,Maples Pavilion,37.429523,-122.160579
+cbbd,250,Hulman Center,39.468537,-87.405126
+cbbd,252,The Palestra,39.951402,-75.188636
+cbbd,254,University Arena (MI),42.283344,-85.608586
+cbbd,256,McGuirk Arena,43.581566,-84.774189
+cbbd,258,Hooper Eblen Center,36.178419,-85.509822
+cbbd,259,Screaming Eagles Arena,37.962082,-87.674749
+cbbd,26,Jerry Richardson Indoor Stadium,34.963223,-81.932938
+cbbd,260,Legacy Center,30.175103,-93.209696
+cbbd,261,Viking Pavilion,45.510966,-122.686827
+cbbd,262,Reed Arena,30.605683,-96.346295
+cbbd,263,Moody Center,30.280937,-97.730652
+cbbd,264,Lee's Family Forum,36.019332,-115.081418
+cbbd,265,Gervin GameAbove Center,42.254297,-83.647366
+cbbd,267,McDermott Center,29.468080,-98.469347
+cbbd,268,Hamilton Gymnasium,39.682418,-104.962391
+cbbd,269,Worthen Arena,40.207118,-85.406160
+cbbd,271,CURE Insurance Arena,40.212692,-74.757587
+cbbd,272,Alumni Hall (Navy),38.984430,-76.487804
+cbbd,273,Resch Center,44.499491,-88.055042
+cbbd,275,TD Arena,32.785484,-79.934436
+cbbd,278,Stroh Center,41.375341,-83.626312
+cbbd,279,James A. Rhodes Arena,41.075894,-81.508645
+cbbd,28,Merkert Gymnasium,42.057464,-71.078853
+cbbd,281,Banterra Center,37.708275,-89.218718
+cbbd,282,Mabee Center,36.048120,-95.955651
+cbbd,283,Athletics-Recreation Center,41.464254,-87.048342
+cbbd,285,Dugan Wellness Center,27.711364,-97.324434
+cbbd,286,Mizzou Arena,38.932482,-92.333734
+cbbd,287,First Bank & Trust Arena,44.318336,-96.779156
+cbbd,288,Stan Sheriff Center,21.294314,-157.818915
+cbbd,289,Save Mart Center,36.809685,-119.738510
+cbbd,290,XL Center,41.768458,-72.677026
+cbbd,291,Toyota Center (Houston),29.750747,-95.362231
+cbbd,292,American Airlines Center,32.790489,-96.810283
+cbbd,293,Steinberg Wellness Center,40.690644,-73.979295
+cbbd,294,Spiro Sports Center,40.615000,-74.095833
+cbbd,295,Millett Hall,39.517237,-84.734554
+cbbd,296,Ford Center,37.972187,-87.567829
+cbbd,298,Physical Education Complex,39.314411,-76.656681
+cbbd,299,Knights Hall,38.221551,-85.705174
+cbbd,3,Fertitta Center,29.724737,-95.346961
+cbbd,30,John Wooden Family Fieldhouse,39.665112,-83.924055
+cbbd,300,Mercyhurst Athletic Center,42.103945,-80.055854
+cbbd,301,Convocation Center (LA),29.963800,-90.109651
+cbbd,302,Koessler Athletic Center,42.920935,-78.857603
+cbbd,303,Hytche Center,38.211013,-75.687241
+cbbd,304,Lakefront Arena,30.030105,-90.050507
+cbbd,305,Allen Arena,36.103765,-86.798911
+cbbd,307,Broadview Center,42.682168,-73.828260
+cbbd,308,Charles Koch Arena,37.721824,-97.297425
+cbbd,309,Convocation Center (OH),39.323211,-82.105675
+cbbd,31,Liacouras Center,39.979814,-75.158582
+cbbd,311,Schar Center,36.108090,-79.510684
+cbbd,312,Jones Convocation Center,41.716548,-87.608508
+cbbd,313,Redhawk Center,47.607286,-122.313486
+cbbd,314,Burns Arena,37.101509,-113.567034
+cbbd,316,McCarthey Athletic Center,47.665390,-117.399116
+cbbd,317,UPMC Events Center,40.520269,-80.214674
+cbbd,318,Bender Arena,38.937714,-77.089920
+cbbd,32,Cameron Hall,37.788515,-79.436601
+cbbd,321,Chaifetz Arena,38.632525,-90.228177
+cbbd,324,Schottenstein Center,40.007603,-83.024957
+cbbd,325,Burr Gymnasium,38.926313,-77.022222
+cbbd,329,ICCU Dome,42.869986,-112.428559
+cbbd,331,State Farm Arena,33.757370,-84.396385
+cbbd,332,Foster Pavilion,31.556379,-97.121212
+cbbd,334,Betty Engelstad Sioux Center,47.927594,-97.073255
+cbbd,335,Draddy Gymnasium,40.890738,-73.900273
+cbbd,336,Memorial Hall (DE),39.679136,-75.752132
+cbbd,337,Yuengling Center,28.059244,-82.406624
+cbbd,338,Kirby Sports Center,40.701700,-75.209793
+cbbd,339,Liberty Arena,37.349345,-79.180190
+cbbd,34,Costello Athletic Center,42.655543,-71.324143
+cbbd,342,University Credit Union Center,38.541679,-121.759645
+cbbd,343,Nassau Veterans Memorial Coliseum,40.722934,-73.590724
+cbbd,344,Sojka Pavilion,40.956897,-76.886943
+cbbd,345,Savage Arena,41.660131,-83.610035
+cbbd,346,Alico Arena,26.471087,-81.764566
+cbbd,347,Show Me Center,37.320132,-89.527420
+cbbd,349,Farris Center,35.081884,-92.459561
+cbbd,35,Bob Carpenter Center,39.660257,-75.750775
+cbbd,350,Western Hall,40.471514,-90.684947
+cbbd,352,Leavey Center,37.349162,-121.935231
+cbbd,353,Ocean Bank Convocation Center,25.756939,-80.379803
+cbbd,354,Truist Arena,39.032013,-84.459105
+cbbd,355,McKenzie Arena,35.050403,-85.300944
+cbbd,36,Holmes Convocation Center,36.210713,-81.675873
+cbbd,360,Rock Hill Sports & Event Center,34.932064,-81.029707
+cbbd,361,CFG Bank Arena,39.288604,-76.618709
+cbbd,365,Vibrant Arena at The MARK,41.507997,-90.520402
+cbbd,366,Landers Center,34.927102,-89.996583
+cbbd,368,Moore Gymnasium (FL),28.588296,-81.391338
+cbbd,37,Winthrop Coliseum,34.948142,-81.014923
+cbbd,371,Madison Square Garden,40.750513,-73.993516
+cbbd,373,Dunn-Oliver Acadome,32.361844,-86.293180
+cbbd,375,The Coliseum,33.575905,-85.103896
+cbbd,376,Patrick Gymnasium,44.470089,-73.194787
+cbbd,378,Hart Center,42.235222,-71.805792
+cbbd,379,Timmons Arena,34.918058,-82.437323
+cbbd,380,Yanitelli Center,40.727723,-74.073149
+cbbd,381,DeGol Arena,40.504666,-78.641103
+cbbd,382,Stabler Arena,40.585291,-75.357399
+cbbd,384,Ocean Center,29.228454,-81.011130
+cbbd,385,Barclays Center,40.682511,-73.975252
+cbbd,386,Bernard G. Johnson Coliseum,30.712905,-95.546209
+cbbd,388,Chase Center,37.767900,-122.387422
+cbbd,39,Gallagher Center,43.137111,-79.038072
+cbbd,391,UW-Milwaukee Panther Arena,43.042288,-87.916952
+cbbd,393,Mohegan Sun Arena,41.491108,-72.089743
+cbbd,394,T-Mobile Center,39.097295,-94.579949
+cbbd,397,Lahaina Civic Center,20.904398,-156.683666
+cbbd,398,Suncoast Credit Union Arena,26.548091,-81.886850
+cbbd,399,Hertz Arena,26.440457,-81.778840
+cbbd,4,Hilton Coliseum,42.021000,-93.634769
+cbbd,40,Hinkle Fieldhouse,39.843596,-86.167428
+cbbd,400,MGM Grand Garden Arena,36.104831,-115.168569
+cbbd,401,Florida State College at Jacksonville South Campus,30.295427,-81.507591
+cbbd,403,Acrisure Arena,33.779794,-116.340545
+cbbd,404,American Bank Center,27.807305,-97.393495
+cbbd,405,ESPN Wide World of Sports Complex,28.337673,-81.557523
+cbbd,406,Mullett Arena,33.426643,-111.928489
+cbbd,408,Alumni Gymnasium (Rider),40.278867,-74.735401
+cbbd,409,Mohegan Sun Arena Wilkes-Barre,41.240550,-75.848534
+cbbd,411,Climate Pledge Arena,47.621901,-122.353990
+cbbd,412,Wells Fargo Center,39.901100,-75.172016
+cbbd,413,Kimmel Arena,35.618047,-82.568833
+cbbd,414,Comerica Center,33.100552,-96.819432
+cbbd,415,Idaho Central Arena,43.614368,-116.204407
+cbbd,416,Dickies Arena,32.741066,-97.368483
+cbbd,417,Reynolds Coliseum,35.783514,-78.669906
+cbbd,418,Gainbridge Fieldhouse,39.763933,-86.155502
+cbbd,419,Paycom Center,35.463396,-97.515081
+cbbd,420,Mississippi Coast Coliseum,30.394391,-88.973988
+cbbd,421,Cadence Bank Arena,34.259581,-88.699705
+cbbd,422,Amerant Bank Arena,26.158370,-80.325429
+cbbd,423,Novant Health Fieldhouse,36.057256,-79.825536
+cbbd,426,Mountain America Center,43.481254,-112.065426
+cbbd,427,Delta Center,40.768327,-111.901055
+cbbd,428,Spectrum Center,35.225098,-80.839154
+cbbd,429,Little Caesars Arena,42.340977,-83.054954
+cbbd,430,Mississippi Coliseum,32.300162,-90.172028
+cbbd,431,Heritage Bank Center,39.097926,-84.504446
+cbbd,432,SAP Center at San Jose,37.332860,-121.901225
+cbbd,433,OceanFirst Bank Center,40.279363,-74.007609
+cbbd,434,Orleans Arena,36.105828,-115.202247
+cbbd,435,MassMutual Center,42.101913,-72.587235
+cbbd,436,Enterprise Center,38.626801,-90.202620
+cbbd,437,Intuit Dome,33.944259,-118.342172
+cbbd,439,Lawler Arena,42.667909,-71.120097
+cbbd,44,Memorial Coliseum (IN),41.115425,-85.124202
+cbbd,440,Davey L. Whitney Complex,31.873151,-91.133230
+cbbd,442,Lee E. Williams Athletics and Assembly Center,32.299746,-90.211888
+cbbd,445,Tom Gola Arena,40.040003,-75.156578
+cbbd,446,Ferrell Center,31.547994,-97.105681
+cbbd,447,Harrah's Cherokee Center,35.469866,-83.303994
+cbbd,448,Walsh Gymnasium,40.741846,-74.244947
+cbbd,449,United Center,41.880683,-87.674185
+cbbd,450,Desert Diamond Arena,33.531967,-112.261318
+cbbd,451,Forbes Arena,33.748623,-84.417089
+cbbd,452,Flagler Gymnasium,29.891157,-81.314854
+cbbd,453,Pavilion,33.518682,-117.668116
+cbbd,454,Freedom Hall (KY),38.199618,-85.741011
+cbbd,455,Cool Insuring Arena,43.308416,-73.642108
+cbbd,456,State Farm Field House,28.337310,-81.557236
+cbbd,457,Michelob ULTRA Arena,36.090648,-115.179021
+cbbd,461,BOK Center,36.152665,-95.996375
+cbbd,462,INTRUST Bank Arena,37.683385,-97.331999
+cbbd,463,Propst Arena,34.726794,-86.590111
+cbbd,465,Frost Bank Center,29.426921,-98.437506
+cbbd,466,UBS Arena,40.711694,-73.725923
+cbbd,468,Tarlton Complex,35.697975,-81.289714
+cbbd,469,Luke Air Force Base,33.535435,-112.373523
+cbbd,47,Calihan Hall,42.414343,-83.135925
+cbbd,470,Rocket Mortgage FieldHouse,41.496686,-81.688575
+cbbd,471,Cross Insurance Center,44.789185,-68.779235
+cbbd,472,Kimbrell Arena,32.430836,-99.752126
+cbbd,473,Tsongas Center,42.650238,-71.313256
+cbbd,474,Rec Hall,40.795443,-77.868633
+cbbd,475,Pensacola Bay Center,30.416394,-87.208950
+cbbd,477,Denny Sanford Premier Center,43.560799,-96.751376
+cbbd,478,Jim Whelan Boardwalk Hall,39.354779,-74.438433
+cbbd,48,Swinney Center,39.035545,-94.578756
+cbbd,480,Target Center,44.979592,-93.275983
+cbbd,481,Bridgestone Arena,36.158981,-86.778382
+cbbd,482,PPG Paints Arena,40.439591,-79.989541
+cbbd,483,TD Garden,42.366299,-71.062162
+cbbd,484,crypto.com Arena,34.042998,-118.267135
+cbbd,485,State Farm Stadium,33.527796,-112.262672
+cbbd,488,Chase Arena,41.802013,-72.716352
+cbbd,49,Cam Henderson Center,38.424463,-82.425139
+cbbd,490,Al McGuire Center,43.039620,-87.926755
+cbbd,491,Reed Gym,42.864543,-112.428923
+cbbd,492,Kaiser Permanente Arena,36.968238,-122.023120
+cbbd,494,American Family Field,43.028062,-87.971269
+cbbd,495,Willett Hall,37.297514,-78.395621
+cbbd,496,Winfield Dunn Center,36.536295,-87.356670
+cbbd,5,Spokane Arena,47.666472,-117.423120
+cbbd,50,Kaplan Arena,37.273494,-76.719721
+cbbd,502,Bert Ogden Arena,26.255239,-98.166192
+cbbd,503,Golden 1 Center,38.580140,-121.499501
+cbbd,504,Anaheim Convention Center,33.800584,-117.920805
+cbbd,506,Moda Center,45.531579,-122.666834
+cbbd,507,Veterans Memorial Coliseum,45.532144,-122.669403
+cbbd,508,Enmarket Arena,32.074132,-81.111559
+cbbd,51,Trask Coliseum,34.224951,-77.878347
+cbbd,510,Gregory Gymnasium,30.283993,-97.736389
+cbbd,511,Kress Center,44.529929,-87.916728
+cbbd,512,Salt Lake Community College,40.672660,-111.943700
+cbbd,514,Mandalay Bay,36.092246,-115.175824
+cbbd,515,Harwood Arena,40.680443,-74.237527
+cbbd,519,Bojangles Coliseum,35.205018,-80.795171
+cbbd,52,Convocation Center (VA),37.019854,-76.331139
+cbbd,521,Kia Center,28.539287,-81.383889
+cbbd,522,Nationwide Arena,39.969187,-83.006080
+cbbd,523,Ball Arena,39.748684,-105.007544
+cbbd,524,NRG Stadium,29.684858,-95.410802
+cbbd,525,Frank Erwin Center,30.276919,-97.732202
+cbbd,528,Skyhawk Arena,36.343961,-88.867984
+cbbd,529,Gateway Center,33.646802,-84.459701
+cbbd,53,Bon Secours Wellness Arena,34.852706,-82.391561
+cbbd,530,Burton Coliseum,30.136920,-93.211515
+cbbd,531,Total Mortgage Arena,41.173235,-73.186896
+cbbd,532,McArthur Center,27.718312,-82.690531
+cbbd,536,Brookshire Grocery Arena,32.465175,-93.673692
+cbbd,537,KeyBank Center,42.875147,-78.876636
+cbbd,538,Leonard E. Merrell Center,29.780357,-95.832509
+cbbd,539,Lifetime Activities Center,40.672966,-111.945693
+cbbd,54,Hill Field House,39.342278,-76.585061
+cbbd,541,McDonough Arena,38.907717,-77.077429
+cbbd,542,Caesars Superdome,29.951049,-90.082308
+cbbd,543,Alumni Hall (RI),41.845776,-71.437027
+cbbd,544,Titan Field House,28.168819,-80.668679
+cbbd,545,Walter E. Washington Convention Center,38.905127,-77.022954
+cbbd,546,Mabee Fieldhouse,38.911132,-94.592177
+cbbd,547,Covelli Center (Ohio State),40.013932,-83.027731
+cbbd,548,JMU Convocation Center,38.431933,-78.868824
+cbbd,553,Indiana Convention Center,39.763652,-86.164011
+cbbd,558,Rip Griffin Center,33.571865,-101.931876
+cbbd,559,Kerr Fitness Center,40.569080,-80.011641
+cbbd,564,Lucas Oil Stadium,39.759062,-86.163838
+cbbd,566,Silver Spurs Arena,28.298969,-81.369013
+cbbd,568,Alaska Airlines Center,61.188590,-149.814177
+cbbd,570,Magness Arena,39.682266,-104.961685
+cbbd,571,Chaparral Center,32.028019,-102.102728
+cbbd,574,Ed Clark High School,36.135515,-115.197152
+cbbd,576,St. John Arena,40.005415,-83.019135
+cbbd,577,ShoWare Center,47.387660,-122.240004
+cbbd,578,Findlay Toyota Center,34.589120,-112.336158
+cbbd,579,Firestone High School,41.118702,-81.564533
+cbbd,58,Swisher Gymnasium,30.350251,-81.605006
+cbbd,581,Chase Fieldhouse,39.726414,-75.554778
+cbbd,582,Covelli Centre (Youngstown),41.096237,-80.647821
+cbbd,584,Blue Cross Arena,43.153748,-77.610826
+cbbd,585,Bill Harris Arena,33.494894,-86.874178
+cbbd,586,Honda Center,33.807832,-117.876534
+cbbd,587,Smoothie King Center,29.949039,-90.082069
+cbbd,588,Alumni Gym (Elon University),36.093956,-79.886093
+cbbd,59,John M. Belk Arena,35.499241,-80.840296
+cbbd,591,Tiger Arena,32.023777,-81.065881
+cbbd,593,North Athletic Complex,40.523914,-80.211857
+cbbd,595,St. Vincent-St. Mary High School,41.088592,-81.522317
+cbbd,598,Cox Pavilion,36.104247,-115.143350
+cbbd,599,Municipal Auditorium (MO),39.097901,-94.586400
+cbbd,6,Cameron Indoor Stadium,35.997450,-78.942267
+cbbd,601,U.S. Bank Stadium,44.975110,-93.259339
+cbbd,602,Kaseya Center,25.781360,-80.187944
+cbbd,603,DCU Center,42.265490,-71.798803
+cbbd,604,Toyota Center WA,46.219837,-119.216690
+cbbd,606,Gold Dome (Centenary),32.480937,-93.729862
+cbbd,607,John A. Alario Sr. Event Center,29.905473,-90.162791
+cbbd,611,Davis-Reid Alumni Gym,38.207590,-84.553086
+cbbd,612,North Charleston Coliseum,32.865567,-80.022342
+cbbd,613,McGrath-Phillips Arena,41.923912,-87.653144
+cbbd,614,Allstate Arena,42.005277,-87.887771
+cbbd,616,Pamplin Sports Center,45.451540,-122.670683
+cbbd,617,PPL Center,40.602670,-75.472800
+cbbd,618,Santander Arena,40.334821,-75.923052
+cbbd,619,Shaw Fitness Center,36.604497,-87.460561
+cbbd,62,Joel & Diane Bloom Wellness and Events Center,40.742297,-74.180410
+cbbd,620,Municipal Auditorium (TN),36.167383,-86.782198
+cbbd,621,Savannah Civic Center,32.076763,-81.096973
+cbbd,622,KeyArena,47.621901,-122.353990
+cbbd,623,Jake Nevin Field House,40.033723,-75.338240
+cbbd,625,Rapides Coliseum,31.296581,-92.503608
+cbbd,628,Reno Events Center,39.530897,-119.812473
+cbbd,629,Alamodome,29.416892,-98.478895
+cbbd,63,Breslin Center,42.728176,-84.492002
+cbbd,631,Veterans Memorial Arena,30.325744,-81.644981
+cbbd,633,Scheels Arena,46.835364,-96.875554
+cbbd,636,DakotaDome,42.791143,-96.927749
+cbbd,638,Benjamin Johnson Arena,34.960238,-81.932764
+cbbd,640,Peter W. Stott Center,45.510966,-122.686827
+cbbd,641,H-E-B Center at Cedar Park,30.541322,-97.820523
+cbbd,642,Tom Golisano Field House,26.339631,-81.441055
+cbbd,643,MGM Grand,36.102789,-115.169401
+cbbd,644,ICI Center,29.191223,-81.046729
+cbbd,645,Bloch Arena,21.347763,-157.941194
+cbbd,646,Kezar Pavilion,37.767510,-122.453914
+cbbd,647,Charleston Civic Center,38.356180,-81.640608
+cbbd,649,Dothan Civic Center,31.224855,-85.390324
+cbbd,65,Trojan Arena,31.802287,-85.952434
+cbbd,654,Quest Multisport,41.873440,-87.692352
+cbbd,655,Joe Louis Arena,42.325270,-83.052688
+cbbd,66,Atlantic Union Bank Center,38.430544,-78.859572
+cbbd,661,Petco Park,32.707187,-117.156913
+cbbd,665,Shelton Gym,31.619222,-94.647073
+cbbd,67,Hanner Fieldhouse,32.427858,-81.780037
+cbbd,672,Coliseo de Puerto Rico,18.427819,-66.061338
+cbbd,675,Renaissance Coliseum,40.699152,-89.617959
+cbbd,677,Agganis Arena,42.352223,-71.117730
+cbbd,678,Curtis Culwell Center,32.959379,-96.641959
+cbbd,68,Chartway Arena,36.884136,-76.301379
+cbbd,680,Towson Center,39.386599,-76.616382
+cbbd,688,Mary E. Branch Gymnasium,30.264601,-97.723138
+cbbd,692,Corbin J. Robertson Center,30.636032,-97.663152
+cbbd,693,Sullivan Arena,61.205331,-149.872662
+cbbd,695,AT&T Stadium,32.747850,-97.092834
+cbbd,698,Richmond Coliseum,37.544637,-77.434443
+cbbd,699,The Pinnacle,34.254122,-90.569908
+cbbd,7,Dean E. Smith Center,35.899484,-79.043812
+cbbd,700,Lake Charles Civic Center,30.228566,-93.221426
+cbbd,701,Baltimore Arena,39.288746,-76.619452
+cbbd,703,Georgia Dome,33.755412,-84.400849
+cbbd,705,Robins Stadium,37.580442,-77.536465
+cbbd,706,Oracle Arena,37.750273,-122.202932
+cbbd,708,USS Midway,32.713796,-117.175200
+cbbd,71,MVP Arena,42.648628,-73.754719
+cbbd,710,Coliseo Ruben Rodriguez,18.394902,-66.150892
+cbbd,714,SPI Convention Center,26.140876,-97.175319
+cbbd,715,DakotaDome,42.791143,-96.927749
+cbbd,718,Kimbel Arena,33.793808,-79.013290
+cbbd,72,Freedom Hall (TN),36.324433,-82.375198
+cbbd,722,Lee & Helene Sapp Fieldhouse,41.257116,-96.008733
+cbbd,723,Texas Hall,32.729718,-97.115555
+cbbd,725,Now Arena,42.069267,-88.212835
+cbbd,727,McArthur Court,44.041654,-123.074143
+cbbd,728,Idaho Center,43.608448,-116.502791
+cbbd,729,Anderson Arena,41.377117,-83.636548
+cbbd,73,Reilly Center,42.079495,-78.484972
+cbbd,730,Hot Springs Convention Center,34.509540,-93.049831
+cbbd,731,The Dome at America's Center,38.632785,-90.188551
+cbbd,734,Bill Battle Coliseum,33.515513,-86.851710
+cbbd,736,Fargodome,46.903022,-96.801342
+cbbd,738,Myrtle Beach Convention Center,33.706027,-78.874210
+cbbd,739,Reliant Stadium,29.684858,-95.410802
+cbbd,74,Lenovo Center,35.803398,-78.721917
+cbbd,743,Memorial Coliseum (KY),38.039491,-84.500387
+cbbd,744,Ford Field,42.339957,-83.045617
+cbbd,746,Charlotte Coliseum,35.145348,-80.897776
+cbbd,747,MetraPark,45.799989,-108.477109
+cbbd,75,Mullins Center,42.389520,-72.533450
+cbbd,750,U.S. Cellular Center,35.467106,-83.009692
+cbbd,751,Show Place Arena,38.810859,-76.749419
+cbbd,76,UD Arena,39.734790,-84.201931
+cbbd,78,Klotsche Center,43.079493,-87.879494
+cbbd,79,Petersen Events Center,40.444000,-79.962119
+cbbd,8,McKale Memorial Center,32.230428,-110.945994
+cbbd,80,Watsco Center,25.715310,-80.279384
+cbbd,81,Tucker Center,30.437793,-84.286689
+cbbd,82,Amica Mutual Pavilion,41.823619,-71.418090
+cbbd,83,Edmunds Center,29.039541,-81.301821
+cbbd,84,Colonial Life Arena,33.994784,-81.037355
+cbbd,86,XFINITY Center,38.995624,-76.941336
+cbbd,87,WVU Coliseum,39.649446,-79.981404
+cbbd,88,JMA Wireless Dome,43.036284,-76.136360
+cbbd,89,Jadwin Gymnasium,40.343409,-74.648647
+cbbd,9,Food City Center,36.004892,-83.975258
+cbbd,90,KFC Yum! Center,38.257696,-85.753860
+cbbd,91,Littlejohn Coliseum,34.680187,-82.846473
+cbbd,92,Siegel Center,37.552875,-77.452827
+cbbd,95,Knapp Center,41.604778,-93.652263
+cbbd,96,Thomas Assembly Center,32.532073,-92.658485
+cbbd,97,Pete Hanna Center,33.463831,-86.797165
+cbbd,98,Ramsey Center,35.303670,-83.182267
+cbbd,99,Prather Coliseum,31.743963,-93.095119
+cfbd,1027,Alex G. Spanos Stadium,35.298425,-120.665041
+cfbd,10463,Grand Rapids Christian High School,42.919699,-85.622688
+cfbd,10465,Mayo Field,32.480144,-93.728303
+cfbd,1056,Rose Bowl,34.161349,-118.167667
+cfbd,11488,Centreville Bank Stadium,41.869157,-71.382995
+cfbd,11589,Hinchliffe Stadium,40.918380,-74.181322
+cfbd,11591,Lokken Stadium,46.916415,-98.015907
+cfbd,11823,Ryan Field,42.066894,-87.690802
+cfbd,1400,Toyota Stadium,33.154224,-96.835366
+cfbd,150,Jack Coffey Field,40.861432,-73.882895
+cfbd,1905,DakotaDome,42.791143,-96.927749
+cfbd,1930,Holt Arena,42.869986,-112.428559
+cfbd,1964,JMA Wireless Dome,43.036284,-76.136360
+cfbd,2023,Walkup Skydome,35.180598,-111.652899
+cfbd,2031,Pitbull Stadium,25.752488,-80.377890
+cfbd,2068,E. Claiborne Robins Stadium,37.580442,-77.536465
+cfbd,218,FIU Stadium,25.752488,-80.377890
+cfbd,3459,Red Bull Arena,40.736890,-74.150262
+cfbd,347,Camp Randall Stadium,43.070053,-89.412650
+cfbd,3485,Providence Park,45.521529,-122.691818
+cfbd,3491,RFK Stadium,38.889839,-76.971902
+cfbd,3493,Caesars Superdome,29.951049,-90.082308
+cfbd,3494,The Dome at America's Center,38.632785,-90.188551
+cfbd,3495,Georgia Dome,33.755412,-84.400849
+cfbd,3504,Aviva Stadium,53.335225,-6.228185
+cfbd,3558,Michigan Stadium,42.265828,-83.747827
+cfbd,3597,Alumni Memorial Field,37.789044,-79.434887
+cfbd,36,Leonidoff Field,41.719144,-73.932948
+cfbd,3600,Tom Adams Field,42.355801,-83.078358
+cfbd,3601,Aggie Memorial Stadium,32.279636,-106.741111
+cfbd,3602,Aggie Stadium,38.537295,-121.762135
+cfbd,3603,Aggie Stadium,36.081718,-79.770100
+cfbd,3604,Alamodome,29.416892,-98.478895
+cfbd,3605,Alerus Center,47.910800,-97.091361
+cfbd,3607,Alfond Stadium,44.905049,-68.671755
+cfbd,3608,Allen E. Paulson Stadium,32.412144,-81.783337
+cfbd,3609,Allgood-Bailey Stadium,37.950445,-91.780910
+cfbd,3610,Aloha Stadium,21.372787,-157.929912
+cfbd,3611,Alumni Field (MA),42.274020,-71.811785
+cfbd,3612,Alumni Memorial Stadium (NC),35.669936,-80.486283
+cfbd,3613,Alumni Stadium,39.189340,-75.543204
+cfbd,3614,Alumni Stadium (IN),38.718696,-85.464036
+cfbd,3615,"Alumni Stadium (Chestnut Hill, MA)",42.335099,-71.166308
+cfbd,3616,Amon G. Carter Stadium,32.709751,-97.368039
+cfbd,3618,Apprentice Field,36.992904,-76.422932
+cfbd,3619,Arizona Stadium,32.228836,-110.948780
+cfbd,3620,Armstrong Stadium,37.020479,-76.333604
+cfbd,3621,Arnold Field (PA),40.334741,-76.514956
+cfbd,3622,GEHA Field at Arrowhead Stadium,39.048931,-94.483999
+cfbd,3624,Arute Field,41.695074,-72.761625
+cfbd,3625,Centennial Bank Stadium,35.848891,-90.667297
+cfbd,3626,Autzen Stadium,44.058218,-123.068438
+cfbd,3628,Bank of America Stadium,35.225774,-80.852828
+cfbd,3629,Barker-Lane Stadium,35.404483,-78.742719
+cfbd,3630,Allegacy Federal Credit Union Stadium,36.130554,-80.254632
+cfbd,3632,Beaver Stadium,40.812074,-77.855942
+cfbd,3633,Ben Altamirano Field,32.776068,-108.287479
+cfbd,3634,Ben Hill Griffin Stadium,29.650037,-82.348767
+cfbd,3635,Bill Buxton Stadium,41.364219,-93.565692
+cfbd,3636,Bill Snyder Family Stadium,39.202039,-96.593776
+cfbd,3638,MDU Resources Community Bowl,46.822044,-100.821533
+cfbd,3640,Blackstock Stadium,39.640216,-86.868224
+cfbd,3641,Blakeslee Stadium,44.144102,-93.995400
+cfbd,3643,Bobcat Stadium,45.658897,-111.049402
+cfbd,3644,Bobcat Stadium (TX),29.891059,-97.925553
+cfbd,3646,Boone Pickens Stadium,36.125696,-97.067614
+cfbd,3649,Bowman Gray Stadium,36.082647,-80.222069
+cfbd,3650,Bragg Memorial Stadium,30.426079,-84.291769
+cfbd,3651,Bridgeforth Stadium,38.435156,-78.873053
+cfbd,3652,FBC Mortgage Stadium,28.608145,-81.192675
+cfbd,3653,Albertsons Stadium,43.602725,-116.196784
+cfbd,3654,Brooks Stadium (SC),33.792921,-79.017451
+cfbd,3655,Brown Field,41.465638,-87.047918
+cfbd,3656,Brown Stadium,41.842479,-71.394541
+cfbd,3657,Bryant-Denny Stadium,33.207720,-87.550453
+cfbd,3658,Buccaneer Field,32.978237,-80.067850
+cfbd,3659,Bulldog Stadium (NE),40.914276,-97.087988
+cfbd,3660,Valley Children's Stadium,36.814396,-119.758038
+cfbd,3662,AmFirst Stadium,33.820369,-85.766126
+cfbd,3664,Butler Bowl,39.844486,-86.165837
+cfbd,3665,SECU Stadium,38.990299,-76.947453
+cfbd,3666,Cajun Field,30.215873,-92.041736
+cfbd,3667,Callaghan Stadium,37.426152,-81.003121
+cfbd,3668,Campus Field,41.219304,-73.245952
+cfbd,3670,Carter-Finley Stadium,35.800846,-78.719605
+cfbd,3673,Lumen Field,47.595346,-122.331644
+cfbd,3674,Chapman Stadium,36.148663,-95.943858
+cfbd,3675,Charles A. Gaetano Stadium,43.098855,-75.268899
+cfbd,3676,Christy Mathewson-Memorial Stadium,40.951867,-76.884646
+cfbd,3677,Chuck Noll Field,40.290476,-79.403592
+cfbd,3678,City Stadium (VA),37.393287,-79.167241
+cfbd,3681,Coffey Field,40.861432,-73.882895
+cfbd,3683,Kroger Field,38.022735,-84.505119
+cfbd,3686,Cowboy Stadium,30.173872,-93.210345
+cfbd,3687,AT&T Stadium,32.747850,-97.092834
+cfbd,3688,Wildcat Stadium,43.138592,-70.939403
+cfbd,3689,Cramton Bowl,32.379495,-86.293142
+cfbd,3693,Davis Wade Stadium,33.456453,-88.793404
+cfbd,3694,DeGol Field,40.506225,-78.637258
+cfbd,3695,Delaware Stadium,39.661671,-75.748899
+cfbd,3696,Dix Stadium,41.139027,-81.313675
+cfbd,3697,Doak Campbell Stadium,30.438151,-84.304392
+cfbd,3698,Donnell Stadium,41.025547,-83.654366
+cfbd,3699,Dowdy-Ficklen Stadium,35.596464,-77.365306
+cfbd,3700,Doyt L. Perry Stadium,41.378026,-83.622497
+cfbd,3701,Drake Stadium,41.604982,-93.655052
+cfbd,3703,Durham County Stadium,36.035233,-78.902896
+cfbd,3704,E. J. Whitmire Stadium,35.304712,-83.182372
+cfbd,3706,Eccles Coliseum,37.675760,-113.077085
+cfbd,3710,Ernest W. Spangler Stadium,35.245368,-81.673554
+cfbd,3711,Estes Stadium,35.080266,-92.460606
+cfbd,3712,EverBank Stadium,30.323981,-81.637305
+cfbd,3713,Falcon Stadium,38.997056,-104.843650
+cfbd,3714,Fargodome,46.903022,-96.801342
+cfbd,3715,FAU Stadium,26.376295,-80.101718
+cfbd,3716,"Stewart """"Red"""" Faught Stadium",39.477014,-86.045895
+cfbd,3718,Tom Benson Hall of Fame Stadium,40.819875,-81.398066
+cfbd,3719,Northwest Stadium,38.907669,-76.864533
+cfbd,3720,Finley Stadium,35.036305,-85.315715
+cfbd,3721,Fisher Field,40.700936,-75.210689
+cfbd,3725,"Johnny ""Red"" Floyd Stadium",35.851287,-86.368271
+cfbd,3726,Folsom Field,40.009335,-105.266070
+cfbd,3727,Ford Field,42.339957,-83.045617
+cfbd,3730,Franklin Field,39.950067,-75.189975
+cfbd,3731,Frost-Kalnow Stadium,41.108924,-83.179797
+cfbd,3733,Garcelon Field,44.106212,-70.201050
+cfbd,3734,Gayle and Tom Benson Stadium,29.467540,-98.470020
+cfbd,3735,Gerald J. Ford Stadium,32.837790,-96.782791
+cfbd,3737,Gibbs Stadium,34.962026,-81.933026
+cfbd,3738,Gillette Stadium,42.090888,-71.264173
+cfbd,3739,Glass Bowl,41.657185,-83.613595
+cfbd,3740,Golden Lion Stadium,34.253340,-92.021486
+cfbd,3741,Goodman Stadium,40.589050,-75.356204
+cfbd,3744,Hancock Stadium,40.512352,-88.996386
+cfbd,3745,Greater Zion Stadium,37.099546,-113.567389
+cfbd,3746,Hanson Field,40.468155,-90.684110
+cfbd,3747,Hantz Stadium,43.630002,-84.272613
+cfbd,3748,Graham Stadium,36.344852,-88.861065
+cfbd,3749,Hunter Stadium,38.787735,-90.501903
+cfbd,3750,Harvard Stadium,42.366736,-71.126733
+cfbd,3752,Acrisure Stadium,40.446717,-80.015720
+cfbd,3754,High Point Solutions Stadium,40.513504,-74.465143
+cfbd,3755,Ray and Sue Smith Stadium,42.785679,-86.089424
+cfbd,3756,Homer Bryce Stadium,31.625600,-94.644401
+cfbd,3757,Hornet Stadium,38.555670,-121.422954
+cfbd,3758,Houck Stadium,37.309484,-89.531213
+cfbd,3760,Hubert Jack Stadium,41.143626,-77.469084
+cfbd,3762,Hughes Stadium,39.343907,-76.582928
+cfbd,3764,Huskie Stadium,41.934075,-88.777970
+cfbd,3765,Husky Stadium,47.650374,-122.301976
+cfbd,3767,Indian Bowl,35.744767,-95.345083
+cfbd,3768,InfoCision Stadium,41.072510,-81.508481
+cfbd,3769,Jack Britt Memorial Stadium,41.729456,-81.239096
+cfbd,3770,Jack Miller Stadium,40.863274,-82.326068
+cfbd,3772,Jack Trice Stadium,42.014005,-93.635759
+cfbd,3774,Jayne Stadium,38.192103,-83.425491
+cfbd,3775,Joan C. Edwards Stadium,38.424869,-82.421009
+cfbd,3776,Joe Aillet Stadium,32.532014,-92.655940
+cfbd,3777,Joe Walton Stadium,40.521104,-80.215974
+cfbd,3781,Johnny Unitas Stadium,39.388548,-76.615859
+cfbd,3782,Johnson Hagood Stadium,32.793688,-79.955860
+cfbd,3784,Jones AT&T Stadium,33.591252,-101.872950
+cfbd,3785,Jordan-Hare Stadium,32.602162,-85.489161
+cfbd,3786,Kelly/Shorts Stadium,43.577623,-84.771051
+cfbd,3787,Kenan Stadium,35.906943,-79.047820
+cfbd,3791,Kibbie Dome,46.726241,-117.017437
+cfbd,3792,Kidd Brewer Stadium,36.211489,-81.685572
+cfbd,3793,Kinnick Stadium,41.658625,-91.551192
+cfbd,3795,Kyle Field,30.609855,-96.341387
+cfbd,3797,Ladd Peebles Stadium,30.673057,-88.075635
+cfbd,3798,Lambeau Field,44.500971,-88.061968
+cfbd,3799,Lane Stadium,37.219892,-80.418004
+cfbd,3800,Larry Wilcox Stadium,39.577335,-95.112786
+cfbd,3801,LaVell Edwards Stadium,40.257319,-111.654578
+cfbd,3803,Legion Field,33.511485,-86.842827
+cfbd,3805,Simmons Bank Liberty Stadium,35.121130,-89.977415
+cfbd,3806,Lincoln Financial Field,39.900910,-75.167489
+cfbd,3809,Louis Crews Stadium,34.783607,-86.578509
+cfbd,3810,Nissan Stadium,36.166524,-86.771315
+cfbd,3812,Lucas Oil Stadium,39.759062,-86.163838
+cfbd,3813,"Luther ""Nick"" Jeralds Stadium",35.075528,-78.896595
+cfbd,3814,M&T Bank Stadium,39.277973,-76.622665
+cfbd,3815,M. M. Roberts Stadium,30.531940,-89.685194
+cfbd,3816,Mackay Stadium,39.546892,-119.817398
+cfbd,3817,Malone Stadium,32.530899,-92.066040
+cfbd,3818,Malosky Stadium,46.819461,-92.079623
+cfbd,3819,Bowditch Field,42.293829,-71.425313
+cfbd,3820,Gesa Field,46.731829,-117.160439
+cfbd,3823,Hardee-McGee Field,35.209226,-85.922226
+cfbd,3824,Meade Stadium,41.487963,-71.534691
+cfbd,3825,DATCU Stadium,33.203940,-97.159420
+cfbd,3826,Memorial Field,43.701297,-72.284245
+cfbd,3827,"Memorial Stadium (Stephenville, TX)",32.215049,-98.223546
+cfbd,3829,Memorial Stadium,39.474909,-87.366992
+cfbd,3830,"Memorial Stadium (Bloomington, IN)",39.180894,-86.525642
+cfbd,3831,California Memorial Stadium,37.870995,-122.250736
+cfbd,3832,"Memorial Stadium (Champaign, IL)",40.099286,-88.235961
+cfbd,3833,Memorial Stadium,38.963079,-95.246286
+cfbd,3834,"Memorial Stadium (Lincoln, NE)",40.820718,-96.704756
+cfbd,3835,"Memorial Stadium (Norman, OK)",35.205679,-97.442264
+cfbd,3836,"Memorial Stadium (Clemson, SC)",34.678767,-82.843426
+cfbd,3837,"Memorial Stadium (Selma, AL)",32.404528,-87.041969
+cfbd,3838,Memorial Stadium,38.935847,-92.333283
+cfbd,3839,MetLife Stadium,40.813507,-74.074344
+cfbd,3841,Michie Stadium,41.387302,-73.964292
+cfbd,3842,Milan Puskar Stadium,39.650184,-79.954988
+cfbd,3844,Morris Field,41.429085,-88.420576
+cfbd,3847,Cooper Field,38.908049,-77.075299
+cfbd,3850,Municipal Stadium,29.172821,-81.117497
+cfbd,3851,Mustang Stadium,39.428455,-76.779522
+cfbd,3852,Navy-Marine Corps Memorial Stadium,38.984757,-76.507076
+cfbd,3853,Neyland Stadium,35.955065,-83.925987
+cfbd,3854,Nippert Stadium,39.131121,-84.516230
+cfbd,3855,Notre Dame Stadium,41.698423,-86.233958
+cfbd,3856,Nottingham Field,40.403312,-104.705143
+cfbd,3859,Offutt Field,40.302310,-79.539546
+cfbd,3860,O'Harra Stadium,44.073269,-103.202660
+cfbd,3861,Ohio Stadium,40.001646,-83.019737
+cfbd,3862,O'Kelly-Riddick Stadium,35.973877,-78.897034
+cfbd,3864,Oliver C. Dawson Stadium,33.498650,-80.844723
+cfbd,3868,Paladin Stadium,34.920100,-82.437228
+cfbd,3869,Palmetto Ridge High School,26.296088,-81.576954
+cfbd,3870,Panther Stadium (OH),39.912082,-82.732847
+cfbd,3873,L&N Federal Credit Union Stadium,38.206016,-85.758773
+cfbd,3874,Paul Brown Stadium,39.095464,-84.516049
+cfbd,3875,Paul Laird Field,34.005881,-96.374817
+cfbd,3876,Peden Stadium,39.321113,-82.103025
+cfbd,3877,Pioneer Stadium,42.254929,-77.802617
+cfbd,3879,TowneBank Stadium,37.064408,-76.499280
+cfbd,3882,Provost Umphrey Stadium,30.043147,-94.069884
+cfbd,3884,RAM Stadium,33.867881,-83.925634
+cfbd,3885,Harvey Randall Wickes Memorial Stadium,43.510920,-83.954453
+cfbd,3886,Raymond James Stadium,27.975979,-82.503355
+cfbd,3887,Razorback Stadium,36.067977,-94.178132
+cfbd,3889,Reinhart Field,40.807487,-73.797746
+cfbd,3891,NRG Stadium,29.684858,-95.410802
+cfbd,3892,Pratt & Whitney Stadium,41.759626,-72.618827
+cfbd,3893,Reser Stadium,44.559562,-123.281475
+cfbd,3894,Rhodes Stadium,36.110144,-79.507803
+cfbd,3895,Rice Stadium,29.716323,-95.409324
+cfbd,3897,Richardson Stadium,35.499599,-80.842848
+cfbd,3904,Rogers Stadium (VA),37.240987,-77.422092
+cfbd,3905,Maverik Stadium,41.751937,-111.811670
+cfbd,3906,Roos Field,47.492661,-117.588053
+cfbd,3907,Ross-Ade Stadium,40.434568,-86.918495
+cfbd,3908,Roy Kidd Stadium,37.734417,-84.297535
+cfbd,3909,Roy Stewart Stadium,36.621285,-88.317479
+cfbd,3910,DKR-Texas Memorial Stadium,30.283841,-97.732623
+cfbd,3911,Ryan Field,42.066894,-87.690802
+cfbd,3912,Rynearson Stadium,42.255872,-83.647375
+cfbd,3913,Saluki Stadium,37.708637,-89.216215
+cfbd,3914,Sam Boyd Stadium,36.086269,-115.016736
+cfbd,3917,Sanford Stadium,33.949785,-83.373209
+cfbd,3919,Scheumann Stadium,40.216007,-85.416825
+cfbd,3921,Schoellkopf Field,42.444022,-76.478358
+cfbd,3922,Kenneth R. Gill Stadium,39.584929,-77.004379
+cfbd,3923,Scott Stadium,38.030925,-78.513610
+cfbd,3925,Seibert Stadium,33.463408,-86.795236
+cfbd,3926,Setzler Field,34.286188,-81.622517
+cfbd,3927,Sherman Field,47.110199,-88.550029
+cfbd,3928,Shotwell Stadium,32.433730,-99.698198
+cfbd,3932,Qualcomm Stadium,32.781943,-117.084448
+cfbd,3933,Soldier Field,41.862451,-87.616715
+cfbd,3935,CEFCU Stadium,37.319690,-121.868314
+cfbd,3936,Spartan Stadium,42.728165,-84.485762
+cfbd,3938,Sports Complex (OH),39.123472,-84.567805
+cfbd,3940,Stanford Stadium,37.434526,-122.161987
+cfbd,3942,Stewart Stadium,41.191897,-111.940068
+cfbd,3944,Strawberry Stadium,30.510928,-90.468576
+cfbd,3945,Strong Stadium,42.501404,-89.017054
+cfbd,3946,Sun Bowl,31.785266,-106.506260
+cfbd,3947,Mountain America Stadium,33.426310,-111.932659
+cfbd,3948,Hard Rock Stadium,25.957903,-80.238850
+cfbd,3950,Superior Dome,46.560320,-87.393710
+cfbd,3953,Huntington Bank Stadium,44.976540,-93.224077
+cfbd,3957,Tiger Stadium (AL),32.588796,-88.188447
+cfbd,3958,Tiger Stadium (LA),30.411977,-91.183830
+cfbd,3960,Top Taggart Field,43.684869,-85.480268
+cfbd,3962,Tucker Stadium,36.178090,-85.506188
+cfbd,3963,Harry Turpin Stadium,31.747509,-93.096211
+cfbd,3967,UNI-Dome,42.515687,-92.467261
+cfbd,3969,University Field (NY),42.678490,-73.823540
+cfbd,3970,State Farm Stadium,33.527796,-112.262672
+cfbd,3971,University Stadium (NM),35.066918,-106.628246
+cfbd,3973,FirstBank Stadium,36.143920,-86.808920
+cfbd,3974,Vaught-Hemingway Stadium,34.361982,-89.534152
+cfbd,3975,Veterans Memorial Stadium (AL),31.799600,-85.951963
+cfbd,3976,Mississippi Veterans Memorial Stadium,32.329670,-90.179812
+cfbd,3980,Waldo Stadium,42.285762,-85.601120
+cfbd,3982,Wallace Wade Stadium,35.995446,-78.941889
+cfbd,3983,War Memorial Stadium (AR),34.749829,-92.330782
+cfbd,3984,War Memorial Stadium,41.311608,-105.568159
+cfbd,3985,Warren McGuirk Alumni Stadium,42.377265,-72.536024
+cfbd,3987,Washington-Grizzly Stadium,46.863986,-113.981401
+cfbd,3988,Welcome Stadium,39.736927,-84.198112
+cfbd,3990,William H. Greene Stadium,38.925662,-77.020737
+cfbd,3991,"William Dick"""" Price Stadium""""",36.847392,-76.260013
+cfbd,3992,Williams Stadium (VA),37.354307,-79.174920
+cfbd,3994,Williams-Brice Stadium,33.973117,-81.019156
+cfbd,3996,Yager Stadium,39.519415,-84.733086
+cfbd,3997,Yale Bowl,41.313227,-72.960485
+cfbd,3998,Zable Stadium,37.272974,-76.714400
+cfbd,4013,Camping World Stadium,28.539040,-81.402750
+cfbd,4014,Moretz Stadium,35.741295,-81.329400
+cfbd,4015,Barron Stadium,34.257058,-85.176927
+cfbd,4029,Hale Stadium,36.168265,-86.826886
+cfbd,4102,Yankee Stadium,40.829583,-73.926521
+cfbd,4113,Tropicana Field,27.768056,-82.653276
+cfbd,4133,Braly Municipal Stadium,34.810740,-87.670761
+cfbd,4134,Salem Stadium,37.287984,-80.036704
+cfbd,4205,Petco Park,32.707187,-117.156913
+cfbd,4221,Target Field,44.981685,-93.277864
+cfbd,4223,Marlins Park,25.778073,-80.219554
+cfbd,4245,Fenway Park,42.346461,-71.097100
+cfbd,4246,Center Parc Stadium,33.735527,-84.388651
+cfbd,4250,Wrigley Field,41.948185,-87.655559
+cfbd,4251,Chase Field,33.445486,-112.066693
+cfbd,4258,Dignity Health Sports Park,33.862286,-118.262912
+cfbd,4418,Jerry Richardson Stadium,35.310474,-80.740076
+cfbd,4419,Bob Ford Field,42.680804,-73.827287
+cfbd,4426,Matador Stadium,29.578052,-97.944908
+cfbd,4427,John A. Farrell Stadium,39.936931,-75.601793
+cfbd,4429,Seth Grove Stadium,40.064224,-77.525524
+cfbd,4435,Robert B. Redman Stadium,41.017225,-76.448812
+cfbd,4436,Adamson Stadium,40.048997,-79.899072
+cfbd,4437,"Memorial Stadium (Clarion, PA)",41.220244,-79.393858
+cfbd,4438,O'Shields-Stevenson Stadium,39.931191,-75.532273
+cfbd,4439,Eiler-Martin Stadium,40.993640,-75.172680
+cfbd,4440,Sox Harrison Stadium,41.875419,-80.117309
+cfbd,4441,McConnell Family Stadium,42.129021,-80.091386
+cfbd,4463,Crusader Stadium,31.067206,-97.466847
+cfbd,4582,Hornet Stadium,32.364797,-86.298635
+cfbd,4583,Razorback Stadium (Texarkana),33.438652,-94.023392
+cfbd,4617,Bristol Motor Speedway,36.515656,-82.257064
+cfbd,4727,McLane Stadium,31.558225,-97.115682
+cfbd,4729,Yulman Stadium,29.944651,-90.116051
+cfbd,4737,Croke Park Stadium,53.360358,-6.250981
+cfbd,4738,Levi's Stadium,37.402987,-121.969649
+cfbd,4747,Abbott Memorial Alumni Stadium,32.424866,-85.705388
+cfbd,4749,McPherson Memorial Stadium,39.717056,-83.874175
+cfbd,4750,The Reservation,35.067065,-81.679639
+cfbd,4753,Greene Stadium,39.247382,-94.410011
+cfbd,4757,Edwards-Maurer Field,39.937754,-83.812125
+cfbd,4762,Memorial Stadium (Commerce TX),33.245839,-95.910067
+cfbd,4765,Hillsboro Stadium,45.554386,-122.906988
+cfbd,477,Los Angeles Memorial Coliseum,34.013916,-118.287800
+cfbd,4779,Thomas A. Robinson National Stadium,25.054362,-77.360337
+cfbd,4829,John Clark Field,33.063412,-96.702200
+cfbd,4851,Bazemore-Hyder Stadium,30.845826,-83.283858
+cfbd,4852,Neta and Eddie DeRose ThunderBowl,38.310150,-104.570472
+cfbd,4853,Scott D. Miller Stadium,39.166987,-75.533805
+cfbd,4854,Perkins Stadium,42.846994,-88.744982
+cfbd,4855,Leslie C. Quick Jr. Stadium,39.867930,-75.354685
+cfbd,4856,Mount Union Stadium,40.902765,-81.112525
+cfbd,4899,Fifth Third Stadium,34.028787,-84.567798
+cfbd,4900,Kermit Tipton Stadium,36.326900,-82.376631
+cfbd,499,Cotton Bowl,32.779612,-96.759602
+cfbd,5015,Turner Stadium,40.456285,-85.501196
+cfbd,5096,Toyota Stadium,38.204589,-84.544476
+cfbd,5115,McCully Stadium,41.867526,-88.096017
+cfbd,5116,O'Shaughnessy Stadium,44.943834,-93.191623
+cfbd,5117,Clemens Stadium,45.582629,-94.391747
+cfbd,5118,Redwood Bowl,40.876608,-124.076098
+cfbd,5119,Maxwell Field,45.198849,-123.197181
+cfbd,5121,University of Charleston Stadium,38.344257,-81.615237
+cfbd,5122,Shuford Stadium,35.692354,-80.486300
+cfbd,5123,Little Giant Stadium,40.035910,-86.907795
+cfbd,5124,Homewood Field,39.333484,-76.620872
+cfbd,5127,Gene L. Shirk Stadium,40.361262,-75.912761
+cfbd,5133,Ram Stadium (WV),39.434111,-77.806044
+cfbd,5134,Bearcat Stadium,40.350654,-94.885916
+cfbd,5221,ANZ Stadium,-33.847108,151.063385
+cfbd,5237,Dana J. Dykhouse Stadium,44.321016,-96.780341
+cfbd,5238,Panther Stadium,30.091178,-95.994367
+cfbd,5239,U.S. Bank Stadium,44.975110,-93.259339
+cfbd,5263,Steele Stadium,37.742265,-87.119875
+cfbd,5319,SunTrust Park,33.890738,-84.467616
+cfbd,5348,Mercedes-Benz Stadium,33.755412,-84.400849
+cfbd,5363,Allianz Stadium,-33.889157,151.225135
+cfbd,538,StubHub Center,33.864239,-118.261079
+cfbd,5388,Canvas Stadium,40.569831,-105.088506
+cfbd,5389,Kessler Stadium,40.279343,-74.009508
+cfbd,5400,William B. Greene Jr. Stadium,36.298560,-82.375034
+cfbd,5440,Wildcat Stadium (TX),32.473514,-99.709022
+cfbd,5636,Wright Stadium,42.459722,-75.072817
+cfbd,5637,Vendetti Field,42.042640,-71.927740
+cfbd,5780,Altra Federal Credit Union Stadium,44.044196,-91.644677
+cfbd,5781,Irwin Belk Stadium,34.994673,-80.445360
+cfbd,5782,Mountaineer Bowl,38.552670,-106.918714
+cfbd,5786,Sprankle-Sprandel Stadium,42.241093,-84.740779
+cfbd,5787,Docking Stadium,41.897629,-84.065408
+cfbd,5788,Merrill Field at Yunevich Stadium,42.260012,-77.785047
+cfbd,5791,Turf Field,40.356623,-75.971092
+cfbd,5793,Macholtz Stadium,40.116399,-85.661175
+cfbd,5795,Edor Nelson Field,44.965035,-93.238537
+cfbd,5801,George Finnie Stadium,41.373928,-81.847566
+cfbd,5802,Belhaven Bowl Stadium,32.320462,-90.170008
+cfbd,5805,Alumni Field (OH),40.898698,-83.900866
+cfbd,5806,Whittier Field,43.908033,-69.955106
+cfbd,5807,Brevard Memorial Stadium,35.216090,-82.734668
+cfbd,5809,J. Leslie Rollins Stadium,42.639046,-95.209017
+cfbd,5810,Coyer Field,42.935844,-78.887434
+cfbd,5811,William Rolland Stadium,34.226195,-118.879292
+cfbd,5812,Bernlohr Stadium,39.955811,-82.934646
+cfbd,5813,Klein Field at Manitou,44.461977,-93.179079
+cfbd,5814,Gesling Stadium,40.443218,-79.940227
+cfbd,5815,Schneider Stadium,43.004789,-88.229879
+cfbd,5816,Art Keller Field,42.620019,-87.823065
+cfbd,5817,Ron and Joyce Schipper Stadium,41.404842,-92.928144
+cfbd,5818,Farris Stadium,37.642742,-84.780633
+cfbd,5822,Cadet Memorial Field,41.372169,-72.099010
+cfbd,5823,Clark Field,41.991097,-91.657047
+cfbd,5824,Lions Stadium,40.267208,-74.778621
+cfbd,5827,Tomasini Stadium,43.256192,-87.917332
+cfbd,5832,Justin F. Coressel Stadium,41.299264,-84.353503
+cfbd,5835,Biddle Field,40.201889,-77.204414
+cfbd,5836,Chalmers Field,42.495207,-90.696409
+cfbd,5838,Ornelas Stadium,32.561493,-94.376361
+cfbd,5839,Langhorst Field,41.897286,-87.947773
+cfbd,5842,Robert T. Shields Field,40.776410,-74.437846
+cfbd,5844,McAfee Field,47.129935,-88.601986
+cfbd,5847,Sponaugle-Williamson Field,40.049253,-76.318762
+cfbd,5848,Hotchkiss Field,38.906847,-76.991722
+cfbd,5850,Stoffer Family Stadium,45.305118,-122.967738
+cfbd,5852,Jamieson Stadium,36.085857,-79.816427
+cfbd,5853,Francis Field (IL),38.880920,-89.405781
+cfbd,5854,Hoernemann Stadium,41.113679,-83.164518
+cfbd,5855,Charles A. Henry Field,41.311473,-81.140708
+cfbd,5857,Gordon Wood Stadium,31.667080,-98.978783
+cfbd,5859,Tucci Stadium,40.494952,-88.989035
+cfbd,5862,Butterfield Stadium,42.418333,-76.500278
+cfbd,5866,Rex Stadium,37.474607,-105.881006
+cfbd,5868,Ronald J. Abdow Field,42.117338,-72.553111
+cfbd,5869,LeGrand Stadium at 1st Community Credit Union Field,31.435606,-100.458071
+cfbd,587,Rice-Eccles Stadium,40.759854,-111.848919
+cfbd,5871,Convoy Leslie Cotton Boll Stadium,33.593272,-91.811169
+cfbd,5872,Kirkeby-Over Stadium,43.519423,-96.743113
+cfbd,5874,Chet Anderson Stadium,47.483848,-94.871914
+cfbd,5875,Charlie W. Johnson Stadium,34.018223,-81.010724
+cfbd,5877,Lyle Hare Stadium,44.498411,-103.870347
+cfbd,5879,Tomlinson Stadium,47.008697,-120.539096
+cfbd,5884,Buffalo Stadium,34.986123,-101.911840
+cfbd,5888,University Stadium (GA),33.580013,-85.120634
+cfbd,5889,Carpenter-Haygood Stadium,34.134651,-93.063380
+cfbd,5890,Lewis Field Stadium,38.866485,-99.339039
+cfbd,5891,Wilkins Stadium,33.294428,-93.235151
+cfbd,5892,Armfield Athletic Center,36.091724,-79.886003
+cfbd,5893,Hollingsworth Field,44.325408,-93.973792
+cfbd,5895,Klas Field,44.968259,-93.165263
+cfbd,5896,Lewis C. Everett Stadium,37.245088,-78.459768
+cfbd,5897,Francis Field (MO),38.583078,-90.301665
+cfbd,5898,John Coughlin Memorial Field,42.268303,-71.845681
+cfbd,5899,"Alumni Stadium (Worcester, MA)",42.335099,-71.166308
+cfbd,5900,Don and Nona Williams Stadium,44.868123,-91.928856
+cfbd,5904,Angell Field,42.287061,-85.607623
+cfbd,5906,McBride Field,40.372290,-82.392554
+cfbd,5907,McCarthy Stadium (Wilkes Barre),41.233284,-75.861013
+cfbd,5910,Callaway Stadium,33.026628,-85.044197
+cfbd,5911,Ralph E. Davis Pioneer Stadium,42.727873,-90.486869
+cfbd,5914,Veterans Memorial Stadium (WI),43.816159,-91.227278
+cfbd,5915,Farwell Field,42.244595,-87.833294
+cfbd,5916,Carson Park,44.807372,-91.521843
+cfbd,5917,Ratliff Stadium,31.920889,-102.364540
+cfbd,5918,Taylor Field,43.843491,-87.887535
+cfbd,5920,Griswold Stadium,45.451881,-122.672660
+cfbd,5921,Rock Bowl,42.505077,-90.680611
+cfbd,5922,Wildcat Field,31.325024,-92.423256
+cfbd,5925,David Person Field,41.248056,-77.001667
+cfbd,5928,Macalester Stadium,44.935184,-93.168060
+cfbd,5929,Ritchie Field,44.387721,-68.801158
+cfbd,5931,Don Drumm Stadium,39.413298,-81.445146
+cfbd,5932,Lloyd L. Thornton Stadium,35.749214,-83.963576
+cfbd,5933,Sea Foam Stadium,44.950403,-93.158124
+cfbd,5936,Koi Ishto Stadium,34.772035,-96.659988
+cfbd,5940,Clean Harbors Stadium,41.740295,-70.622806
+cfbd,5941,Roebuck Stadium,36.282865,-76.219211
+cfbd,5945,Wildcat Stadium (GA),32.533596,-83.895390
+cfbd,5960,Lanny and Sharon Martin Stadium,42.058439,-87.670792
+cfbd,5996,Wilford Moore Stadium,32.429550,-99.751921
+cfbd,5997,Brooks Stadium (NY),40.813271,-73.758104
+cfbd,6032,Hovey Field,37.561265,-77.448773
+cfbd,6033,Carl Smith Stadium,36.975163,-82.563880
+cfbd,6034,Yager Stadium at Moore Bowl,39.033556,-95.701034
+cfbd,6035,"Memorial Stadium (Wayne, NE)",42.243746,-97.014509
+cfbd,6036,Blue Wahoos Stadium,30.404377,-87.218944
+cfbd,6037,Woodforest Bank Stadium,30.185793,-95.446885
+cfbd,6040,Key Stadium,39.710018,-86.130841
+cfbd,6041,Irwin Belk Complex,35.242169,-80.852514
+cfbd,6042,Alumni Stadium (KY),38.192802,-84.852738
+cfbd,6045,Dwight T. Reed Stadium,38.560655,-92.174227
+cfbd,6046,Meares Stadium,35.827596,-82.553440
+cfbd,6047,Leemon Field,38.607609,-89.812856
+cfbd,6048,Duane Stadium,42.666343,-71.120236
+cfbd,6049,"Memorial Stadium (Wichita Falls, TX)",33.854202,-98.582518
+cfbd,6050,Ed Widseth Field,47.796677,-96.609783
+cfbd,6051,James S. Malosky Stadium,46.819181,-92.080061
+cfbd,6056,B.T. Harvey Stadium,33.745728,-84.416218
+cfbd,6060,Grace P. Johnson Stadium,34.689398,-79.204790
+cfbd,6065,Cliff Harris Stadium,34.135419,-93.057320
+cfbd,6067,Carnie Smith Stadium,37.391001,-94.699757
+cfbd,6068,George Williams Athletic Complex,35.789812,-78.619027
+cfbd,6069,Husky Stadium,45.547694,-94.150873
+cfbd,6071,Jess Dow Field,41.336554,-72.949974
+cfbd,6073,Milam Stadium,35.535961,-98.710810
+cfbd,6075,W.B. Mason Stadium,42.057291,-71.082381
+cfbd,6076,Javelina Stadium,27.528869,-97.880062
+cfbd,6077,Stokes Stadium,40.183551,-92.580196
+cfbd,6079,Alumni Stadium (VT),44.001737,-73.180299
+cfbd,6080,Frank M. Lindsay Field,39.844611,-88.974372
+cfbd,6081,Harper Davis Field,32.323606,-90.180829
+cfbd,6082,Big Cat Stadium,45.586288,-95.898651
+cfbd,6084,April Zorn Memorial Stadium,40.916056,-90.637611
+cfbd,6085,Sprague Field,40.858594,-74.201181
+cfbd,6086,Rocco Calvo Field,40.630265,-75.376541
+cfbd,6088,Schueler Field,39.094114,-84.634813
+cfbd,6091,Abel Stadium,40.838439,-96.645596
+cfbd,6093,Holmgren Athletic Complex,41.974818,-87.705407
+cfbd,6094,Reynolds Field,45.032704,-93.170167
+cfbd,6099,Selby Stadium,40.296571,-83.063341
+cfbd,6101,"Memorial Stadium (Westerville, OH)",40.128782,-82.937288
+cfbd,6102,Sparks Stadium,47.186956,-122.300545
+cfbd,6103,Merritt Field,34.099100,-117.710494
+cfbd,6104,Baker Stadium,47.259973,-122.482569
+cfbd,6105,Day Field,37.764191,-77.477607
+cfbd,6106,Ted Runner Stadium,34.067682,-117.165000
+cfbd,6109,Ingalls Field,43.839348,-88.832667
+cfbd,6111,Cook Stadium,39.484986,-87.325217
+cfbd,6112,Richard Wackar Stadium,39.713999,-75.120369
+cfbd,6113,Leckonby Stadium,44.587504,-75.164086
+cfbd,6114,Sea Gull Stadium,38.341273,-75.602098
+cfbd,6116,Shentel Stadium,39.165778,-78.153023
+cfbd,6117,Knight Stadium,37.741510,-79.350197
+cfbd,6118,Birkelbach Field,30.663153,-97.662402
+cfbd,6119,Stagg Field,42.105474,-72.553819
+cfbd,6120,Growney Stadium,43.114537,-77.510004
+cfbd,6121,Donald J. Schneider Stadium,44.432537,-88.078407
+cfbd,6123,Jackson Field,30.358161,-103.652756
+cfbd,6124,Amos Alonzo Stagg Field (PA),40.798011,-76.868765
+cfbd,6125,Bulldog Stadium (TX),29.575927,-97.985725
+cfbd,6131,Jessee/Miller Field,41.749750,-72.689391
+cfbd,6132,Trinity University Stadium,29.461691,-98.483508
+cfbd,6134,Frank Bailey Field,42.816883,-73.925628
+cfbd,6135,Blue Storm Stadium,43.451298,-70.389395
+cfbd,6136,Patterson Field,40.194738,-75.454464
+cfbd,6137,Walston-Hoover Stadium,42.729572,-92.484344
+cfbd,6138,Wilson Field,37.790719,-79.445925
+cfbd,6139,Cameron Stadium,40.164210,-80.245761
+cfbd,6143,Golden Bear Stadium,42.112880,-72.513472
+cfbd,6144,"Alumni Field (Westfield, MA)",42.129221,-72.787523
+cfbd,6146,Memorial Field (PA),41.117667,-80.328528
+cfbd,6147,"Memorial Stadium (Whittier, CA)",33.978715,-118.025540
+cfbd,6149,McCulloch Stadium,44.929627,-123.037662
+cfbd,6151,Farley-Lamb Field,42.707880,-73.203057
+cfbd,6153,Hanson Stadium,45.526121,-123.111108
+cfbd,6177,Alexander Durley Sports Complex,29.720974,-95.362369
+cfbd,6202,Cardinal Stadium (DC),38.943371,-77.000851
+cfbd,6208,Sirrine Stadium,34.838185,-82.396856
+cfbd,6210,Bruce R. Deaton Memorial Field,41.708368,-87.717161
+cfbd,6217,W.C. Hawkins Stadium,34.066007,-81.171398
+cfbd,6221,Mitchell Stadium,37.250784,-81.243490
+cfbd,6222,Lumpkins Stadium,32.414133,-96.834919
+cfbd,6241,Spirit Field,33.628253,-112.370387
+cfbd,6269,Globe Life Field,32.747642,-97.084105
+cfbd,6274,Audi Field,38.868261,-77.012609
+cfbd,6283,A.J. Simeon Stadium,36.004450,-80.030839
+cfbd,6308,McKinney ISD Stadium,33.157235,-96.660961
+cfbd,6501,Allegiant Stadium,36.090736,-115.183330
+cfbd,6526,Hancock Whitney Stadium,30.696932,-88.192562
+cfbd,6577,SHI Stadium,40.513504,-74.465143
+cfbd,7003,Houck Field,37.309339,-89.532204
+cfbd,7065,SoFi Stadium,33.953407,-118.339010
+cfbd,7079,Laird Stadium,44.461646,-93.158481
+cfbd,716,Torero Stadium,32.773062,-117.183688
+cfbd,717,Villanova Stadium,40.033010,-75.336639
+cfbd,7173,TQL Stadium,39.111179,-84.522229
+cfbd,7179,Toyota Field,34.684126,-86.724604
+cfbd,7185,"Memorial Stadium (El Dorado, AR)",33.223061,-92.663764
+cfbd,721,Bobby Dodd Stadium,33.772476,-84.392959
+cfbd,7220,Clarence T.C. Ching Athletics Complex,21.294291,-157.817121
+cfbd,7221,Protective Stadium,33.527572,-86.809063
+cfbd,7225,Polar Park,42.257269,-71.799964
+cfbd,7232,Children's Health Stadium,33.260756,-96.804265
+cfbd,7311,Snapdragon Stadium,32.784242,-117.122390
+cfbd,7365,Blaine High School,48.992276,-122.736532
+cfbd,7422,Municipal Stadium,41.578416,-73.069964
+cfbd,7504,Liberty North High School,39.284171,-94.433549
+cfbd,7512,St. Francis High School,42.770351,-78.859698
+cfbd,7513,O'Hara Field,40.056546,-75.389665
+cfbd,7522,Glynn County Stadium,31.185396,-81.479145
+cfbd,844,Stambaugh Stadium,41.109486,-80.649551
+cfbd,980,Benedetti-Wehrli Stadium,41.769405,-88.145815
+mls,0x5g6ojM7O,Shell Energy Stadium,29.752200,-95.352400
+mls,0x5gJZjM7O,Chase Stadium,26.193100,-80.161100
+mls,2lqRRVnqr0,BMO Field,43.632800,-79.418600
+mls,2vQ1eawQrA,Lower.com Field,39.968500,-83.017100
+mls,4wM4ez45jB,Energizer Park,38.631200,-90.210500
+mls,7vQ7xbOMD1,BMO Stadium,34.013000,-118.285000
+mls,9Yqda07QvJ,Lumen Field,47.595200,-122.331600
+mls,9YqdkYR5vJ,SeatGeek Stadium,41.764700,-87.806100
+mls,9vQ2dvm5K6,Stade Olympique,45.558000,-73.552000
+mls,9z5ka6gQA3,Dick's Sporting Goods Park,39.805600,-104.891900
+mls,9z5ka8PQA3,Empower Field at Mile High,39.744000,-105.019200
+mls,BLMvlGBqxe,Pratt & Whitney Stadium at Rentschler Field,41.759700,-72.618900
+mls,EGMP1135aY,ESPN Wide World of Sports Complex,28.337100,-81.556000
+mls,EGMPlN4MaY,Rose Bowl,34.161300,-118.167700
+mls,KAqB9B75bg,M&T Bank Stadium,39.278000,-76.622700
+mls,KAqBVWBqbg,Citi Field,40.756900,-73.845800
+mls,KAqBkLJQbg,Nippert Stadium,39.131000,-84.516000
+mls,KPqjRnYq6v,FedExField,38.907800,-76.864400
+mls,KXMe8pxQ64,Nissan Stadium,36.166400,-86.771400
+mls,KXMeOR2q64,Bank of America Stadium,35.225800,-80.853000
+mls,NPqxy6XQ9d,Children's Mercy Park,39.121400,-94.821000
+mls,NWMW84L5lz,Red Bull Arena,40.736700,-74.150300
+mls,NWMW8ZN5lz,Subaru Park,39.832200,-75.378900
+mls,NWMW8pj5lz,Stade Saputo,45.563100,-73.552500
+mls,NWMWoaeMlz,Mercedes-Benz Stadium,33.755600,-84.400000
+mls,Oa5wKLY514,TQL Stadium,39.111400,-84.522200
+mls,Oa5wKXY514,Snapdragon Stadium,32.784200,-117.122400
+mls,Oa5wY94Q14,Stanford Stadium,37.434400,-122.161100
+mls,Vj58BPwQ8n,Buck Shaw Stadium,37.350600,-121.936700
+mls,Vj58W84M8n,PayPal Park,37.351400,-121.925000
+mls,a35rBv45L6,Navy-Marine Corps Memorial Stadium,38.985000,-76.507000
+mls,e7MzlRjqr0,America First Field,40.582900,-111.893200
+mls,eV5Dz2JQKn,Levi's Stadium,37.403000,-121.970000
+mls,eV5DzVRQKn,TCF Bank Stadium,44.976000,-93.225000
+mls,eVq32yn5WO,Yankee Stadium,40.829200,-73.926400
+mls,eVq3aBjMWO,Los Angeles Memorial Coliseum,34.013900,-118.287800
+mls,eVq3alGMWO,Toyota Stadium,33.154400,-96.835300
+mls,gOMnY6mQwN,Bobby Dodd Stadium,33.772500,-84.392800
+mls,gpMOzPrQzy,Camping World Stadium,28.538900,-81.402800
+mls,gpMOzdEQzy,Soldier Field,41.862300,-87.616700
+mls,jYQJ1PBqGR,RFK Stadium,38.890000,-76.972000
+mls,jYQJZDDQGR,Q2 Stadium,30.388200,-97.719800
+mls,jYQJZPZQGR,Geodis Park,36.130200,-86.765600
+mls,kaggle-at-t-stadium,AT&T Stadium,32.747900,-97.092800
+mls,kaggle-cardinal-stadium,Cardinal Stadium,41.769400,-88.145800
+mls,kaggle-community-america-ballpark,Community America Ballpark,39.124500,-94.830900
+mls,kaggle-cotton-bowl,Cotton Bowl,32.779600,-96.759600
+mls,kaggle-dragon-stadium,Dragon Stadium,32.929900,-97.112000
+mls,kaggle-empire-field,Empire Field,49.285800,-123.042700
+mls,kaggle-foxboro-stadium,Foxboro Stadium,42.090900,-71.264200
+mls,kaggle-giants-stadium,Giants Stadium,40.817000,-74.073800
+mls,kaggle-houlihan-s-stadium,Houlihan's Stadium,27.976000,-82.503400
+mls,kaggle-lockhart-stadium,Lockhart Stadium,26.193200,-80.160700
+mls,kaggle-miami-orange-bowl,Miami Orange Bowl,25.778100,-80.219600
+mls,kaggle-mile-high-stadium,Mile High Stadium,39.744000,-105.019200
+mls,kaggle-nrg-stadium,NRG Stadium,29.684900,-95.410800
+mls,kaggle-oakland-coliseum,Oakland Coliseum,37.751600,-122.200500
+mls,kaggle-ohio-stadium,Ohio Stadium,40.001600,-83.019700
+mls,kaggle-raymond-james-stadium,Raymond James Stadium,27.976000,-82.503400
+mls,kaggle-rice-eccles-stadium,Rice-Eccles Stadium,40.759900,-111.848900
+mls,kaggle-robertson-stadium,Robertson Stadium,29.720800,-95.344100
+mls,kaggle-spartan-stadium,Spartan Stadium,37.319700,-121.868300
+mls,ljqEDnO5x0,BC Place,49.276700,-123.111900
+mls,ljqEVDNQx0,Rogers Centre,43.641400,-79.389200
+mls,odMXGRrQYL,Allianz Field,44.952800,-93.165000
+mls,odMXgYWQYL,Miami Freedom Park,25.790300,-80.260100
+mls,p6qbX06M0G,Providence Park,45.521400,-122.691700
+mls,p6qbeb850G,Historic Crew Stadium,40.009400,-82.991100
+mls,p6qbejp50G,FirstEnergy Stadium,41.506100,-81.699700
+mls,vzqoGO7qap,Maryland SoccerPlex,39.152800,-77.313600
+mls,vzqoJrj5ap,Inter&Co Stadium,28.541100,-81.389300
+mls,vzqor1Z5ap,Arrowhead Stadium,39.048900,-94.484000
+mls,wvq9p1Y5Wn,Dignity Health Sports Park,33.864000,-118.261000
+mls,wvq9p775Wn,Gillette Stadium,42.091000,-71.264000
+mls,xW5pwORMg1,Audi Field,38.868300,-77.012200
+nba-kaggle,1000011,Chase Center,37.767900,-122.387422
+nba-kaggle,1000046,Ball Arena,39.748684,-105.007544
+nba-kaggle,1000052,Paycom Center,35.463396,-97.515081
+nba-kaggle,1000063,Gainbridge Fieldhouse,39.763933,-86.155502
+nba-kaggle,1000069,Crypto.com Arena,34.042998,-118.267135
+nba-kaggle,1000080,Moody Center,30.280937,-97.730652
+nba-kaggle,1000100,Kaseya Center,25.781360,-80.187944
+nba-kaggle,1000106,Delta Center,40.768327,-111.901055
+nba-kaggle,1000118,Frost Bank Center,29.426921,-98.437506
+nba-kaggle,1000120,Acrisure Arena,33.779794,-116.340545
+nba-kaggle,1000125,Kia Center,28.539287,-81.383889
+nba-kaggle,1000132,Frontwave Arena,33.207461,-117.314732
+nba-kaggle,1000137,Intuit Dome,33.944259,-118.342172
+nba-kaggle,1000144,Rocket Arena,41.496686,-81.688575
+nba-kaggle,1000152,Xfinity Mobile Arena,39.901100,-75.172016
+nba-kaggle,1000154,Pechanga Arena,32.755304,-117.212270
+nba-kaggle,1000155,Dickies Arena,32.741066,-97.368483
+nba-kaggle,1000159,Mortgage Matchup Center,33.446039,-112.071101
+nba-kaggle,160,Smoothie King Center,29.949039,-90.082069
+nba-kaggle,17,TD Garden,42.366299,-71.062162
+nba-kaggle,193,American Airlines Center,32.790489,-96.810283
+nba-kaggle,215,Toyota Center,29.750747,-95.362231
+nba-kaggle,242,FedExForum,35.138233,-90.050769
+nba-kaggle,258,Coliseo de Puerto Rico,18.427819,-66.061338
+nba-kaggle,30,Madison Square Garden,40.750513,-73.993516
+nba-kaggle,40,North Charleston Coliseum,32.865567,-80.022342
+nba-kaggle,461,Barclays Center,40.682511,-73.975252
+nba-kaggle,51,Moda Center,45.531579,-122.666834
+nba-kaggle,606,T-Mobile Arena,36.102678,-115.178224
+nba-kaggle,609,Golden 1 Center,38.580140,-121.499501
+nba-kaggle,61,Target Center,44.979592,-93.275983
+nba-kaggle,624,Little Caesars Arena,42.340977,-83.054954
+nba-kaggle,642,Fiserv Forum,43.045010,-87.917487
+nba-kaggle,650,State Farm Arena,33.757370,-84.396385
+nba-kaggle,66,United Center,41.880683,-87.674185
+nba-kaggle,77,Capital One Arena,38.898188,-77.020938
+nba-kaggle,9,Spectrum Center,35.225098,-80.839154
+nba-kaggle,seed-ARCO Arena,ARCO Arena,38.649300,-121.518300
+nba-kaggle,seed-Alamodome,Alamodome,29.416900,-98.477000
+nba-kaggle,seed-American Airlines Center,American Airlines Center,32.790500,-96.810300
+nba-kaggle,seed-Amway Center,Amway Center,28.539200,-81.383900
+nba-kaggle,seed-Arizona Veterans Memorial Coliseum,Arizona Veterans Memorial Coliseum,33.452800,-112.087900
+nba-kaggle,seed-Ball Arena,Ball Arena,39.748700,-105.007700
+nba-kaggle,seed-Barclays Center,Barclays Center,40.682600,-73.975400
+nba-kaggle,seed-Boston Garden,Boston Garden,42.366700,-71.062000
+nba-kaggle,seed-Bradley Center,Bradley Center,43.043600,-87.916900
+nba-kaggle,seed-Capital Centre,Capital Centre,38.934500,-76.849700
+nba-kaggle,seed-Capital One Arena,Capital One Arena,38.898100,-77.020900
+nba-kaggle,seed-Charlotte Coliseum,Charlotte Coliseum,35.220100,-80.853500
+nba-kaggle,seed-Chase Center,Chase Center,37.768000,-122.387800
+nba-kaggle,seed-Chicago Stadium,Chicago Stadium,41.880700,-87.674200
+nba-kaggle,seed-Continental Airlines Arena,Continental Airlines Arena,40.813500,-74.074400
+nba-kaggle,seed-Crypto.com Arena,Crypto.com Arena,34.043000,-118.267300
+nba-kaggle,seed-Delta Center,Delta Center,40.768300,-111.901100
+nba-kaggle,seed-FedExForum,FedExForum,35.138200,-90.050500
+nba-kaggle,seed-Fiserv Forum,Fiserv Forum,43.045100,-87.917400
+nba-kaggle,seed-Footprint Center,Footprint Center,33.445700,-112.071200
+nba-kaggle,seed-Frost Bank Center,Frost Bank Center,29.426900,-98.437500
+nba-kaggle,seed-Gainbridge Fieldhouse,Gainbridge Fieldhouse,39.763900,-86.155500
+nba-kaggle,seed-General Motors Place,General Motors Place,49.277800,-123.108800
+nba-kaggle,seed-Golden 1 Center,Golden 1 Center,38.580200,-121.499700
+nba-kaggle,seed-Great Western Forum,Great Western Forum,33.958100,-118.341800
+nba-kaggle,seed-HemisFair Arena,HemisFair Arena,29.423800,-98.477000
+nba-kaggle,seed-Intuit Dome,Intuit Dome,33.942500,-118.341300
+nba-kaggle,seed-Kaseya Center,Kaseya Center,25.781400,-80.187000
+nba-kaggle,seed-KeyArena,KeyArena,47.622100,-122.354000
+nba-kaggle,seed-Little Caesars Arena,Little Caesars Arena,42.341100,-83.055300
+nba-kaggle,seed-Los Angeles Sports Arena,Los Angeles Sports Arena,34.014100,-118.287900
+nba-kaggle,seed-Madison Square Garden,Madison Square Garden,40.750500,-73.993400
+nba-kaggle,seed-Market Square Arena,Market Square Arena,39.767700,-86.153100
+nba-kaggle,seed-McNichols Sports Arena,McNichols Sports Arena,39.743800,-105.020100
+nba-kaggle,seed-Memorial Coliseum,Memorial Coliseum,45.532700,-122.665300
+nba-kaggle,seed-Miami Arena,Miami Arena,25.788700,-80.200000
+nba-kaggle,seed-Moda Center,Moda Center,45.531600,-122.666800
+nba-kaggle,seed-Oakland Coliseum Arena,Oakland Coliseum Arena,37.750300,-122.202000
+nba-kaggle,seed-Omni Coliseum,Omni Coliseum,33.758000,-84.397000
+nba-kaggle,seed-Oracle Arena,Oracle Arena,37.750300,-122.202000
+nba-kaggle,seed-Orlando Arena,Orlando Arena,28.539200,-81.383900
+nba-kaggle,seed-Paycom Center,Paycom Center,35.463400,-97.515100
+nba-kaggle,seed-Philips Arena,Philips Arena,33.757300,-84.396300
+nba-kaggle,seed-Prudential Center,Prudential Center,40.733600,-74.171000
+nba-kaggle,seed-Reunion Arena,Reunion Arena,32.776700,-96.810700
+nba-kaggle,seed-Richfield Coliseum,Richfield Coliseum,41.241700,-81.619800
+nba-kaggle,seed-Rocket Mortgage FieldHouse,Rocket Mortgage FieldHouse,41.496600,-81.687900
+nba-kaggle,seed-Salt Palace,Salt Palace,40.768600,-111.901100
+nba-kaggle,seed-Scotiabank Arena,Scotiabank Arena,43.643500,-79.379100
+nba-kaggle,seed-SkyDome,SkyDome,43.641400,-79.389400
+nba-kaggle,seed-Smoothie King Center,Smoothie King Center,29.949000,-90.082100
+nba-kaggle,seed-Spectrum Center,Spectrum Center,35.225100,-80.839200
+nba-kaggle,seed-Staples Center,Staples Center,34.043000,-118.267300
+nba-kaggle,seed-State Farm Arena,State Farm Arena,33.757300,-84.396300
+nba-kaggle,seed-TD Garden,TD Garden,42.366200,-71.062100
+nba-kaggle,seed-Target Center,Target Center,44.979500,-93.276100
+nba-kaggle,seed-The Palace of Auburn Hills,The Palace of Auburn Hills,42.699700,-83.245500
+nba-kaggle,seed-The Pyramid,The Pyramid,35.158000,-90.052600
+nba-kaggle,seed-The Spectrum,The Spectrum,39.904600,-75.171900
+nba-kaggle,seed-The Summit,The Summit,29.690700,-95.407200
+nba-kaggle,seed-Toyota Center,Toyota Center,29.750800,-95.362100
+nba-kaggle,seed-United Center,United Center,41.880700,-87.674200
+nba-kaggle,seed-Wells Fargo Center,Wells Fargo Center,39.901200,-75.172000
+nflverse,ATL00,Georgia Dome,33.757300,-84.400600
+nflverse,ATL97,Mercedes-Benz Stadium,33.755400,-84.400900
+nflverse,BAL00,M&T Bank Stadium,39.278000,-76.622700
+nflverse,BOS00,Gillette Stadium,42.090900,-71.264300
+nflverse,BOS99,Foxboro Stadium,42.065400,-71.257100
+nflverse,BRG00,Tiger Stadium (LSU),30.411800,-91.183900
+nflverse,BUF00,Highmark Stadium,42.773800,-78.786900
+nflverse,BUF01,Rogers Centre,43.641400,-79.389400
+nflverse,CAR00,Bank of America Stadium,35.225800,-80.852800
+nflverse,CHI98,Soldier Field,41.862300,-87.616700
+nflverse,CHI99,Memorial Stadium (Champaign),40.099600,-88.236100
+nflverse,CIN00,Paycor Stadium,39.095500,-84.516000
+nflverse,CIN99,Cinergy Field,39.097500,-84.516400
+nflverse,CLE00,Huntington Bank Field,41.506100,-81.699500
+nflverse,DAL00,AT&T Stadium,32.747300,-97.094500
+nflverse,DAL99,Texas Stadium,32.840700,-96.911100
+nflverse,DEN00,Empower Field at Mile High,39.743900,-105.020100
+nflverse,DEN99,Mile High Stadium,39.744400,-105.020100
+nflverse,DET00,Ford Field,42.340000,-83.045600
+nflverse,DET99,Pontiac Silverdome,42.629700,-83.257800
+nflverse,FRA00,Deutsche Bank Park,50.068500,8.645500
+nflverse,GER00,Allianz Arena,48.218800,11.624700
+nflverse,GNB00,Lambeau Field,44.501300,-88.062200
+nflverse,HOU00,Reliant Stadium,29.684700,-95.410700
+nflverse,IND00,Lucas Oil Stadium,39.760100,-86.163900
+nflverse,IND99,RCA Dome,39.763300,-86.160800
+nflverse,JAX00,EverBank Stadium,30.323900,-81.637300
+nflverse,KAN00,GEHA Field at Arrowhead Stadium,39.048900,-94.483900
+nflverse,LAX01,SoFi Stadium,33.953500,-118.339200
+nflverse,LAX97,StubHub Center,33.864400,-118.261100
+nflverse,LAX99,Los Angeles Memorial Coliseum,34.014100,-118.287900
+nflverse,LON00,Wembley Stadium,51.556000,-0.279500
+nflverse,LON01,Twickenham Stadium,51.456000,-0.341000
+nflverse,LON02,Tottenham Stadium,51.604300,-0.066400
+nflverse,MEX00,Azteca Stadium,19.302900,-99.150500
+nflverse,MIA00,Hard Rock Stadium,25.958000,-80.238900
+nflverse,MIN00,Mall of America Field,44.974000,-93.258100
+nflverse,MIN01,U.S. Bank Stadium,44.973600,-93.257500
+nflverse,MIN98,TCF Bank Stadium,44.976000,-93.223900
+nflverse,NAS00,Nissan Stadium,36.166500,-86.771300
+nflverse,NOR00,Caesars Superdome,29.951100,-90.081200
+nflverse,NYC00,Giants Stadium,40.813500,-74.074400
+nflverse,NYC01,MetLife Stadium,40.813500,-74.074500
+nflverse,OAK00,Ring Central Coliseum,37.751600,-122.200500
+nflverse,PHI00,Lincoln Financial Field,39.900800,-75.167500
+nflverse,PHI99,Veterans Stadium,39.905800,-75.186100
+nflverse,PHO00,State Farm Stadium,33.527600,-112.262600
+nflverse,PHO99,Sun Devil Stadium,33.426700,-111.932500
+nflverse,PIT00,Acrisure Stadium,40.446800,-80.015800
+nflverse,PIT99,Three Rivers Stadium,40.446300,-80.015800
+nflverse,SAN00,Alamo Dome,29.416900,-98.477000
+nflverse,SAO00,Arena Corinthians,-23.545300,-46.474200
+nflverse,SDG00,Qualcomm Stadium,32.783100,-117.119500
+nflverse,SEA00,Lumen Field,47.595200,-122.331600
+nflverse,SEA98,Seattle Kingdome,47.595200,-122.331600
+nflverse,SEA99,Husky Stadium,47.650300,-122.301700
+nflverse,SFO00,Candlestick Park,37.713500,-122.386000
+nflverse,SFO01,Levi's Stadium,37.403300,-121.969400
+nflverse,STL00,Edward Jones Dome,38.632900,-90.188600
+nflverse,TAM00,Raymond James Stadium,27.975900,-82.503300
+nflverse,VEG00,Allegiant Stadium,36.090900,-115.183300
+nflverse,WAS00,Northwest Stadium,38.907700,-76.864500
+nhl,nhl-ANA-1993,Honda Center,33.807800,-117.876500
+nhl,nhl-ARI-2014,Gila River Arena,33.531900,-112.261100
+nhl,nhl-ARI-2022,Mullett Arena,33.424200,-111.931600
+nhl,nhl-ATL-1999,Philips Arena,33.757300,-84.396300
+nhl,nhl-BOS-1990,Boston Garden,42.366700,-71.062000
+nhl,nhl-BOS-1995,TD Garden,42.366200,-71.062100
+nhl,nhl-BUF-1990,Buffalo Memorial Auditorium,42.891900,-78.874700
+nhl,nhl-BUF-1996,KeyBank Center,42.875000,-78.876500
+nhl,nhl-CAR-1997,Greensboro Coliseum,36.072600,-79.828600
+nhl,nhl-CAR-1999,Lenovo Center,35.803300,-78.721900
+nhl,nhl-CBJ-2000,Nationwide Arena,39.969200,-83.006100
+nhl,nhl-CGY-1990,Scotiabank Saddledome,51.037400,-114.051900
+nhl,nhl-CHI-1990,Chicago Stadium,41.880700,-87.674200
+nhl,nhl-CHI-1994,United Center,41.880700,-87.674200
+nhl,nhl-COL-1995,Ball Arena,39.748700,-105.007700
+nhl,nhl-DAL-1993,Reunion Arena,32.776700,-96.810700
+nhl,nhl-DAL-2001,American Airlines Center,32.790500,-96.810300
+nhl,nhl-DET-1990,Joe Louis Arena,42.328600,-83.054800
+nhl,nhl-DET-2017,Little Caesars Arena,42.341100,-83.055300
+nhl,nhl-EDM-1990,Rexall Place,53.562900,-113.518800
+nhl,nhl-EDM-2016,Rogers Place,53.546900,-113.497900
+nhl,nhl-FLA-1993,Miami Arena,25.788700,-80.200000
+nhl,nhl-FLA-1998,Amerant Bank Arena,26.158400,-80.325500
+nhl,nhl-HFD-1990,Hartford Civic Center,41.765800,-72.673400
+nhl,nhl-LAK-1990,Great Western Forum,33.958100,-118.341800
+nhl,nhl-LAK-1999,Crypto.com Arena,34.043000,-118.267300
+nhl,nhl-MIN-2000,Grand Casino Arena,44.944700,-93.101100
+nhl,nhl-MTL-1990,Montreal Forum,45.496000,-73.579300
+nhl,nhl-MTL-1996,Centre Bell,45.496100,-73.569300
+nhl,nhl-NJD-1990,Brendan Byrne Arena,40.813500,-74.074400
+nhl,nhl-NJD-2007,Prudential Center,40.733600,-74.171000
+nhl,nhl-NSH-1998,Bridgestone Arena,36.159300,-86.778400
+nhl,nhl-NYI-1990,Nassau Veterans Memorial Coliseum,40.722900,-73.590500
+nhl,nhl-NYI-2015,Barclays Center,40.682600,-73.975400
+nhl,nhl-NYI-2021,UBS Arena,40.723000,-73.725600
+nhl,nhl-NYR-1990,Madison Square Garden,40.750500,-73.993400
+nhl,nhl-OTT-1992,Canadian Tire Centre,45.296900,-75.927000
+nhl,nhl-PHI-1990,The Spectrum,39.904600,-75.171900
+nhl,nhl-PHI-1996,Xfinity Mobile Arena,39.901200,-75.172000
+nhl,nhl-PHX-1996,America West Arena,33.445700,-112.071200
+nhl,nhl-PHX-2003,Jobing.com Arena,33.531900,-112.261100
+nhl,nhl-PIT-1990,Civic Arena,40.448200,-79.989900
+nhl,nhl-PIT-2010,PPG Paints Arena,40.439500,-79.989200
+nhl,nhl-SEA-2021,Climate Pledge Arena,47.622100,-122.354000
+nhl,nhl-SJS-1991,SAP Center at San Jose,37.332700,-121.901300
+nhl,nhl-STL-1990,St. Louis Arena,38.637300,-90.254000
+nhl,nhl-STL-1994,Enterprise Center,38.626600,-90.202700
+nhl,nhl-TBL-1992,Benchmark International Arena,27.942800,-82.451800
+nhl,nhl-TOR-1990,Maple Leaf Gardens,43.661600,-79.389100
+nhl,nhl-TOR-1999,Scotiabank Arena,43.643500,-79.379100
+nhl,nhl-UTA-2024,Delta Center,40.768300,-111.901100
+nhl,nhl-VAN-1990,Pacific Coliseum,49.283700,-123.042800
+nhl,nhl-VAN-1995,Rogers Arena,49.277800,-123.108800
+nhl,nhl-VGK-2017,T-Mobile Arena,36.102900,-115.178500
+nhl,nhl-WIN-1990,Winnipeg Arena,49.903800,-97.165300
+nhl,nhl-WPG-2011,Canada Life Centre,49.892600,-97.143600
+nhl,nhl-WSH-1990,Capital Centre,38.934500,-76.849700
+nhl,nhl-WSH-1997,Capital One Arena,38.898100,-77.020900
+retrosheet,ANA01,Angel Stadium of Anaheim,33.800260,-117.881743
+retrosheet,ARL01,Arlington Stadium,32.685962,-97.180668
+retrosheet,ATL01,Atlanta-Fulton County Stadium,33.739594,-84.389571
+retrosheet,ATL02,Turner Field,33.735527,-84.388651
+retrosheet,ATL03,Suntrust Park,33.890738,-84.467616
+retrosheet,BAL11,Memorial Stadium,39.343907,-76.582928
+retrosheet,BAL12,Oriole Park at Camden Yards,39.283738,-76.621606
+retrosheet,BOS07,Fenway Park,42.346461,-71.097100
+retrosheet,BUF05,Sahlen Field,42.880499,-78.873790
+retrosheet,CHI10,Comiskey Park I,41.829692,-87.633792
+retrosheet,CHI11,Wrigley Field,41.948185,-87.655559
+retrosheet,CIN07,Crosley Field,39.277248,-84.362223
+retrosheet,CLE07,Cleveland Stadium,41.506056,-81.699712
+retrosheet,CLE08,Progressive Field,41.496091,-81.685132
+retrosheet,DEN01,Mile High Stadium,39.743952,-105.019223
+retrosheet,DEN02,Coors Field,39.756031,-104.992929
+retrosheet,DET04,Tiger Stadium,42.332369,-83.068868
+retrosheet,DET05,Comerica Park,42.339222,-83.048863
+retrosheet,DUN01,TD Ballpark,28.003802,-82.786662
+retrosheet,DYE01,Field of Dreams,42.497814,-91.054911
+retrosheet,FTB01,Fort Bragg Field,35.173367,-79.014043
+retrosheet,HON01,Aloha Stadium,21.372787,-157.929912
+retrosheet,HOU02,Astrodome,29.684870,-95.407743
+retrosheet,HOU03,Minute Maid Park,29.757232,-95.355234
+retrosheet,KAN06,Kauffman Stadium,39.051508,-94.480460
+retrosheet,LAS01,Cashman Field,36.179761,-115.129890
+retrosheet,LOS03,Dodger Stadium,34.073625,-118.239845
+retrosheet,MIA01,Sun Life Stadium,25.957903,-80.238850
+retrosheet,MIA02,Marlins Park,25.778073,-80.219554
+retrosheet,MIL06,Miller Park,43.028062,-87.971269
+retrosheet,MIN04,Target Field,44.981685,-93.277864
+retrosheet,NYC16,Yankee Stadium I,40.829583,-73.926521
+retrosheet,NYC17,Shea Stadium,41.398797,-73.963579
+retrosheet,NYC20,Citi Field,40.757278,-73.845879
+retrosheet,NYC21,Yankee Stadium II,40.829583,-73.926521
+retrosheet,OAK01,Oakland-Alameda County Coliseum,37.751633,-122.200475
+retrosheet,PHI11,Shibe Park,39.996116,-75.164835
+retrosheet,PHI13,Citizens Bank Park,39.905922,-75.166480
+retrosheet,PHO01,Chase Field,33.445486,-112.066693
+retrosheet,PIT06,Forbes Field,40.441221,-79.952692
+retrosheet,PIT08,PNC Park,40.446926,-80.005606
+retrosheet,SAN01,Qualcomm Stadium,32.781943,-117.084448
+retrosheet,SAN02,PETCO Park,32.707187,-117.156913
+retrosheet,SEA02,Kingdome,47.598994,-122.331342
+retrosheet,SEA03,Safeco Field,47.591397,-122.332507
+retrosheet,SFO02,Candlestick Park,37.717191,-122.380422
+retrosheet,SFO03,AT&T Park,37.781136,-122.457083
+retrosheet,SJU01,Estadio Hiram Bithorn,18.416837,-66.073502
+retrosheet,STL09,Busch Stadium II,38.622505,-90.193004
+retrosheet,STL10,Busch Stadium III,38.622505,-90.193004
+retrosheet,STP01,Tropicana Field,27.768056,-82.653276
+retrosheet,WAS11,Nationals Park,38.872733,-77.007481

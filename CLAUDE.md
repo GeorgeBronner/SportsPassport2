@@ -41,6 +41,16 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
   their adapters; see `docs/SP3_plan.md` Phase 4/7 for scope notes. `nfl_stadiums.csv`
   also carries 29 `hist-`-prefixed rows for pre-1999 grounds nflverse never saw; the
   prefix keeps them from ever colliding with a real nflverse `stadium_id`.
+  `data/seed/venue_coordinates.csv` is a different animal: not hand-built but
+  **derived**, exported from a geocoded dev database by
+  `scripts/export_venue_coords.py` and applied elsewhere by
+  `scripts/load_venue_coords.py` (logic in `services/venue_coords.py`). It exists
+  because geocoding is ~3,500 throttled Nominatim requests — over an hour — and
+  every environment would otherwise re-derive the same answer. Keyed on
+  `(source, source_venue_id)`, never `venues.id`, which is what lets it cross
+  databases. Only building-level rows are exported; city-centroid fallbacks are
+  excluded so the file can't overwrite a better coordinate. Re-export after any
+  future geocoding run, or environments silently drift apart.
   `games.start_date` is **always UTC**; the NBA (Kaggle) and NFL (nflverse) bulk
   files publish US Eastern instead, and are converted on import via
   `services/adapters/local_time.py` — see `docs/SP3_open_issues.md` #7.

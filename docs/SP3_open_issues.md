@@ -646,3 +646,33 @@ A caveat on scope: quality outside the US is visibly poorer, since neither the
 name nor the city disambiguates well — `London Stadium` resolved ~13km off and
 `Rogers Centre` (Toronto) not at all. None of these are plotted; the Atlas
 projection is continental US only.
+
+### Propagating this to staging and production
+
+The result is exported rather than re-derived. `scripts/export_venue_coords.py`
+writes the 1432 building-level placements to
+`sports_passport/data/seed/venue_coordinates.csv` (72KB, committed, inside the
+package so the bind-mount can't shadow it), and
+`scripts/load_venue_coords.py` applies them anywhere else. Staging and
+production never talk to Nominatim.
+
+Two reasons this is an export rather than "run the script there too":
+
+- **~3,500 throttled requests, over an hour, per environment**, to derive an
+  answer we already have and have checked.
+- **`geocode_venues.py` would silently do nothing on a fresh environment.**
+  Its `needs_placing` guard recognises a city centroid by looking the value up
+  in the geocode cache, and that cache lives in the bind-mount volume — not in
+  the image. Where the cache is thin, no venue is selected and the run reports
+  `0 venue(s) to place` and exits 0. The loader has no such dependency: it
+  matches on `(source, source_venue_id)` and assigns unconditionally, so
+  "unchanged" genuinely means the database already agrees.
+
+Venues in the file that a target database lacks are counted and reported, not
+treated as errors — environments legitimately differ in which imports they have
+run. `tests/test_venue_coords.py` pins the two properties that actually break in
+production: the CSV resolves from the package rather than the CWD, and matching
+is on the natural key rather than the autoincrement `venues.id`, which does not
+survive the trip between databases.
+
+**Re-export whenever geocoding is re-run**, or the environments drift apart.
