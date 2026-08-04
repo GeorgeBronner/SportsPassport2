@@ -557,3 +557,122 @@ To clear it locally, rebuild from migrations (`cd backend && rm sports_passport.
 uv run alembic upgrade head`, then re-import). The production volume predates the
 `create_all()` removal, so assume it has the old shape until that query says
 otherwise — check it there before ever trusting `alembic check` in CI.
+
+---
+
+## 11. Every venue sat on its city's centroid, not its own site — **RESOLVED 2026-08-03**
+
+`scripts/geocode_venues.py` geocoded venues by city+state, on the reasoning
+stated in its own docstring: *"City-level precision is all the venue map
+needs."* That held while the Atlas was a fixed continental overview. It stopped
+holding the moment the map learned to zoom (`8-3-26-map-fixes`), because every
+venue in a city resolved to one point.
+
+**50 of the 63 attended venues were on a city centroid.** New York was the
+worst: both Yankee Stadiums, Citi Field and a Madison Square Garden row all sat
+at `40.7127, -74.0060` — City Hall, which is none of them. Chicago and Atlanta
+had the same pile. The symptom is invisible at continental scale and obvious at
+40x, which is why it survived this long.
+
+The script now geocodes the venue itself. Each name candidate — an alias if we
+have one, the name as stored, the name with our own suffixes stripped
+(Retrosheet's `Yankee Stadium II`, our `(Norman, OK)`) — is tried against the
+city and then against the state alone, and the first hit within
+`MAX_DRIFT_KM` (100km) of the city centroid wins.
+
+Three details worth keeping:
+
+- **The state-only tier does more work than the aliases.** Our `city` is the
+  postal town, and OSM often files a ground under a different one — Michie
+  Stadium is at West Point, which OSM calls Town of Highlands. Dropping the
+  city is what resolves those.
+- **The distance guard is not optional.** Without a yardstick, the state tier
+  will happily answer "Memorial Stadium" with one three states over. The city
+  centroid is looked up first precisely so there is something to measure
+  against, and it remains the fallback.
+- **Re-runs never overwrite a building-level placement.** Only NULL
+  coordinates and coordinates that *are* a known city centroid are touched, so
+  the hand-verified seed CSVs (`nfl_stadiums`, `nhl_arenas`, `nba_arenas`,
+  `mls_stadiums`), the ASA API's building-precise coordinates, and anything
+  already resolved by name are all left alone.
+
+  Note this does **not** mean a re-run reports nothing to do. A venue that
+  fell back to its city centroid is indistinguishable from one that was never
+  tried, so every fallback is re-attempted on each run — `--all` reports ~538
+  to place indefinitely. That is by design (a venue OSM gains later will be
+  picked up) and costs nothing, since every lookup is already cached and the
+  values rewritten are the same ones. Only the attended set converges to
+  `0 venue(s) to place`, because all 63 of those resolved by name.
+
+`NAME_ALIASES` covers four buildings OSM files under another name: a
+naming-rights era we didn't follow (`High Point Solutions` → SHI,
+`Kroger Field` → Commonwealth), an abbreviation of ours
+(`DKR-Texas Memorial Stadium`), and one demolished ground — the Georgia Dome,
+aliased to the successor built ~200m away on the adjacent site, which is the
+convention `venue_seed.py` already documents for demolished grounds.
+
+Result: all 50 placed at building level, 0 city fallbacks. The only attended
+venues still sharing coordinates are the three Yankee Stadium rows, which are
+genuinely one site (the original stood across the street) and are separated
+visually by the map's fan-out.
+
+`--all` was then run over the whole table (1662 venues, ~80 minutes at the
+policy's 1 req/sec): **1125 venue-level · 529 city fallback · 8 unresolved**,
+and coverage is now 1962/2196 venues with coordinates. The fallbacks are
+overwhelmingly small-college grounds OSM has never heard of (Harley Knosher
+Bowl, Jahna Field, Gold Mine Gym); they keep the centroid they already had, so
+nothing regressed. The attended 63 were untouched by that run and remain
+building-level.
+
+**A misspelled city defeats the distance guard.** The guard measures a
+candidate against the city centroid, so when the *city* is wrong both are
+wrong together and agree. `Orlando City Stadium` was filed under
+`Orlanda, FL` and landed at `26.32, -81.69` — southwest Florida, 250km out.
+Correcting the city and re-placing it fixed it. Two such typos exist in the
+venues table:
+
+| Venue | City as stored | Effect |
+|---|---|---|
+| Orlando City Stadium | `Orlanda`, FL | 250km misplacement — **corrected in the DB** |
+| Lambeau Field | `Greenbay`, WI | none; the venue name resolved correctly anyway |
+
+Both come from the import sources, so a re-import will reintroduce them — the
+durable fix is city normalisation in the adapter, which is **not done**. When
+that happens, `Orlando City Stadium` will need re-placing again. There is no
+general defence available here: a same-state check wouldn't have caught it
+(26.32/-81.69 *is* in Florida).
+
+A caveat on scope: quality outside the US is visibly poorer, since neither the
+name nor the city disambiguates well — `London Stadium` resolved ~13km off and
+`Rogers Centre` (Toronto) not at all. None of these are plotted; the Atlas
+projection is continental US only.
+
+### Propagating this to staging and production
+
+The result is exported rather than re-derived. `scripts/export_venue_coords.py`
+writes the 1432 building-level placements to
+`sports_passport/data/seed/venue_coordinates.csv` (72KB, committed, inside the
+package so the bind-mount can't shadow it), and
+`scripts/load_venue_coords.py` applies them anywhere else. Staging and
+production never talk to Nominatim.
+
+Two reasons this is an export rather than "run the script there too":
+
+- **~3,500 throttled requests, over an hour, per environment**, to derive an
+  answer we already have and have checked.
+- **`geocode_venues.py` would silently do nothing on a fresh environment.**
+  Its `needs_placing` guard recognises a city centroid by looking the value up
+  in the geocode cache, and that cache lives in the bind-mount volume — not in
+  the image. Where the cache is thin, no venue is selected and the run reports
+  `0 venue(s) to place` and exits 0. The loader has no such dependency: it
+  matches on `(source, source_venue_id)` and assigns unconditionally, so
+  "unchanged" genuinely means the database already agrees.
+
+Venues in the file that a target database lacks are counted and reported, not
+treated as errors — environments legitimately differ in which imports they have
+run. `tests/test_venue_coords.py` pins the two properties that actually break in
+production: the CSV resolves from the package rather than the CWD, and matching
+is on the natural key rather than the autoincrement `venues.id`, which does not
+survive the trip between databases.
+
+**Re-export whenever geocoding is re-run**, or the environments drift apart.
