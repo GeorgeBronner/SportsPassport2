@@ -46,6 +46,7 @@ NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 HEADERS = {"User-Agent": "SportsPassport/0.2 (personal game-attendance tracker; venue geocoding)"}
 CACHE_PATH = Path(__file__).resolve().parent.parent / "data" / "geocode_cache.json"
 THROTTLE_SECONDS = 1.1  # Nominatim usage policy: max 1 request/second
+COMMIT_EVERY = 25  # flush progress during a long --all run
 
 # A stadium can legitimately sit well outside the city it is named for —
 # MetLife is 10km from Manhattan, and college grounds sprawl further — but a
@@ -216,7 +217,7 @@ def main():
 
         placed = fallback = missed = 0
         with httpx.Client() as client:
-            for v in venues:
+            for i, v in enumerate(venues, 1):
                 coords, how = geocode_venue(
                     client, cache, v.name or "", v.city or "", v.state or "", v.country or "USA"
                 )
@@ -226,10 +227,17 @@ def main():
                     placed += 1
                 elif how == "city":
                     fallback += 1
-                    print(f"  city-level only: {v.name} — {v.city}, {v.state}")
+                    print(f"  city-level only: {v.name} — {v.city}, {v.state}", flush=True)
                 else:
                     missed += 1
-                    print(f"  no result: {v.name} — {v.city}, {v.state}")
+                    print(f"  no result: {v.name} — {v.city}, {v.state}", flush=True)
+                # A --all run is thousands of throttled requests over an hour
+                # or more. Commit as we go so losing the process costs only
+                # the current batch; the lookups themselves are already safe
+                # in the cache, so a re-run picks up where this left off.
+                if i % COMMIT_EVERY == 0:
+                    db.commit()
+                    print(f"  ... {i}/{len(venues)} placed", flush=True)
         db.commit()
         print(f"venue-level {placed} · city fallback {fallback} · unresolved {missed}")
 

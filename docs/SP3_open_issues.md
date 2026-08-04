@@ -590,11 +590,19 @@ Three details worth keeping:
   will happily answer "Memorial Stadium" with one three states over. The city
   centroid is looked up first precisely so there is something to measure
   against, and it remains the fallback.
-- **Re-runs are safe and idempotent.** Only NULL coordinates and coordinates
-  that *are* a known city centroid are touched, so the hand-verified seed CSVs
-  (`nfl_stadiums`, `nhl_arenas`, `nba_arenas`, `mls_stadiums`) and the ASA
-  API's building-precise coordinates are never overwritten. A second run
-  reports `0 venue(s) to place`.
+- **Re-runs never overwrite a building-level placement.** Only NULL
+  coordinates and coordinates that *are* a known city centroid are touched, so
+  the hand-verified seed CSVs (`nfl_stadiums`, `nhl_arenas`, `nba_arenas`,
+  `mls_stadiums`), the ASA API's building-precise coordinates, and anything
+  already resolved by name are all left alone.
+
+  Note this does **not** mean a re-run reports nothing to do. A venue that
+  fell back to its city centroid is indistinguishable from one that was never
+  tried, so every fallback is re-attempted on each run — `--all` reports ~538
+  to place indefinitely. That is by design (a venue OSM gains later will be
+  picked up) and costs nothing, since every lookup is already cached and the
+  values rewritten are the same ones. Only the attended set converges to
+  `0 venue(s) to place`, because all 63 of those resolved by name.
 
 `NAME_ALIASES` covers four buildings OSM files under another name: a
 naming-rights era we didn't follow (`High Point Solutions` → SHI,
@@ -608,7 +616,33 @@ venues still sharing coordinates are the three Yankee Stadium rows, which are
 genuinely one site (the original stood across the street) and are separated
 visually by the map's fan-out.
 
-**Still city-level:** the ~2k unattended venues in the table. Only attended
-venues are ever plotted, and `--all` is a ~30-minute Nominatim run at the
-policy's 1 req/sec, so it was left for whenever one of them is first attended —
-the script is idempotent, so re-running it then costs only the new lookups.
+`--all` was then run over the whole table (1662 venues, ~80 minutes at the
+policy's 1 req/sec): **1125 venue-level · 529 city fallback · 8 unresolved**,
+and coverage is now 1962/2196 venues with coordinates. The fallbacks are
+overwhelmingly small-college grounds OSM has never heard of (Harley Knosher
+Bowl, Jahna Field, Gold Mine Gym); they keep the centroid they already had, so
+nothing regressed. The attended 63 were untouched by that run and remain
+building-level.
+
+**A misspelled city defeats the distance guard.** The guard measures a
+candidate against the city centroid, so when the *city* is wrong both are
+wrong together and agree. `Orlando City Stadium` was filed under
+`Orlanda, FL` and landed at `26.32, -81.69` — southwest Florida, 250km out.
+Correcting the city and re-placing it fixed it. Two such typos exist in the
+venues table:
+
+| Venue | City as stored | Effect |
+|---|---|---|
+| Orlando City Stadium | `Orlanda`, FL | 250km misplacement — **corrected in the DB** |
+| Lambeau Field | `Greenbay`, WI | none; the venue name resolved correctly anyway |
+
+Both come from the import sources, so a re-import will reintroduce them — the
+durable fix is city normalisation in the adapter, which is **not done**. When
+that happens, `Orlando City Stadium` will need re-placing again. There is no
+general defence available here: a same-state check wouldn't have caught it
+(26.32/-81.69 *is* in Florida).
+
+A caveat on scope: quality outside the US is visibly poorer, since neither the
+name nor the city disambiguates well — `London Stadium` resolved ~13km off and
+`Rogers Centre` (Toronto) not at all. None of these are plotted; the Atlas
+projection is continental US only.
