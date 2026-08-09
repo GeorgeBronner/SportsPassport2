@@ -173,8 +173,13 @@ class NhlAdapter(LeagueAdapter):
 
         Empty when the season was never played, e.g. the 2004-05 lockout.
         """
+        # Mid-January, not season's end (e.g. April), because the standings-by-date
+        # endpoint has no data past a season's effective end — including an early
+        # end, like the 2019-20 pause for COVID (last standings 2020-03-11) or a
+        # gap in the NHL API's own history for 1990-91 (last standings 1991-03-31)
+        # — and an empty response here reads as "lockout" and skips the season.
         standings = await self._get(
-            f"{settings.nhl_api_url}/standings/{season_start_year + 1}-04-01", ok_404=True
+            f"{settings.nhl_api_url}/standings/{season_start_year + 1}-01-15", ok_404=True
         )
         if not standings:
             return []
