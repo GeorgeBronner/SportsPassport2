@@ -255,14 +255,18 @@ const TeamDetail: React.FC = () => {
               {/* Fixed column shares so Matchup always gets the lion's share of
                   the width — without this, the browser's auto layout starves
                   it whenever Venue/Result/Passport content is wide, wrapping
-                  team names onto a second line. */}
+                  team names onto a second line. Date/Result/Passport are sized
+                  from measured worst-case content (longest date string, a
+                  triple-OT score, the "+ I was there" button) plus a margin,
+                  not guessed — table-layout:fixed won't grow a column to fit
+                  content the way auto layout does. */}
               <colgroup>
-                <col className="w-[11%]" />
-                <col className="w-[5%]" />
+                <col className="w-[12%]" />
+                <col className="w-[4%]" />
                 <col className="w-[42%]" />
-                <col className="w-[10%]" />
-                <col className="w-[21%]" />
-                <col className="w-[11%]" />
+                <col className="w-[14%]" />
+                <col className="w-[15%]" />
+                <col className="w-[13%]" />
               </colgroup>
               <thead>
                 <tr className="[&>th]:text-left [&>th]:py-1.5 [&>th]:px-2 [&>th]:text-[10px] [&>th]:uppercase [&>th]:tracking-[0.16em] [&>th]:text-ink-3 [&>th]:font-bold [&>th]:border-b [&>th]:border-line-strong">
@@ -301,7 +305,7 @@ const TeamDetail: React.FC = () => {
                         attended ? 'attended-row' : ''
                       }`}
                     >
-                      <td className="py-2 px-2 whitespace-nowrap font-mono text-xs text-ink-2">
+                      <td className="py-2 px-2 whitespace-nowrap font-mono text-xs text-ink-2 truncate">
                         {formatDateShort(game.start_date, game.has_time)}
                       </td>
                       <td
@@ -331,7 +335,9 @@ const TeamDetail: React.FC = () => {
                             leagueCode={leagueCode}
                             size="sm"
                           />
-                          <span className="truncate min-w-0">{game.away_team.name}</span>
+                          <span className="truncate min-w-0" title={game.away_team.name}>
+                            {game.away_team.name}
+                          </span>
                           <span className="text-ink-3 shrink-0">at</span>
                           <TeamBadge
                             name={game.home_team.name}
@@ -340,10 +346,12 @@ const TeamDetail: React.FC = () => {
                             leagueCode={leagueCode}
                             size="sm"
                           />
-                          <span className="truncate min-w-0">{game.home_team.name}</span>
+                          <span className="truncate min-w-0" title={game.home_team.name}>
+                            {game.home_team.name}
+                          </span>
                         </span>
                       </td>
-                      <td className="py-2 px-2 whitespace-nowrap font-mono font-bold">
+                      <td className="py-2 px-2 whitespace-nowrap font-mono font-bold overflow-hidden">
                         {played ? (
                           <>
                             <span
