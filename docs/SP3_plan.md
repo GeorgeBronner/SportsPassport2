@@ -510,12 +510,17 @@ SQL query against the database.
   | CBB | 179,107 | 1990-2024 | 1,386 (added 2026-07-14, matches Phase 8's figure) |
   | **Total** | **492,836** | | |
 
-- **NHL anomaly (not investigated further):** 3 errors during the backfill — the known 2004-05
-  lockout gap, plus seasons 1990 and 2019 each logging "no standings" from the adapter's
-  standings-lookup call. Games still appear to have imported in bulk via the schedule endpoint
-  for those years (the season range 1970-2025 has no visible holes), so this looks like a
-  standings-endpoint edge case on a couple of season-label boundaries, not a real backfill gap
-  — worth a closer look sometime, logged here rather than silently ignored.
+- **NHL anomaly, revisited 2026-08-09 — was a real gap:** the 3 "no standings" errors logged
+  during the Phase 9 backfill (2004-05 lockout, plus seasons 1990 and 2019) were assumed benign
+  at the time because the season range looked contiguous. It wasn't — `import_season` returns
+  early with zero games whenever its standings-lookup call comes back empty, so 1990 and 2019
+  were entirely missing (the season *labels* 1970-2025 looked contiguous only because 2019 sits
+  between two present seasons, not because it had data). Found via a user report of a missing
+  2019 Penguins game. Root cause: the lookup sampled a fixed `{season+1}-04-01`, which lands
+  after standings data actually stops for both years — the 2019-20 COVID pause (last standings
+  2020-03-11) and a gap in the NHL API's own history for 1990-91 (last standings 1991-03-31).
+  Fixed by sampling mid-January instead, then backfilling both seasons. 2004-05 remains
+  correctly empty — no games were played.
 - **Process note:** CFB and MLB each needed one retry after hitting transient lock contention
   from the concurrent writes (both idempotent, so safe) before an explicit
   `connect_args={'timeout': 30}` on the ad-hoc verification scripts fully resolved it — the WAL
@@ -599,6 +604,32 @@ playoffs of the 1998 season stay with their own season.
   identity used in two separate stretches reads as continuous — visible now for OAK
   (Oakland 1970–81 and 1995–2019) and CLE (the 1996–98 hiatus). Games are attributed
   correctly; only the summary span overreaches. Narrowing it needs a schema change.
+
+### Phase 12 — Cross-league integrity sweep ✅ DONE 2026-08-09
+Triggered by a user report of a missing 2019 Pittsburgh Penguins game. Checked every league
+for season-level gaps (`DISTINCT season` against the full min–max range) plus orphaned
+foreign keys, null/suspicious columns, and within-season anomalies (a season's game count
+far below its neighbors). Two distinct problems found:
+- [x] **NHL bug** — see the Phase 9 note above, now corrected. Fixed in the adapter and
+      backfilled seasons 1990 and 2019.
+- [x] **MLB and CBB current-season gaps** — not a code bug: Phase 9's one-time backfill only
+      ran through season 2025 (2024 for CBB), and the nightly sync only covers a rolling
+      recent window, not a whole season from scratch. Any season that *started* after that
+      backfill ceiling needed its own catch-up run once it actually happened. MLB 2026 (Opening
+      Day through the query date) was missing 1,402 games — Retrosheet won't publish that
+      season's bulk file until well after it ends, so the catch-up went through `sync_recent`
+      (a compliant single date-range query against the Stats API) instead of
+      `import_historical`. CBB 2025-26 was missing entirely (6,299 games) — `import_historical`
+      covers it fine since ESPN's hidden API has no bulk-vs-sync distinction to respect.
+- MLS's apparent June 2026 gap is not a bug — that's the 2026 FIFA World Cup window
+  (June 11–July 19), when MLS pauses.
+- No orphaned foreign keys, no null team names, no home==away games, across any league.
+- **Lesson for future season rollovers**: the one-time-backfill-then-sync design (Risk
+  table below) means each league's current season needs a manual catch-up the first time
+  a gap like this is noticed after it starts — there's no automatic "new season detected"
+  trigger. Re-run `import_historical` (or `sync_recent` with an early `since` for MLB
+  specifically) for any league whose latest season only has partial-month coverage in the
+  months right after its start.
 
 **Total estimate: ~7–10 working days** for the first draft (Phases 0–6).
 
