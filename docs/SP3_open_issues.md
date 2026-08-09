@@ -676,3 +676,51 @@ is on the natural key rather than the autoincrement `venues.id`, which does not
 survive the trip between databases.
 
 **Re-export whenever geocoding is re-run**, or the environments drift apart.
+
+## 12. Ruff UP037 vs. circular model imports (Python 3.14 upgrade) — **RESOLVED 2026-08-09**
+
+The Python 3.14 upgrade (PR #16) mechanically unquoted every `Mapped["ClassName"]`
+type annotation across the models — safe under 3.14 for a class that's a real,
+already-bound name, which is why ruff (UP037), pyright, and all 357 tests stayed
+green. It wasn't safe for the models specifically:
+`League`/`Team`/`Game`/`Venue`/`User`/`UserGameAttendance` form a fully-connected
+reference cycle (`Game` needs `League`/`Team`/`Venue`/`UserGameAttendance`, `League`
+needs `Team`/`Game`, etc.), so every cross-model relationship import in every one of
+these files is `TYPE_CHECKING`-only — a real top-level import would be circular.
+Caught by an independent code-review subagent's pass over the PR, then verified
+directly:
+
+```python
+>>> import sports_passport.models.game as g
+>>> g.Game.__annotations__
+NameError: name 'League' is not defined
+```
+
+**Why this passed every check.** SQLAlchemy's `relationship()` resolves its target
+from the explicit string argument (`relationship("League", ...)`), never from the
+type annotation — so `configure_mappers()` and every ORM operation are unaffected
+either way. Python 3.14 (PEP 649) defers evaluating annotations until something
+actually asks for them; nothing in this codebase currently calls `get_type_hints()`
+or touches a model's `__annotations__`, so the broken reference sat dormant. The
+moment anything does — introspection, a future serializer, a debugger — it raises
+`NameError`, because `League` was never bound as a real name in `game.py`'s module
+namespace (it only exists inside the `if TYPE_CHECKING:` block, which never
+executes at runtime).
+
+**Fix**: re-quoted the affected annotations (`Mapped["League"]`, not
+`Mapped[League]`) across all seven model files. That reintroduced the UP037
+finding ruff had just "fixed" — but scattering `# noqa: UP037` across ~15 lines
+was its own mess, so `pyproject.toml`'s `[tool.ruff.lint.per-file-ignores]` now
+excludes UP037 for `sports_passport/models/*.py` wholesale, with the reasoning
+written once instead of per line. `tests/test_migrations.py` and the full suite
+stay green; a standalone check (`ClassName.__annotations__` on every model,
+`configure_mappers()`) is not itself pinned by any test — worth adding if this
+class of bug recurs.
+
+**Not fixed, and deliberately out of scope**: the actual root cause is that these
+one-class-per-file models are circular at all. The clean fix — merging the
+interdependent models into a single file, so nothing needs `TYPE_CHECKING` or
+quoting — would touch the ~33 files across the codebase that import from
+`sports_passport.models.<name>` directly rather than the package root, entirely to
+unblock a lint rule. Revisit only if another 3.14-style migration hits the same
+wall, or if the models package is restructured for an unrelated reason anyway.
