@@ -251,7 +251,19 @@ const TeamDetail: React.FC = () => {
                 : 'No games found for this selection.'}
             </p>
           ) : (
-            <table className="w-full text-sm border-collapse min-w-[600px] sticky-head">
+            <table className="w-full text-sm border-collapse min-w-[600px] sticky-head [table-layout:fixed]">
+              {/* Fixed column shares so Matchup always gets the lion's share of
+                  the width — without this, the browser's auto layout starves
+                  it whenever Venue/Result/Passport content is wide, wrapping
+                  team names onto a second line. */}
+              <colgroup>
+                <col className="w-[11%]" />
+                <col className="w-[5%]" />
+                <col className="w-[42%]" />
+                <col className="w-[10%]" />
+                <col className="w-[21%]" />
+                <col className="w-[11%]" />
+              </colgroup>
               <thead>
                 <tr className="[&>th]:text-left [&>th]:py-1.5 [&>th]:px-2 [&>th]:text-[10px] [&>th]:uppercase [&>th]:tracking-[0.16em] [&>th]:text-ink-3 [&>th]:font-bold [&>th]:border-b [&>th]:border-line-strong">
                   <th>Date</th>
@@ -310,8 +322,8 @@ const TeamDetail: React.FC = () => {
                       >
                         {site}
                       </td>
-                      <td className="py-2 px-2">
-                        <span className="inline-flex items-center gap-1.5 text-ink flex-wrap">
+                      <td className="py-2 px-2 overflow-hidden">
+                        <span className="inline-flex items-center gap-1.5 text-ink w-full min-w-0">
                           <TeamBadge
                             name={game.away_team.name}
                             abbreviation={game.away_team.abbreviation}
@@ -319,8 +331,8 @@ const TeamDetail: React.FC = () => {
                             leagueCode={leagueCode}
                             size="sm"
                           />
-                          {game.away_team.name}
-                          <span className="text-ink-3">at</span>
+                          <span className="truncate min-w-0">{game.away_team.name}</span>
+                          <span className="text-ink-3 shrink-0">at</span>
                           <TeamBadge
                             name={game.home_team.name}
                             abbreviation={game.home_team.abbreviation}
@@ -328,7 +340,7 @@ const TeamDetail: React.FC = () => {
                             leagueCode={leagueCode}
                             size="sm"
                           />
-                          {game.home_team.name}
+                          <span className="truncate min-w-0">{game.home_team.name}</span>
                         </span>
                       </td>
                       <td className="py-2 px-2 whitespace-nowrap font-mono font-bold">
@@ -350,7 +362,7 @@ const TeamDetail: React.FC = () => {
                           <span className="text-ink-3 font-normal">—</span>
                         )}
                       </td>
-                      <td className="py-2 px-2 text-xs text-ink-2">
+                      <td className="py-2 px-2 text-xs text-ink-2 truncate">
                         {game.venue
                           ? `${game.venue.name}${game.venue.city ? ` · ${game.venue.city}` : ''}`
                           : ''}
