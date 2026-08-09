@@ -36,5 +36,5 @@ class UserGameAttendance(Base):
     )
 
     # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="attended_games")
-    game: Mapped["Game"] = relationship("Game", back_populates="user_attendances")
+    user: Mapped[User] = relationship("User", back_populates="attended_games")
+    game: Mapped[Game] = relationship("Game", back_populates="user_attendances")

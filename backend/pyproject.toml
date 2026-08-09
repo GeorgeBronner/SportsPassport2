@@ -2,7 +2,7 @@
 name = "sports-passport"
 version = "0.1.0"
 description = "SportsPassport2 multi-league game attendance tracker API"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.104",
     "uvicorn[standard]>=0.24",
@@ -46,7 +46,7 @@ dev = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py314"
 extend-exclude = ["alembic/versions"]
 
 [tool.ruff.lint]
@@ -82,7 +82,7 @@ extend-immutable-calls = [
 [tool.pyright]
 include = ["sports_passport", "scripts", "tests"]
 exclude = ["**/__pycache__", "alembic/versions"]
-pythonVersion = "3.13"
+pythonVersion = "3.14"
 typeCheckingMode = "basic"
 venvPath = "."
 venv = ".venv"
@@ -93,4 +93,8 @@ filterwarnings = [
     # Third-party: starlette's TestClient deprecates httpx in favor of httpx2.
     # Not actionable from our code; only affects the test client.
     "ignore:Using `httpx` with `starlette.testclient` is deprecated:UserWarning",
+    # Third-party: slowapi 0.1.10 (latest as of the 3.14 bump) still calls
+    # asyncio.iscoroutinefunction, deprecated in 3.14 for removal in 3.16.
+    # Not actionable from our code; revisit when slowapi ships a fix.
+    "ignore:'asyncio.iscoroutinefunction' is deprecated:DeprecationWarning",
 ]

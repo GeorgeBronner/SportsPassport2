@@ -39,10 +39,10 @@ class Team(Base):
     source_team_id: Mapped[str | None] = mapped_column(String, index=True)
 
     # Relationships
-    league: Mapped["League"] = relationship("League", back_populates="teams")
-    home_games: Mapped[list["Game"]] = relationship(
+    league: Mapped[League] = relationship("League", back_populates="teams")
+    home_games: Mapped[list[Game]] = relationship(
         "Game", foreign_keys="Game.home_team_id", back_populates="home_team"
     )
-    away_games: Mapped[list["Game"]] = relationship(
+    away_games: Mapped[list[Game]] = relationship(
         "Game", foreign_keys="Game.away_team_id", back_populates="away_team"
     )

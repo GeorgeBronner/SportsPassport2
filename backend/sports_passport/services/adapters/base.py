@@ -25,7 +25,7 @@ class ImportResult:
     games_updated: int = 0
     errors: list[str] = field(default_factory=list)
 
-    def merge(self, other: "ImportResult") -> "ImportResult":
+    def merge(self, other: ImportResult) -> ImportResult:
         self.teams_imported += other.teams_imported
         self.venues_imported += other.venues_imported
         self.games_imported += other.games_imported
