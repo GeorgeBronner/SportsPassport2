@@ -78,6 +78,14 @@ extend-immutable-calls = [
 [tool.ruff.lint.per-file-ignores]
 # Tests lean on long literal fixtures and pytest's assert-rewriting idioms.
 "tests/**" = ["E501"]
+# The models are a fully-connected cycle (Game <-> League/Team/Venue,
+# UserGameAttendance <-> User), so every cross-model relationship import is
+# TYPE_CHECKING-only — a real import would be circular. UP037 doesn't know
+# that a quoted Mapped[...] here isn't just style: under 3.14's PEP 649 lazy
+# annotation evaluation, unquoting one raises NameError the moment anything
+# touches that class's __annotations__ (get_type_hints, some serializers),
+# since the referenced name is never bound at runtime.
+"sports_passport/models/*.py" = ["UP037"]
 
 [tool.pyright]
 include = ["sports_passport", "scripts", "tests"]

@@ -39,4 +39,4 @@ class SyncState(Base):
     last_error: Mapped[str | None] = mapped_column(String)  # first error line, if any
     last_duration_ms: Mapped[int | None] = mapped_column(Integer)
 
-    league: Mapped[League] = relationship("League")
+    league: Mapped["League"] = relationship("League")

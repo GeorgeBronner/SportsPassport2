@@ -28,4 +28,4 @@ class Venue(Base):
     source_venue_id: Mapped[str | None] = mapped_column(String, index=True)
 
     # Relationships
-    games: Mapped[list[Game]] = relationship("Game", back_populates="venue")
+    games: Mapped[list["Game"]] = relationship("Game", back_populates="venue")

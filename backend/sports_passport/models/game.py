@@ -40,15 +40,17 @@ class Game(Base):
     source: Mapped[str] = mapped_column(String, index=True)
     source_game_id: Mapped[str] = mapped_column(String, index=True)
 
-    # Relationships
-    league: Mapped[League] = relationship("League", back_populates="games")
-    home_team: Mapped[Team] = relationship(
+    # Relationships. Stay quoted — see pyproject.toml's per-file-ignores for why
+    # the cross-model TYPE_CHECKING imports here can't be unquoted like the
+    # rest of the 3.14 cleanup.
+    league: Mapped["League"] = relationship("League", back_populates="games")
+    home_team: Mapped["Team"] = relationship(
         "Team", foreign_keys=[home_team_id], back_populates="home_games"
     )
-    away_team: Mapped[Team] = relationship(
+    away_team: Mapped["Team"] = relationship(
         "Team", foreign_keys=[away_team_id], back_populates="away_games"
     )
-    venue: Mapped[Venue | None] = relationship("Venue", back_populates="games")
-    user_attendances: Mapped[list[UserGameAttendance]] = relationship(
+    venue: Mapped["Venue | None"] = relationship("Venue", back_populates="games")
+    user_attendances: Mapped[list["UserGameAttendance"]] = relationship(
         "UserGameAttendance", back_populates="game", cascade="all, delete-orphan"
     )

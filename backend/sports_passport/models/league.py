@@ -22,5 +22,5 @@ class League(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships
-    teams: Mapped[list[Team]] = relationship("Team", back_populates="league")
-    games: Mapped[list[Game]] = relationship("Game", back_populates="league")
+    teams: Mapped[list["Team"]] = relationship("Team", back_populates="league")
+    games: Mapped[list["Game"]] = relationship("Game", back_populates="league")
