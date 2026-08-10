@@ -14,9 +14,9 @@ game in the DB except these 2, which have no `games` row to attach attendance to
 | # | Date | Game | Venue | Final | Blocker |
 |---|------|------|-------|-------|---------|
 | 1 | 2015-05-10 | New York City FC @ New York Red Bulls | Red Bull Arena | Red Bulls 2, NYCFC 1 | ~~MLS league not in DB~~ — **resolved 2026-08-01, see 1b** |
-| 2 | 2025-03-23 | Tampa Bay Rays @ New York Yankees — **spring training** | George M. Steinbrenner Field | — | No spring-training data |
+| 2 | 2025-03-23 | Tampa Bay Rays @ New York Yankees — **spring training** | George M. Steinbrenner Field | — | No spring-training data — **won't fix, see 1c** |
 
-Row 1 is now logged; **row 2 is the only remaining unloggable attended game.**
+Row 1 is now logged; **row 2 is permanently deferred (won't fix) — see 1c.**
 
 ### 1a. MLB postseason games — **RESOLVED 2026-07-15**
 
@@ -84,21 +84,23 @@ Two limitations accepted rather than fixed, both recorded in `mls.py`'s docstrin
 - **`neutral_site` is always False for 2013+**, because ASA has no such field. The
   Kaggle era detects it from the venue string, where it marks 4 games.
 
-### 1c. MLB spring training (row 2)
+### 1c. MLB spring training (row 2) — **WON'T FIX, permanently deferred 2026-08-10**
 
 - Neither data path covers spring training: Retrosheet game logs are regular season
   only, and the MLB Stats API sync deliberately skips exhibition games —
   `STATSAPI_GAME_TYPES` in `backend/sports_passport/services/adapters/mlb.py` maps
   only `R/F/D/L/W` and drops gameType `S` (spring training).
-- **If we decide to support it**: the MLB Stats API schedule endpoint does return
-  spring-training games (`gameType=S`), so the fix is adding `"S": "spring"` to
-  `STATSAPI_GAME_TYPES` (plus a `season_type='spring'` convention) and fetching the
-  specific dates needed — small "since date" queries are compliant; bulk backfill
-  via the Stats API is not (SP3_data_sources.md). Spring-training venues
-  (e.g. Steinbrenner Field) would also be new `venues` rows.
-- **Undecided** whether spring training even belongs in the passport (it would count
-  toward venue/stamp stats). Only one attended game is affected, so deferred.
-- After any import, log attendance for user_id 2 on the game above.
+- **Decision**: spring training will not be added to the passport. It doesn't fit
+  the regular-season/postseason model the rest of the app assumes, and only one
+  attended game is affected. This closes the "undecided" status permanently —
+  don't re-litigate this on the next open-issues pass.
+- The technical path, if this is ever revisited: the MLB Stats API schedule
+  endpoint does return spring-training games (`gameType=S`), so the fix would be
+  adding `"S": "spring"` to `STATSAPI_GAME_TYPES` (plus a `season_type='spring'`
+  convention) and fetching the specific dates needed — small "since date" queries
+  are compliant; bulk backfill via the Stats API is not (SP3_data_sources.md).
+  Spring-training venues (e.g. Steinbrenner Field) would also be new `venues` rows.
+- The 2025-03-23 Rays @ Yankees game stays permanently unloggable for user_id 2.
 
 ## 2. Can't tell CFB and CBB teams apart in the all-leagues view — **RESOLVED 2026-07-25**
 
@@ -508,7 +510,7 @@ which no other league currently needs. `nfl.py`'s `import_teams` clamps
 `first_season` so it only ever moves earlier — without that, re-importing a range
 nflverse owns would silently reset the 31 clubs the backfill widened.
 
-## 10. `alembic check` reports drift on `sync_state` — open (local databases only)
+## 10. `alembic check` reports drift on `sync_state` — **RESOLVED 2026-08-10**
 
 Noticed 2026-08-01 while adding ruff/pyright. `uv run alembic check` against a
 long-lived local `backend/sports_passport.db` fails with:
@@ -557,6 +559,29 @@ To clear it locally, rebuild from migrations (`cd backend && rm sports_passport.
 uv run alembic upgrade head`, then re-import). The production volume predates the
 `create_all()` removal, so assume it has the old shape until that query says
 otherwise — check it there before ever trusting `alembic check` in CI.
+
+### Fix applied (2026-08-10)
+
+Rather than leave this as permanent residue, migration `e7a4c9d2b5f1` normalizes
+any database still in the old shape. SQLite can't `ALTER` a table to drop a named
+`UNIQUE` constraint in place, so it rebuilds `sync_state` via Alembic batch mode
+(`recreate='always'`): reflect the table, drop `uq_sync_state_league`, drop the
+non-unique `ix_sync_state_league_id`, recreate it as `unique=True`, copy the data
+across, swap the table in. Guarded to no-op on any database already in the current
+shape (every database built by `create_all` after issue #6, or by this migration
+itself), so it's safe to run everywhere, including fresh databases.
+
+Verified against the live database (a pulled prod copy, 522,182 games / 240
+attendance rows / 7 sync_state rows) after a WAL-safe `.backup` rehearsal: row
+counts across every table, `integrity_check`, and `foreign_key_check` all
+identical before and after; `alembic check` now reports "No new upgrade
+operations detected." Backup kept at
+`backend/data/sports_passport.pre-sync-state-fix.db` (gitignored).
+
+`tests/test_migrations.py::test_upgrade_normalizes_old_sync_state_constraint`
+reproduces the old shape by hand (since `create_all` only ever builds the
+already-fixed shape, the normal fixture path can't produce it) and pins that the
+migration fixes it without touching data.
 
 ---
 
