@@ -22,7 +22,7 @@ import tempfile
 import pytest
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HEAD = "a9f2c7e4b8d1"
+HEAD = "e7a4c9d2b5f1"
 
 # Revisions real databases have been found stamped at. None = empty database.
 # Each non-None case also gets the *current* full schema from create_all, which
@@ -170,6 +170,61 @@ class TestUpgradeConvergence:
             reference = os.path.join(directory, "models.db")
             _create_all(reference)
             assert _schema(tmp_db) == _schema(reference)
+        finally:
+            shutil.rmtree(directory, ignore_errors=True)
+
+    def test_upgrade_normalizes_old_sync_state_constraint(self, tmp_db):
+        """docs/SP3_open_issues.md #10: `d1f3a7c9e5b2` returns early via
+        `has_table` on any database `create_all()` already built, which left
+        those databases with a table-level `uq_sync_state_league` UNIQUE
+        constraint plus a *non*-unique index, instead of the single unique
+        index the model declares. `create_all` only ever builds the current
+        (already-fixed) shape, so the old shape has to be reproduced by hand
+        here rather than through the normal fixture path.
+        """
+        _create_all(tmp_db)
+        assert _alembic(["stamp", "a9f2c7e4b8d1"], tmp_db).returncode == 0
+
+        con = sqlite3.connect(tmp_db)
+        con.execute("DROP INDEX ix_sync_state_id")
+        con.execute("DROP INDEX ix_sync_state_league_id")
+        con.execute(
+            "CREATE TABLE sync_state_old ("
+            "id INTEGER NOT NULL, league_id INTEGER NOT NULL,"
+            " enabled BOOLEAN DEFAULT 1 NOT NULL, last_run_at DATETIME,"
+            " last_status VARCHAR, last_games_imported INTEGER,"
+            " last_games_updated INTEGER, last_error VARCHAR,"
+            " last_duration_ms INTEGER, last_success_at DATETIME,"
+            " PRIMARY KEY (id),"
+            " CONSTRAINT uq_sync_state_league UNIQUE (league_id),"
+            " FOREIGN KEY(league_id) REFERENCES leagues (id))"
+        )
+        con.execute("INSERT INTO sync_state_old SELECT * FROM sync_state")
+        con.execute("DROP TABLE sync_state")
+        con.execute("ALTER TABLE sync_state_old RENAME TO sync_state")
+        con.execute("CREATE INDEX ix_sync_state_id ON sync_state (id)")
+        con.execute("CREATE INDEX ix_sync_state_league_id ON sync_state (league_id)")
+        con.execute(
+            "INSERT INTO leagues (code, name, sport, active) VALUES ('CFB','x','football',1)"
+        )
+        con.execute("INSERT INTO sync_state (league_id, enabled) VALUES (1, 1)")
+        con.commit()
+        con.close()
+
+        result = _alembic(["upgrade", "head"], tmp_db)
+        assert result.returncode == 0, f"upgrade failed:\n{result.stderr}"
+        assert _current_revision(tmp_db) == HEAD
+
+        con = sqlite3.connect(f"file:{tmp_db}?mode=ro", uri=True)
+        assert con.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        assert con.execute("SELECT league_id, enabled FROM sync_state").fetchall() == [(1, 1)]
+        con.close()
+
+        directory = tempfile.mkdtemp()
+        try:
+            reference = os.path.join(directory, "models.db")
+            _create_all(reference)
+            assert _schema(tmp_db)["sync_state"] == _schema(reference)["sync_state"]
         finally:
             shutil.rmtree(directory, ignore_errors=True)
 
