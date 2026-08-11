@@ -15,7 +15,7 @@ data (NBA Pacific arenas peak at 22:00/22:30, NFL west-coast home games at
 16:05/16:25 — i.e. 7:30pm and 1:25pm local, expressed in Eastern), and a
 spot-check of Pistons @ Warriors 2026-01-30 against ESPN confirmed the
 stored 22:00 is 10:00pm ET, not 10:00pm Pacific. See
-docs/SP3_open_issues.md #7.
+docs/open_issues.md #7.
 """
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo

@@ -1,6 +1,6 @@
 """
 Tests for the US Eastern -> UTC conversion applied to the bulk NFL and NBA
-imports (docs/SP3_open_issues.md #7). `games.start_date` is defined as UTC;
+imports (docs/open_issues.md #7). `games.start_date` is defined as UTC;
 both of those sources publish Eastern.
 """
 from datetime import datetime

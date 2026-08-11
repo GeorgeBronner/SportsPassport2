@@ -10,7 +10,7 @@ A web application for tracking games you've attended across **CFB, MLB, NFL, NBA
 
 This is the successor to the college-football-only tracker (preserved at `../cfb-tracker`).
 Planning docs: [SP3_plan.md](docs/SP3_plan.md) · [SP3_data_sources.md](docs/SP3_data_sources.md) ·
-[SP3_frontend_redesign.md](docs/SP3_frontend_redesign.md) · [SP3_open_issues.md](docs/SP3_open_issues.md)
+[open_issues.md](docs/open_issues.md)
 
 ## Features
 

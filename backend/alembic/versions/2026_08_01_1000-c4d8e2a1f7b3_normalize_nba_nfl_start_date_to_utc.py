@@ -6,7 +6,7 @@ Create Date: 2026-08-01 10:00:00.000000
 
 `games.start_date` is defined as UTC (SP3_plan.md §3) and the API stamps an
 explicit UTC offset on it, but two bulk paths wrote naive US Eastern wall
-clocks into the same column (docs/SP3_open_issues.md #7): nflverse's
+clocks into the same column (docs/open_issues.md #7): nflverse's
 `gametime` and the NBA Kaggle `Games.csv` `gameDate`. Both publish Eastern
 for every game regardless of where it is played, so both shift by the
 Eastern offset in effect on that date.

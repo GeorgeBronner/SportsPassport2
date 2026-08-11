@@ -125,7 +125,7 @@ class TestNflImportHistorical:
 
 class TestNflStartDateIsUtc:
     """nflverse publishes `gametime` in US Eastern for every game regardless of
-    where it is played; start_date is UTC (docs/SP3_open_issues.md #7)."""
+    where it is played; start_date is UTC (docs/open_issues.md #7)."""
 
     @pytest.mark.asyncio
     async def test_kickoff_converts_from_eastern(self, adapter, db_session):

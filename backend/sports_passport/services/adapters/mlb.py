@@ -26,7 +26,7 @@ terms (docs/SP3_data_sources.md) — only for small "since date" queries.
 Scope note: the per-season gamelogs cover regular season only; postseason
 comes from the four companion files above via `import_postseason` (all-time
 files filtered to the requested season range). Spring training exists in
-neither source and is skipped by `sync_recent` (see docs/SP3_open_issues.md).
+neither source and is skipped by `sync_recent` (see docs/open_issues.md).
 """
 import csv
 import io

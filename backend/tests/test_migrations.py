@@ -174,7 +174,7 @@ class TestUpgradeConvergence:
             shutil.rmtree(directory, ignore_errors=True)
 
     def test_upgrade_normalizes_old_sync_state_constraint(self, tmp_db):
-        """docs/SP3_open_issues.md #10: `d1f3a7c9e5b2` returns early via
+        """docs/open_issues.md #10: `d1f3a7c9e5b2` returns early via
         `has_table` on any database `create_all()` already built, which left
         those databases with a table-level `uq_sync_state_league` UNIQUE
         constraint plus a *non*-unique index, instead of the single unique

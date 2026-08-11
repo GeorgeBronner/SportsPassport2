@@ -26,7 +26,7 @@ const MARK_SIZES = {
 
 /** Basketball corner marker for college hoops. A school fields both a CFB and a
  *  CBB team under the same name — and often the same logo — so the badge alone
- *  can't tell them apart (see docs/SP3_open_issues.md #2). */
+ *  can't tell them apart (see docs/open_issues.md #2). */
 const BasketballMark: React.FC<{ size: keyof typeof MARK_SIZES }> = ({ size }) => (
   <svg
     viewBox="0 0 16 16"

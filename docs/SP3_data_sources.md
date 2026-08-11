@@ -479,7 +479,7 @@ ongoing-update layer** (one adapter, four leagues) while historical loads stay p
 ## MLS
 
 Research date: August 2026, driven by the one attended MLS game blocking
-`SP3_open_issues.md` #1b. **Built 2026-08-01**
+`open_issues.md` #1b. **Built 2026-08-01**
 (`backend/sports_passport/services/adapters/mls.py`). Unlike the original passes
 above, every candidate here was tested against a live endpoint before being
 ranked — the CBB research already showed how far docs-only conclusions can drift.

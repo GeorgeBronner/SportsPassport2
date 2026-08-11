@@ -7,9 +7,9 @@ import { countsByStateCode } from '../../utils/states';
 // [state code, column (1-based), row (1-based)]
 //
 // Continental only, matching the Atlas view — which drops Alaska and Hawaii
-// from the projection (see docs/SP3_frontend_redesign.md Phase 4). Keeping
-// them here left two marooned tiles and an empty column for a dataset with no
-// non-continental games. Column 1 goes with them, so the grid is 11 wide.
+// from the projection. Keeping them here left two marooned tiles and an empty
+// column for a dataset with no non-continental games. Column 1 goes with
+// them, so the grid is 11 wide.
 const TILES: Array<[string, number, number]> = [
   ['ME', 11, 1],
   ['WA', 1, 2], ['MT', 2, 2], ['ND', 3, 2], ['MN', 4, 2], ['WI', 5, 2], ['MI', 6, 2],

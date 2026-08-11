@@ -18,7 +18,7 @@ every offset from UTC-11 through UTC+11.
 This cannot change any displayed date. It only rewrites the time-of-day within
 each row's existing UTC date, and has_time=False rows are rendered on that UTC
 date. Verified against the live database before and after (see
-docs/SP3_open_issues.md #8).
+docs/open_issues.md #8).
 
 Reversible, with one wrinkle: 15 CBB rows sat at 17:00 rather than midnight —
 CBBD noon-ET placeholders on startTimeTbd games — and downgrade returns every

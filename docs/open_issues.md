@@ -578,6 +578,31 @@ identical before and after; `alembic check` now reports "No new upgrade
 operations detected." Backup kept at
 `backend/data/sports_passport.pre-sync-state-fix.db` (gitignored).
 
+### Deployed (2026-08-10)
+
+Shipped as PR #17, reviewed by an independent subagent pass (no correctness
+issues; a few non-blocking style notes on the downgrade's missing `has_table`
+guard and test coverage breadth), merged to `main`.
+
+Merging triggered `deploy-staging.yml` automatically (push-to-`main`, via the
+self-hosted runner on the staging host) — confirmed from the container's own
+boot log (`Running upgrade a9f2c7e4b8d1 -> e7a4c9d2b5f1`), then independently
+re-verified inside the running container: `integrity_check` ok, empty
+`foreign_key_check`, `sync_state` rebuilt to the single-unique-index shape,
+`alembic check` clean.
+
+`deploy-prod.yml` (manual `workflow_dispatch`) was then run against Oracle.
+Same verification, run directly against the production container rather than
+inferred from the workflow's own log: migration ran on boot, `integrity_check`
+ok, empty `foreign_key_check`, row counts intact and moving forward normally
+(522,192 games / 241 attendance rows / 7 sync_state rows — one game and one
+attendance row ahead of the pre-deploy snapshot above, from normal sync
+activity in between), `sync_state` in the correct shape, `alembic check`
+clean, `/health` OK.
+
+Issue closed everywhere — dev, staging, and production now agree on the
+schema.
+
 `tests/test_migrations.py::test_upgrade_normalizes_old_sync_state_constraint`
 reproduces the old shape by hand (since `create_all` only ever builds the
 already-fixed shape, the normal fixture path can't produce it) and pins that the

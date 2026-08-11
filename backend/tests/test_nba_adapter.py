@@ -268,7 +268,7 @@ class TestNbaImportHistorical:
 
 class TestNbaStartDateIsUtc:
     """The Kaggle CSV publishes tip-off in US Eastern for every game, wherever
-    it is played; start_date is UTC (docs/SP3_open_issues.md #7)."""
+    it is played; start_date is UTC (docs/open_issues.md #7)."""
 
     @pytest.mark.asyncio
     async def test_tipoff_converts_from_eastern(self, adapter, db_session):

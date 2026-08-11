@@ -83,7 +83,7 @@ games
   id, league_id (FK), season, season_type ('regular'|'postseason'|'preseason'),
   week (nullable — NFL/CFB only), start_date (UTC — always; sources that
   publish US Eastern are converted on import via
-  `services/adapters/local_time.py`, see SP3_open_issues.md #7. Date-only OK
+  `services/adapters/local_time.py`, see open_issues.md #7. Date-only OK
   for old games, has_time flag), home_team_id (FK), away_team_id (FK),
   home_score, away_score, venue_id (FK, nullable), neutral_site (bool),
   attendance (nullable), overtime_flag (nullable — OT/SO for NHL, extra innings for MLB),
@@ -531,7 +531,7 @@ SQL query against the database.
   (not just trusting each subagent's self-report) before considering this phase done.
 
 ### Phase 10 — MLS adapter (added beyond original scope) ✅ DONE 2026-08-01
-Added to unblock the one attended MLS game in `SP3_open_issues.md` #1b. The seventh
+Added to unblock the one attended MLS game in `open_issues.md` #1b. The seventh
 league, and the first built on **two sources split at a hard season boundary** —
 `FIRST_ASA_SEASON = 2013` — so the same match can never arrive twice.
 - [x] Source research live-tested before ranking (`SP3_data_sources.md` MLS section):
@@ -657,4 +657,4 @@ far below its neighbors). Two distinct problems found:
 6. Venue completeness target: MLB/NFL/NHL/CFB from source data; NBA via hand-built seed file;
    MLS from the ASA API directly, with a small seed for pre-2013 grounds.
 7. `has_time=False` games are parked at **noon** UTC, never midnight, via
-   `local_time.date_only()` — see `SP3_open_issues.md` #8.
+   `local_time.date_only()` — see `open_issues.md` #8.

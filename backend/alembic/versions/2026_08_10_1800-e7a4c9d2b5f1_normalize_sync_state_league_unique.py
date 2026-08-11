@@ -8,10 +8,10 @@ Every database `d1f3a7c9e5b2` skipped (it returns early on `has_table`,
 see that revision's own comment) still carries the pre-migration shape:
 a table-level `CONSTRAINT uq_sync_state_league UNIQUE (league_id)` plus a
 *non*-unique `ix_sync_state_league_id`, left over from the `create_all()`
-era this schema predates (docs/SP3_open_issues.md #6). The model spells the
+era this schema predates (docs/open_issues.md #6). The model spells the
 same guarantee as one unique index (`unique=True, index=True`), so those
 databases fail `alembic check` forever even though nothing is functionally
-wrong (docs/SP3_open_issues.md #10).
+wrong (docs/open_issues.md #10).
 
 SQLite can't ALTER a table to drop a named UNIQUE constraint in place, so
 this rebuilds `sync_state` via batch mode: reflect the table, drop the old
