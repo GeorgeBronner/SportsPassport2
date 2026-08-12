@@ -36,4 +36,6 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
 ```bash
 cd backend && uv run alembic upgrade head    # apply migrations — required before first run
 cd backend && uv run uvicorn sports_passport.main:app --reload   # dev server (localhost:8000)
+cd frontend && npm run dev                   # frontend hot-reload dev (localhost:5173)
+docker compose up -d --build                 # full build (backend + frontend)
 ```
