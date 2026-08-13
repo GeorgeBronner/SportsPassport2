@@ -182,16 +182,27 @@ class CfbAdapter(LeagueAdapter):
         return result
 
     async def sync_recent(self, since: date) -> ImportResult:
-        # CFB seasons span Aug–Jan; Jan/Feb dates belong to the prior season.
-        season = since.year - 1 if since.month < 6 else since.year
         # CFBD's /games only filters by year + seasonType, never by date, so
-        # "recent" means re-upserting the whole season (~800 games). The
-        # upserts are idempotent, so this is wasteful rather than wrong.
-        logger.info(
-            "CFB sync since %s: no date filter on CFBD /games, re-syncing all of season %s",
-            since, season,
-        )
-        return await self.import_season(season)
+        # "recent" means re-upserting whole seasons (~800 games each). The
+        # upserts are idempotent, so this is wasteful rather than wrong. A
+        # window spanning a season boundary (since in one season, today in
+        # the next) must still cover both — a single season() call would
+        # silently miss whichever end since didn't land in.
+        first_season = self._season_of(since)
+        last_season = self._season_of(date.today())
+        result = ImportResult(league=self.league_code)
+        for season in range(first_season, last_season + 1):
+            logger.info(
+                "CFB sync since %s: no date filter on CFBD /games, re-syncing all of season %s",
+                since, season,
+            )
+            result.merge(await self.import_season(season))
+        return result
+
+    @staticmethod
+    def _season_of(d: date) -> int:
+        # CFB seasons span Aug–Jan; Jan/Feb dates belong to the prior season.
+        return d.year - 1 if d.month < 6 else d.year
 
     @staticmethod
     def _parse_date(raw: str | None) -> datetime | None:

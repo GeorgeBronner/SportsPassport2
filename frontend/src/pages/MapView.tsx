@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Loading from '../components/common/Loading';
 import Alert from '../components/common/Alert';
+import LeagueChips from '../components/common/LeagueChips';
 import SeasonChart, { type ChartSegment } from '../components/find/SeasonChart';
 import Tooltip from '../components/common/Tooltip';
 import { useTooltip } from '../hooks/useTooltip';
@@ -375,33 +376,20 @@ const MapView: React.FC = () => {
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-      <div className="flex flex-wrap gap-1.5 mb-3">
-        {LEAGUE_ORDER.map((code) => {
-          const has = leaguesPresent.has(code);
-          const on = activeLeagues.has(code);
-          return (
-            <button
-              key={code}
-              type="button"
-              disabled={!has}
-              title={has ? undefined : 'No games attended yet'}
-              onClick={() => toggleLeague(code)}
-              className={`text-[11px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-full border transition-colors ${
-                !has
-                  ? 'border-line text-ink-3 opacity-45 cursor-default'
-                  : on
-                    ? 'border-line-strong bg-panel text-ink font-bold'
-                    : 'border-line text-ink-3'
-              }`}
-            >
-              <span
-                className="inline-block w-2 h-2 rounded-full mr-1.5"
-                style={{ backgroundColor: leagueColor(code), opacity: has && on ? 1 : 0.3 }}
-              />
-              {code}
-            </button>
-          );
-        })}
+      <div className="flex flex-wrap items-center gap-1.5 mb-3">
+        <LeagueChips
+          items={LEAGUE_ORDER.map((code) => {
+            const has = leaguesPresent.has(code);
+            return {
+              code,
+              selected: activeLeagues.has(code),
+              disabled: !has,
+              title: has ? undefined : 'No games attended yet',
+            };
+          })}
+          onSelect={toggleLeague}
+          dimUnselectedDot
+        />
         {model.withoutVenue > 0 && (
           <span className="text-xs text-ink-3 self-center ml-2">
             {model.withoutVenue} attended game{model.withoutVenue !== 1 ? 's' : ''} missing venue

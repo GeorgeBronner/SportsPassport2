@@ -32,6 +32,9 @@ TEAMS_URL = "https://api.nhle.com/stats/rest/en/team"
 GAME_TYPES = {1: "preseason", 2: "regular", 3: "postseason"}
 # Be polite to the free API during the big one-time backfill
 BACKFILL_DELAY_SECONDS = 0.25
+# sync_recent's day loop is normally short, but an outage-recovery window can
+# still span days — same reasoning as nba.py's ESPN_THROTTLE_SECONDS.
+SYNC_THROTTLE_SECONDS = 0.25
 
 
 class NhlAdapter(LeagueAdapter):
@@ -231,7 +234,11 @@ class NhlAdapter(LeagueAdapter):
 
         day = since
         today = date.today()
+        first = True
         while day <= today:
+            if not first:
+                await asyncio.sleep(SYNC_THROTTLE_SECONDS)
+            first = False
             payload = await self._get(
                 f"{settings.nhl_api_url}/score/{day.isoformat()}", ok_404=True
             )

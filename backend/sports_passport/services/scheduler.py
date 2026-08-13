@@ -200,13 +200,25 @@ async def run_sync_all_background() -> None:
 
 
 async def run_nightly_sync() -> None:
-    """Scheduler entry point. Uses its own DB session (not request-scoped)."""
+    """Scheduler entry point. Uses its own DB session (not request-scoped).
+
+    Reserves the same single-owner slot the admin "run now" endpoint uses
+    (via start_sync_all), so a full sync already in flight — triggered
+    manually right before the cron fires — isn't raced by this one on the
+    same league's upserts.
+    """
+    global _sync_all_in_progress
+    if not start_sync_all():
+        logger.warning("Nightly sync skipped: a sync-all run is already in progress")
+        return
+
     logger.info("Nightly sync starting")
     db = SessionLocal()
     try:
         await sync_all_enabled(db)
     finally:
         db.close()
+        _sync_all_in_progress = False
     logger.info("Nightly sync finished")
 
 

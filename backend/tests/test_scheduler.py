@@ -11,7 +11,12 @@ from unittest.mock import AsyncMock, Mock, patch
 from sports_passport.models.sync_state import SyncState
 from sports_passport.services import scheduler
 from sports_passport.services.adapters.base import ImportResult
-from sports_passport.services.scheduler import compute_since, run_sync_for_league, sync_all_enabled
+from sports_passport.services.scheduler import (
+    compute_since,
+    run_nightly_sync,
+    run_sync_for_league,
+    sync_all_enabled,
+)
 
 
 def _mock_adapter(**overrides):
@@ -214,6 +219,29 @@ class TestSyncStateEndpoints:
             assert scheduler.start_sync_all() is False
         finally:
             scheduler._sync_all_in_progress = False
+
+    @patch('sports_passport.services.scheduler.get_adapter')
+    def test_run_nightly_sync_skips_when_sync_all_in_progress(self, mock_get_adapter, client):
+        """A manually-triggered run still in flight must not be raced by the
+        nightly cron job upserting the same leagues."""
+        mock_get_adapter.return_value = _mock_adapter()
+        import asyncio
+        assert scheduler.start_sync_all() is True
+        try:
+            asyncio.run(run_nightly_sync())
+            mock_get_adapter.assert_not_called()
+            # It didn't reserve the slot, so it must not release someone else's.
+            assert scheduler.sync_all_running() is True
+        finally:
+            scheduler._sync_all_in_progress = False
+
+    @patch('sports_passport.services.scheduler.get_adapter')
+    def test_run_nightly_sync_reserves_and_releases_the_guard(self, mock_get_adapter, client):
+        mock_get_adapter.return_value = _mock_adapter()
+        import asyncio
+        asyncio.run(run_nightly_sync())
+        assert mock_get_adapter.called
+        assert scheduler.sync_all_running() is False
 
     @patch('sports_passport.services.scheduler.get_adapter')
     def test_manual_sync_records_state(self, mock_get_adapter, client, admin_headers):

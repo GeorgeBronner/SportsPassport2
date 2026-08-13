@@ -33,6 +33,7 @@ const Find: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const league = searchParams.get('league') ?? '';
   const [attendances, setAttendances] = useState<Attendance[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAllTeams, setShowAllTeams] = useState(false);
 
   const setLeague = (code: string) => {
@@ -46,7 +47,8 @@ const Find: React.FC = () => {
       .then(setAttendances)
       // "Your teams" just stays empty on failure — but a silent catch makes
       // that indistinguishable from having logged no games.
-      .catch((err) => console.error('Failed to load attended games', err));
+      .catch((err) => console.error('Failed to load attended games', err))
+      .finally(() => setLoading(false));
   }, []);
 
   const yourTeams = useMemo<TeamTally[]>(() => {
@@ -103,7 +105,7 @@ const Find: React.FC = () => {
           />
         </div>
 
-        {byDate.length > 0 && (
+        {!loading && byDate.length > 0 && (
           // items-start so the two panels size to their own content — stretched,
           // the shorter one grew a large empty tail.
           <div className="grid gap-4 lg:grid-cols-2 mt-10 items-start [&>*]:min-w-0">
@@ -165,7 +167,7 @@ const Find: React.FC = () => {
           </div>
         )}
 
-        {yourTeams.length > 0 && (
+        {!loading && yourTeams.length > 0 && (
           <div className="mt-6 bg-panel border border-line rounded-xl p-4">
             <p className="kicker mb-3">Your teams{league ? ` · ${league}` : ''}</p>
             {leagueTeams.length === 0 && (

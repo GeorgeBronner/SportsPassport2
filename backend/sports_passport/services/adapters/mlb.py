@@ -31,6 +31,7 @@ neither source and is skipped by `sync_recent` (see docs/open_issues.md).
 import csv
 import io
 import logging
+import re
 import zipfile
 from datetime import date, datetime
 
@@ -161,6 +162,31 @@ class MlbAdapter(LeagueAdapter):
     async def _park_lookup(self) -> dict[str, dict]:
         rows = csv.DictReader(io.StringIO(await self._get_text(PARKS_URL)))
         return {row["PARKID"]: row for row in rows}
+
+    @staticmethod
+    def _normalize_park_name(name: str) -> str:
+        return re.sub(r"[^a-z0-9]", "", name.lower())
+
+    @classmethod
+    def _active_park_ids_by_name(cls, parks: dict[str, dict]) -> dict[str, str]:
+        """Retrosheet park id keyed by normalized NAME/AKA, parks still in use only.
+
+        Bridges the Stats API sync path (which only ever reports a venue by
+        its current name) onto the same park id the Retrosheet backfill
+        already keys venues on, so the two paths converge on one venue row
+        instead of the sync path minting a second row under the raw name.
+        A blank ``END`` in parkcode.txt means the park is still active; a
+        retired park is never a candidate since sync only ever sees current
+        games.
+        """
+        by_name: dict[str, str] = {}
+        for park_id, row in parks.items():
+            if row.get("END"):
+                continue
+            for name in (row.get("NAME"), row.get("AKA")):
+                if name:
+                    by_name[cls._normalize_park_name(name)] = park_id
+        return by_name
 
     def _team_lookup(self, league_id: int) -> dict[str, int]:
         teams = self.db.query(Team).filter(Team.league_id == league_id).all()
@@ -296,7 +322,8 @@ class MlbAdapter(LeagueAdapter):
         return result
 
     def _upsert_statsapi_game(
-        self, league_id: int, game: dict, by_code: dict, venue_cache: dict, result: ImportResult,
+        self, league_id: int, game: dict, by_code: dict, venue_cache: dict,
+        park_ids_by_name: dict[str, str], result: ImportResult,
     ) -> None:
         season_type = STATSAPI_GAME_TYPES.get(game.get("gameType") or "")
         if season_type is None:  # spring training / exhibition / all-star
@@ -329,8 +356,20 @@ class MlbAdapter(LeagueAdapter):
         venue_name = (game.get("venue") or {}).get("name")
         venue_id = venue_cache.get(venue_name)
         if venue_id is None and venue_name:
+            # Bridge to the Retrosheet park id the historical backfill already
+            # keys this venue on, so the two paths converge on one row instead
+            # of sync minting a second under the raw API name. A miss (e.g. a
+            # renamed park Retrosheet hasn't caught up on) falls back to the
+            # old behavior rather than failing the sync.
+            source_venue_id = park_ids_by_name.get(self._normalize_park_name(venue_name))
+            if source_venue_id is None:
+                source_venue_id = venue_name
+                logger.warning(
+                    "MLB sync: venue %r has no active Retrosheet park match; "
+                    "won't bridge to the historical backfill's venue row", venue_name,
+                )
             venue, created = upsert_venue(
-                self.db, source=self.source, source_venue_id=venue_name, name=venue_name,
+                self.db, source=self.source, source_venue_id=source_venue_id, name=venue_name,
             )
             venue_id = venue.id
             venue_cache[venue_name] = venue_id
@@ -376,12 +415,15 @@ class MlbAdapter(LeagueAdapter):
         league = get_league(self.db, self.league_code)
         by_code = self._team_lookup(league.id)
         venue_cache: dict[str, int] = {}
+        park_ids_by_name = self._active_park_ids_by_name(await self._park_lookup())
 
         payload = await self._fetch_schedule(since, date.today())
 
         for date_entry in payload.get("dates", []):
             for game in date_entry.get("games", []):
-                self._upsert_statsapi_game(league.id, game, by_code, venue_cache, result)
+                self._upsert_statsapi_game(
+                    league.id, game, by_code, venue_cache, park_ids_by_name, result
+                )
 
         self.db.commit()
         return result

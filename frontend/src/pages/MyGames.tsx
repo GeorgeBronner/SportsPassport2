@@ -7,6 +7,7 @@ import Loading from '../components/common/Loading';
 import Alert from '../components/common/Alert';
 import StampCard from '../components/passport/StampCard';
 import TeamBadge from '../components/common/TeamBadge';
+import LeagueChips from '../components/common/LeagueChips';
 import { LEAGUE_ORDER, leagueColor } from '../utils/leagues';
 import { formatDateShort } from '../utils/format';
 
@@ -158,32 +159,14 @@ const MyGames: React.FC = () => {
               aria-label="Search your log"
               className="flex-1 min-w-44 text-sm px-3 py-1.5 rounded-lg bg-panel-2 text-ink border border-line placeholder:text-ink-3 focus:outline-2 focus:outline-focus"
             />
-            <div className="flex gap-1.5 flex-wrap">
-              {['', ...LEAGUE_ORDER.filter((c) => leaguesPresent.has(c))].map((code) => (
-                <button
-                  key={code || 'all'}
-                  type="button"
-                  onClick={() => setLeague(code)}
-                  className={`text-[11px] uppercase tracking-[0.12em] px-3 py-1.5 rounded-full border transition-colors ${
-                    league === code
-                      ? 'border-line-strong bg-panel-2 text-ink font-bold'
-                      : 'border-line text-ink-2 hover:text-ink'
-                  }`}
-                >
-                  {code ? (
-                    <>
-                      <span
-                        className="inline-block w-2 h-2 rounded-full mr-1.5"
-                        style={{ backgroundColor: leagueColor(code) }}
-                      />
-                      {code}
-                    </>
-                  ) : (
-                    'All'
-                  )}
-                </button>
-              ))}
-            </div>
+            <LeagueChips
+              items={['', ...LEAGUE_ORDER.filter((c) => leaguesPresent.has(c))].map((code) => ({
+                code,
+                label: code ? undefined : 'All',
+                selected: league === code,
+              }))}
+              onSelect={setLeague}
+            />
             <select
               value={season}
               onChange={(e) => setSeason(e.target.value ? Number(e.target.value) : '')}

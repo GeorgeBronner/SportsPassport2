@@ -161,7 +161,8 @@ class TestMlbSync:
         with patch.object(adapter, "_get_text", AsyncMock(return_value=TEAMS_CSV)):
             await adapter.import_teams()
 
-        with patch.object(adapter, "_fetch_schedule", AsyncMock(return_value=STATSAPI_PAYLOAD)):
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)), \
+             patch.object(adapter, "_fetch_schedule", AsyncMock(return_value=STATSAPI_PAYLOAD)):
             result = await adapter.sync_recent(since=date(2024, 7, 1))
 
         assert result.games_imported == 1
@@ -170,3 +171,66 @@ class TestMlbSync:
         assert game.source_game_id == "20240705_MON_OAK_0"
         assert (game.away_score, game.home_score) == (4, 1)
         assert game.venue.name == "Oakland Coliseum"
+
+    @pytest.mark.asyncio
+    async def test_sync_recent_bridges_venue_to_retrosheet_park_id(self, adapter, db_session):
+        """A synced game at a park the historical backfill already knows must
+        land on the same venue row, not a second one keyed by raw API name."""
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=TEAMS_CSV)):
+            await adapter.import_teams()
+
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)), \
+             patch.object(adapter, "_get_gamelog_rows", AsyncMock(return_value=[GAMELOG_ROW_1970])):
+            await adapter.import_season(1970)  # backfills Parc Jarry as MON01
+
+        payload = {
+            "dates": [{
+                "date": "2024-07-05",
+                "games": [{
+                    "gamePk": 2, "gameType": "R", "season": "2024",
+                    "gameDate": "2024-07-05T20:10:00Z", "officialDate": "2024-07-05",
+                    "doubleHeader": "N", "gameNumber": 1,
+                    "venue": {"name": "Parc Jarry"},
+                    "teams": {
+                        "away": {"team": {"teamCode": "oak"}, "score": 2},
+                        "home": {"team": {"teamCode": "mon"}, "score": 5},
+                    },
+                }],
+            }]
+        }
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)), \
+             patch.object(adapter, "_fetch_schedule", AsyncMock(return_value=payload)):
+            result = await adapter.sync_recent(since=date(2024, 7, 1))
+
+        assert result.games_imported == 1
+        assert db_session.query(Venue).count() == 1  # bridged, not duplicated
+        venue = db_session.query(Venue).one()
+        assert venue.source_venue_id == "MON01"
+
+    @pytest.mark.asyncio
+    async def test_sync_recent_falls_back_when_no_park_match(self, adapter, db_session):
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=TEAMS_CSV)):
+            await adapter.import_teams()
+
+        payload = {
+            "dates": [{
+                "date": "2024-07-05",
+                "games": [{
+                    "gamePk": 3, "gameType": "R", "season": "2024",
+                    "gameDate": "2024-07-05T20:10:00Z", "officialDate": "2024-07-05",
+                    "doubleHeader": "N", "gameNumber": 1,
+                    "venue": {"name": "Some Brand New Ballpark"},
+                    "teams": {
+                        "away": {"team": {"teamCode": "mon"}, "score": 2},
+                        "home": {"team": {"teamCode": "oak"}, "score": 5},
+                    },
+                }],
+            }]
+        }
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)), \
+             patch.object(adapter, "_fetch_schedule", AsyncMock(return_value=payload)):
+            result = await adapter.sync_recent(since=date(2024, 7, 1))
+
+        assert result.games_imported == 1
+        venue = db_session.query(Venue).one()
+        assert venue.source_venue_id == "Some Brand New Ballpark"

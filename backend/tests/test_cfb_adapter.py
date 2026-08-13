@@ -1,6 +1,7 @@
 """
 Tests for the CFB adapter using mocked CollegeFootballData.com (CFBD) payloads.
 """
+from datetime import date
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -29,10 +30,11 @@ def _game(**over):
     return row
 
 
-def _fake_get(fbs_teams=None, fcs_teams=None, games=None, venues=None):
+def _fake_get(fbs_teams=None, fcs_teams=None, games=None, games_by_year=None, venues=None):
     fbs_teams = fbs_teams if fbs_teams is not None else [ALABAMA, GEORGIA]
     fcs_teams = fcs_teams if fcs_teams is not None else []
     games = games if games is not None else []
+    games_by_year = games_by_year or {}
     venues = venues if venues is not None else []
 
     async def fake_get(endpoint, params=None):
@@ -43,6 +45,8 @@ def _fake_get(fbs_teams=None, fcs_teams=None, games=None, venues=None):
         if endpoint == "/venues":
             return venues
         if endpoint == "/games":
+            if games_by_year:
+                return games_by_year.get((params or {}).get("year"), [])
             return games
         raise AssertionError(f"unexpected endpoint {endpoint} {params}")
 
@@ -77,3 +81,25 @@ class TestCfbImportSeason:
         assert len(result.errors) == 1
         assert "unmatched team" in result.errors[0]
         assert db_session.query(Game).count() == 0
+
+
+class TestCfbSyncRecent:
+    @pytest.mark.asyncio
+    async def test_sync_recent_covers_every_season_in_the_window(self, adapter, db_session, cfb_league):
+        # since (Jan 2024) is in the 2023 season; "today" (Sep 2024) is in
+        # the 2024 season — the window spans the boundary, so both seasons'
+        # games must be fetched, not just whichever season `since` landed in.
+        game_2023 = _game(id=1)
+        game_2024 = _game(id=2, startDate="2024-09-07T19:00:00.000Z")
+        games_by_year = {2023: [game_2023], 2024: [game_2024]}
+
+        with patch.object(adapter, "_get", AsyncMock(side_effect=_fake_get(games_by_year=games_by_year))):
+            await adapter.import_teams()
+            with patch("sports_passport.services.adapters.cfb.date") as mock_date:
+                mock_date.today.return_value = date(2024, 9, 1)
+                result = await adapter.sync_recent(since=date(2024, 1, 15))
+
+        assert result.games_imported == 2
+        assert not result.errors
+        assert db_session.query(Game).filter(Game.source_game_id == "1").one().season == 2023
+        assert db_session.query(Game).filter(Game.source_game_id == "2").one().season == 2024
