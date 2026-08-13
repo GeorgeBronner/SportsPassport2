@@ -1,8 +1,9 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { teamsApi } from '../../api/teams';
 import type { TeamSearchResult } from '../../types/api';
-import { LEAGUE_ORDER, leagueColor, sortByLeagueOrder } from '../../utils/leagues';
+import { LEAGUE_ORDER, sortByLeagueOrder } from '../../utils/leagues';
 import TeamBadge from '../common/TeamBadge';
+import LeagueChips from '../common/LeagueChips';
 
 interface OmniboxProps {
   onSelect: (team: TeamSearchResult) => void;
@@ -140,31 +141,15 @@ const Omnibox: React.FC<OmniboxProps> = ({
         autoComplete="off"
       />
 
-      <div className="flex flex-wrap gap-1.5 mt-2.5">
-        {['', ...LEAGUE_ORDER].map((code) => (
-          <button
-            key={code || 'all'}
-            type="button"
-            onClick={() => selectLeague(code)}
-            className={`text-[11px] uppercase tracking-[0.14em] px-3 py-1.5 rounded-md border transition-colors ${
-              league === code
-                ? 'border-line-strong bg-panel text-ink font-bold'
-                : 'border-line text-ink-2 hover:text-ink'
-            }`}
-          >
-            {code ? (
-              <>
-                <span
-                  className="inline-block w-2 h-2 rounded-[2px] mr-1.5 align-[1px]"
-                  style={{ backgroundColor: leagueColor(code) }}
-                />
-                {code}
-              </>
-            ) : (
-              'All leagues'
-            )}
-          </button>
-        ))}
+      <div className="mt-2.5">
+        <LeagueChips
+          items={['', ...LEAGUE_ORDER].map((code) => ({
+            code,
+            label: code ? undefined : 'All leagues',
+            selected: league === code,
+          }))}
+          onSelect={selectLeague}
+        />
       </div>
 
       {open && (

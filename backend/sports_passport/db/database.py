@@ -15,11 +15,14 @@ if "sqlite" in settings.database_url:
     # wait for the lock instead of failing immediately with "database is
     # locked". Documented as already-decided in docs/SP3_plan.md's risk table but
     # never actually wired up until now.
+    # SQLite disables foreign key enforcement per-connection by default, so
+    # every FK in the schema is otherwise decorative.
     @event.listens_for(engine, "connect")
     def _set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA busy_timeout=30000")
+        cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
 
 # Create SessionLocal class

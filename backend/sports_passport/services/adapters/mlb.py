@@ -31,11 +31,16 @@ neither source and is skipped by `sync_recent` (see docs/open_issues.md).
 import csv
 import io
 import logging
+import re
 import zipfile
 from datetime import date, datetime
 
+import httpx
+
 from sports_passport.core.config import settings
+from sports_passport.models.game import Game
 from sports_passport.models.team import Team
+from sports_passport.models.venue import Venue
 from sports_passport.services.adapters import local_time
 from sports_passport.services.adapters.base import ImportResult, LeagueAdapter
 from sports_passport.services.importer import get_league, upsert_game, upsert_team, upsert_venue
@@ -161,6 +166,41 @@ class MlbAdapter(LeagueAdapter):
     async def _park_lookup(self) -> dict[str, dict]:
         rows = csv.DictReader(io.StringIO(await self._get_text(PARKS_URL)))
         return {row["PARKID"]: row for row in rows}
+
+    @staticmethod
+    def _normalize_park_name(name: str) -> str:
+        return re.sub(r"[^a-z0-9]", "", name.lower())
+
+    @classmethod
+    def _active_park_ids_by_name(cls, parks: dict[str, dict]) -> dict[str, str]:
+        """Retrosheet park id keyed by normalized NAME/AKA, parks still in use only.
+
+        Bridges the Stats API sync path (which only ever reports a venue by
+        its current name) onto the same park id the Retrosheet backfill
+        already keys venues on, so the two paths converge on one venue row
+        instead of the sync path minting a second row under the raw name.
+        A blank ``END`` in parkcode.txt means the park is still active; a
+        retired park is never a candidate since sync only ever sees current
+        games.
+        """
+        by_name: dict[str, str] = {}
+        for park_id, row in parks.items():
+            if row.get("END"):
+                continue
+            for name in (row.get("NAME"), row.get("AKA")):
+                if not name:
+                    continue
+                key = cls._normalize_park_name(name)
+                existing = by_name.get(key)
+                if existing is not None and existing != park_id:
+                    logger.warning(
+                        "MLB: active parks %r and %r both normalize to %r; "
+                        "keeping %r for the sync venue bridge",
+                        existing, park_id, key, existing,
+                    )
+                    continue
+                by_name[key] = park_id
+        return by_name
 
     def _team_lookup(self, league_id: int) -> dict[str, int]:
         teams = self.db.query(Team).filter(Team.league_id == league_id).all()
@@ -295,8 +335,39 @@ class MlbAdapter(LeagueAdapter):
         result.merge(await self.import_postseason(start_season, end_season))
         return result
 
+    def _reconcile_legacy_venue(self, legacy_name: str, canonical_id: str) -> None:
+        """Merge a venue row a pre-bridge sync already created under the raw
+        API name onto the canonical Retrosheet-park-id row.
+
+        Before the park-name bridge existed, `_upsert_statsapi_game` keyed
+        every synced venue on the raw API name, so a database that's been
+        syncing this park for a while may already have a
+        `(source, venue_name)` row with games attached to it. Once the bridge
+        takes over, upserting under `(source, canonical_id)` would otherwise
+        silently orphan those games onto an abandoned row instead of
+        converging them onto the historical backfill's row as intended.
+        `games.venue_id` is the only FK onto `venues.id` (attendance only
+        references `game_id`), so reassigning it is sufficient to merge.
+        """
+        legacy = (
+            self.db.query(Venue)
+            .filter(Venue.source == self.source, Venue.source_venue_id == legacy_name)
+            .first()
+        )
+        if legacy is None:
+            return
+        canonical, _ = upsert_venue(
+            self.db, source=self.source, source_venue_id=canonical_id, name=legacy.name
+        )
+        if canonical.id == legacy.id:
+            return
+        self.db.query(Game).filter(Game.venue_id == legacy.id).update({"venue_id": canonical.id})
+        self.db.delete(legacy)
+        self.db.flush()
+
     def _upsert_statsapi_game(
-        self, league_id: int, game: dict, by_code: dict, venue_cache: dict, result: ImportResult,
+        self, league_id: int, game: dict, by_code: dict, venue_cache: dict,
+        park_ids_by_name: dict[str, str], result: ImportResult,
     ) -> None:
         season_type = STATSAPI_GAME_TYPES.get(game.get("gameType") or "")
         if season_type is None:  # spring training / exhibition / all-star
@@ -329,8 +400,22 @@ class MlbAdapter(LeagueAdapter):
         venue_name = (game.get("venue") or {}).get("name")
         venue_id = venue_cache.get(venue_name)
         if venue_id is None and venue_name:
+            # Bridge to the Retrosheet park id the historical backfill already
+            # keys this venue on, so the two paths converge on one row instead
+            # of sync minting a second under the raw API name. A miss (e.g. a
+            # renamed park Retrosheet hasn't caught up on) falls back to the
+            # old behavior rather than failing the sync.
+            source_venue_id = park_ids_by_name.get(self._normalize_park_name(venue_name))
+            if source_venue_id is None:
+                source_venue_id = venue_name
+                logger.warning(
+                    "MLB sync: venue %r has no active Retrosheet park match; "
+                    "won't bridge to the historical backfill's venue row", venue_name,
+                )
+            else:
+                self._reconcile_legacy_venue(venue_name, source_venue_id)
             venue, created = upsert_venue(
-                self.db, source=self.source, source_venue_id=venue_name, name=venue_name,
+                self.db, source=self.source, source_venue_id=source_venue_id, name=venue_name,
             )
             venue_id = venue.id
             venue_cache[venue_name] = venue_id
@@ -376,12 +461,26 @@ class MlbAdapter(LeagueAdapter):
         league = get_league(self.db, self.league_code)
         by_code = self._team_lookup(league.id)
         venue_cache: dict[str, int] = {}
+        try:
+            park_ids_by_name = self._active_park_ids_by_name(await self._park_lookup())
+        except httpx.HTTPError as exc:
+            # The venue bridge is an enhancement over the sync path's old
+            # behavior (source_venue_id=raw name), not a prerequisite for it —
+            # a Retrosheet hiccup shouldn't fail the whole game/team sync.
+            result.errors.append(
+                f"Retrosheet parkcode.txt unavailable ({exc}); venues synced this run "
+                "won't bridge to the historical backfill's rows"
+            )
+            logger.warning("MLB sync: parkcode.txt fetch failed, continuing without it: %s", exc)
+            park_ids_by_name = {}
 
         payload = await self._fetch_schedule(since, date.today())
 
         for date_entry in payload.get("dates", []):
             for game in date_entry.get("games", []):
-                self._upsert_statsapi_game(league.id, game, by_code, venue_cache, result)
+                self._upsert_statsapi_game(
+                    league.id, game, by_code, venue_cache, park_ids_by_name, result
+                )
 
         self.db.commit()
         return result

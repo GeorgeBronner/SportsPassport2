@@ -110,10 +110,14 @@ class CfbAdapter(LeagueAdapter):
             "division": "fbs",
         })
 
-        # Team/venue lookups by source id, resolved once per season
-        teams_by_name = {
-            t.name: t.id
+        # Team/venue lookups by source id, resolved once per season. Keyed on
+        # source_team_id, not name: team names are reused/renamed over time,
+        # so a name key can silently misfile or drop games (see nfl.py's
+        # _team_lookup docstring for the same reasoning).
+        teams_by_source = {
+            t.source_team_id: t.id
             for t in self.db.query(Team).filter(Team.league_id == league.id).all()
+            if t.source_team_id
         }
         from sports_passport.models.venue import Venue
         venues_by_source = {
@@ -122,10 +126,17 @@ class CfbAdapter(LeagueAdapter):
         }
 
         for game_data in games_data:
-            home_id = teams_by_name.get(game_data.get("homeTeam"))
-            away_id = teams_by_name.get(game_data.get("awayTeam"))
+            home_id = teams_by_source.get(str(game_data.get("homeId")))
+            away_id = teams_by_source.get(str(game_data.get("awayId")))
             if not home_id or not away_id:
-                continue  # non-FBS/FCS opponent we don't track
+                # Most misses are a non-FBS/FCS opponent we don't track, but
+                # a renamed/reclassified team would look identical, so record
+                # it rather than dropping the game with no signal.
+                result.errors.append(
+                    f"game {game_data.get('id')}: unmatched team "
+                    f"{game_data.get('awayTeam')} @ {game_data.get('homeTeam')}"
+                )
+                continue
 
             start_date = self._parse_date(game_data.get("startDate"))
             if not start_date:
@@ -171,16 +182,27 @@ class CfbAdapter(LeagueAdapter):
         return result
 
     async def sync_recent(self, since: date) -> ImportResult:
-        # CFB seasons span Aug–Jan; Jan/Feb dates belong to the prior season.
-        season = since.year - 1 if since.month < 6 else since.year
         # CFBD's /games only filters by year + seasonType, never by date, so
-        # "recent" means re-upserting the whole season (~800 games). The
-        # upserts are idempotent, so this is wasteful rather than wrong.
-        logger.info(
-            "CFB sync since %s: no date filter on CFBD /games, re-syncing all of season %s",
-            since, season,
-        )
-        return await self.import_season(season)
+        # "recent" means re-upserting whole seasons (~800 games each). The
+        # upserts are idempotent, so this is wasteful rather than wrong. A
+        # window spanning a season boundary (since in one season, today in
+        # the next) must still cover both — a single season() call would
+        # silently miss whichever end since didn't land in.
+        first_season = self._season_of(since)
+        last_season = self._season_of(date.today())
+        result = ImportResult(league=self.league_code)
+        for season in range(first_season, last_season + 1):
+            logger.info(
+                "CFB sync since %s: no date filter on CFBD /games, re-syncing all of season %s",
+                since, season,
+            )
+            result.merge(await self.import_season(season))
+        return result
+
+    @staticmethod
+    def _season_of(d: date) -> int:
+        # CFB seasons span Aug–Jan; Jan/Feb dates belong to the prior season.
+        return d.year - 1 if d.month < 6 else d.year
 
     @staticmethod
     def _parse_date(raw: str | None) -> datetime | None:

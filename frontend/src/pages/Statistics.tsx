@@ -4,6 +4,7 @@ import { attendanceApi } from '../api/attendance';
 import type { AttendanceStats } from '../types/api';
 import Layout from '../components/layout/Layout';
 import Loading from '../components/common/Loading';
+import Alert from '../components/common/Alert';
 import Tooltip from '../components/common/Tooltip';
 import { useTooltip } from '../hooks/useTooltip';
 import TeamBadge from '../components/common/TeamBadge';
@@ -28,6 +29,7 @@ const Statistics: React.FC = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState<AttendanceStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const { tip, bind } = useTooltip();
 
   useEffect(() => {
@@ -36,16 +38,19 @@ const Statistics: React.FC = () => {
       .then(setStats)
       .catch((err) => {
         console.error('Failed to load statistics', err);
-        setStats(null);
+        setError('Failed to load statistics');
       })
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Loading message="Loading statistics..." />;
   if (!stats) {
+    // No onClose: this Alert *is* the page content while stats is null, not
+    // a dismissible banner over other content — dismissing it would re-render
+    // the identical branch since stats never gets set on failure.
     return (
       <Layout>
-        <p className="text-ink-2">Failed to load statistics. Please try again later.</p>
+        <Alert type="error" message={error || 'Failed to load statistics'} />
       </Layout>
     );
   }

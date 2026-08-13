@@ -144,9 +144,13 @@ if static_dir.exists():
         if full_path == "api" or full_path.startswith("api/"):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
 
-        # If requesting a static file that exists, serve it
-        file_path = static_dir / full_path
-        if file_path.is_file():
+        # If requesting a static file that exists, serve it. full_path is
+        # attacker-controlled; resolve() collapses any ../ (including
+        # percent-encoded traversal FastAPI's router doesn't normalize) and
+        # is_relative_to() rejects anything that escapes static_dir before
+        # we ever touch the filesystem.
+        file_path = (static_dir / full_path).resolve()
+        if file_path.is_relative_to(static_dir.resolve()) and file_path.is_file():
             return FileResponse(file_path)
 
         # Otherwise serve index.html for client-side routing

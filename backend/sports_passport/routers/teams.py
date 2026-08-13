@@ -215,6 +215,7 @@ def team_attendance_stats(
         games_by_season=dict(sorted(seasons.items())),
         venues=[
             TeamVenueCount(
+                venue_id=vid,
                 name=venue_info[vid].name,
                 city=venue_info[vid].city,
                 state=venue_info[vid].state,
