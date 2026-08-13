@@ -35,6 +35,8 @@ import re
 import zipfile
 from datetime import date, datetime
 
+import httpx
+
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
 from sports_passport.services.adapters import local_time
@@ -184,8 +186,18 @@ class MlbAdapter(LeagueAdapter):
             if row.get("END"):
                 continue
             for name in (row.get("NAME"), row.get("AKA")):
-                if name:
-                    by_name[cls._normalize_park_name(name)] = park_id
+                if not name:
+                    continue
+                key = cls._normalize_park_name(name)
+                existing = by_name.get(key)
+                if existing is not None and existing != park_id:
+                    logger.warning(
+                        "MLB: active parks %r and %r both normalize to %r; "
+                        "keeping %r for the sync venue bridge",
+                        existing, park_id, key, existing,
+                    )
+                    continue
+                by_name[key] = park_id
         return by_name
 
     def _team_lookup(self, league_id: int) -> dict[str, int]:
@@ -415,7 +427,18 @@ class MlbAdapter(LeagueAdapter):
         league = get_league(self.db, self.league_code)
         by_code = self._team_lookup(league.id)
         venue_cache: dict[str, int] = {}
-        park_ids_by_name = self._active_park_ids_by_name(await self._park_lookup())
+        try:
+            park_ids_by_name = self._active_park_ids_by_name(await self._park_lookup())
+        except httpx.HTTPError as exc:
+            # The venue bridge is an enhancement over the sync path's old
+            # behavior (source_venue_id=raw name), not a prerequisite for it —
+            # a Retrosheet hiccup shouldn't fail the whole game/team sync.
+            result.errors.append(
+                f"Retrosheet parkcode.txt unavailable ({exc}); venues synced this run "
+                "won't bridge to the historical backfill's rows"
+            )
+            logger.warning("MLB sync: parkcode.txt fetch failed, continuing without it: %s", exc)
+            park_ids_by_name = {}
 
         payload = await self._fetch_schedule(since, date.today())
 

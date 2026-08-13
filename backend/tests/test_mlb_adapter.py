@@ -6,6 +6,7 @@ sources on 2026-07-11).
 from datetime import date
 from unittest.mock import AsyncMock, patch
 
+import httpx
 import pytest
 
 from sports_passport.models.game import Game
@@ -234,3 +235,22 @@ class TestMlbSync:
         assert result.games_imported == 1
         venue = db_session.query(Venue).one()
         assert venue.source_venue_id == "Some Brand New Ballpark"
+
+    @pytest.mark.asyncio
+    async def test_sync_recent_survives_retrosheet_outage(self, adapter, db_session):
+        """A Retrosheet hiccup must not fail the whole sync — the venue
+        bridge is an enhancement over the sync path's old behavior, not a
+        prerequisite for it."""
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=TEAMS_CSV)):
+            await adapter.import_teams()
+
+        with patch.object(
+            adapter, "_get_text",
+            AsyncMock(side_effect=httpx.ConnectError("connection refused")),
+        ), patch.object(adapter, "_fetch_schedule", AsyncMock(return_value=STATSAPI_PAYLOAD)):
+            result = await adapter.sync_recent(since=date(2024, 7, 1))
+
+        assert result.games_imported == 1
+        assert any("parkcode.txt" in e for e in result.errors)
+        venue = db_session.query(Venue).one()
+        assert venue.source_venue_id == "Oakland Coliseum"  # fell back to raw name

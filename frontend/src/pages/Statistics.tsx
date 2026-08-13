@@ -45,9 +45,12 @@ const Statistics: React.FC = () => {
 
   if (loading) return <Loading message="Loading statistics..." />;
   if (!stats) {
+    // No onClose: this Alert *is* the page content while stats is null, not
+    // a dismissible banner over other content — dismissing it would re-render
+    // the identical branch since stats never gets set on failure.
     return (
       <Layout>
-        <Alert type="error" message={error || 'Failed to load statistics'} onClose={() => setError('')} />
+        <Alert type="error" message={error || 'Failed to load statistics'} />
       </Layout>
     );
   }
