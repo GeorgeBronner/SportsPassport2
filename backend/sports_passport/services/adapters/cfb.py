@@ -110,10 +110,14 @@ class CfbAdapter(LeagueAdapter):
             "division": "fbs",
         })
 
-        # Team/venue lookups by source id, resolved once per season
-        teams_by_name = {
-            t.name: t.id
+        # Team/venue lookups by source id, resolved once per season. Keyed on
+        # source_team_id, not name: team names are reused/renamed over time,
+        # so a name key can silently misfile or drop games (see nfl.py's
+        # _team_lookup docstring for the same reasoning).
+        teams_by_source = {
+            t.source_team_id: t.id
             for t in self.db.query(Team).filter(Team.league_id == league.id).all()
+            if t.source_team_id
         }
         from sports_passport.models.venue import Venue
         venues_by_source = {
@@ -122,10 +126,17 @@ class CfbAdapter(LeagueAdapter):
         }
 
         for game_data in games_data:
-            home_id = teams_by_name.get(game_data.get("homeTeam"))
-            away_id = teams_by_name.get(game_data.get("awayTeam"))
+            home_id = teams_by_source.get(str(game_data.get("homeId")))
+            away_id = teams_by_source.get(str(game_data.get("awayId")))
             if not home_id or not away_id:
-                continue  # non-FBS/FCS opponent we don't track
+                # Most misses are a non-FBS/FCS opponent we don't track, but
+                # a renamed/reclassified team would look identical, so record
+                # it rather than dropping the game with no signal.
+                result.errors.append(
+                    f"game {game_data.get('id')}: unmatched team "
+                    f"{game_data.get('awayTeam')} @ {game_data.get('homeTeam')}"
+                )
+                continue
 
             start_date = self._parse_date(game_data.get("startDate"))
             if not start_date:

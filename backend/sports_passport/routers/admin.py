@@ -199,7 +199,7 @@ def list_all_users(
     return users
 
 
-@router.post("/users/{user_id}/promote")
+@router.post("/users/{user_id}/promote", response_model=UserResponse)
 def promote_user_to_admin(
     user_id: int,
     db: Session = Depends(get_db),
@@ -224,10 +224,10 @@ def promote_user_to_admin(
     db.commit()
     db.refresh(user)
 
-    return {"message": f"User {user.email} promoted to admin"}
+    return user
 
 
-@router.post("/users/{user_id}/demote")
+@router.post("/users/{user_id}/demote", response_model=UserResponse)
 def demote_user_from_admin(
     user_id: int,
     db: Session = Depends(get_db),
@@ -259,4 +259,4 @@ def demote_user_from_admin(
     db.commit()
     db.refresh(user)
 
-    return {"message": f"User {user.email} demoted from admin"}
+    return user

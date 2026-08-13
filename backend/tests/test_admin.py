@@ -170,8 +170,9 @@ class TestPromoteUser:
         )
         assert response.status_code == 200
         data = response.json()
-        assert "message" in data
-        assert test_user.email in data["message"]
+        assert data["id"] == test_user.id
+        assert data["email"] == test_user.email
+        assert data["is_admin"] is True
 
         # Verify promotion persists
         response = client.get("/api/admin/users", headers=admin_headers)
@@ -235,8 +236,9 @@ class TestDemoteUser:
         )
         assert response.status_code == 200
         data = response.json()
-        assert "message" in data
-        assert second_admin.email in data["message"]
+        assert data["id"] == second_admin.id
+        assert data["email"] == second_admin.email
+        assert data["is_admin"] is False
 
     def test_demote_regular_user(self, client, test_user, admin_headers):
         """Test demoting already regular user returns 400."""

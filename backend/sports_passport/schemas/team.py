@@ -39,6 +39,7 @@ class TeamSearchResult(TeamResponse):
 
 class TeamVenueCount(BaseModel):
     """How often the caller has seen a team at one venue."""
+    venue_id: int
     name: str
     city: str | None = None
     state: str | None = None
