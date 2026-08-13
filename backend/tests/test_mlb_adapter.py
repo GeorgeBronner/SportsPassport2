@@ -3,7 +3,7 @@ Tests for the MLB adapter using mocked Retrosheet CSV/gamelog rows and a
 mocked MLB Stats API schedule payload (shapes verified against the live
 sources on 2026-07-11).
 """
-from datetime import date
+from datetime import date, datetime
 from unittest.mock import AsyncMock, patch
 
 import httpx
@@ -207,6 +207,42 @@ class TestMlbSync:
         assert db_session.query(Venue).count() == 1  # bridged, not duplicated
         venue = db_session.query(Venue).one()
         assert venue.source_venue_id == "MON01"
+
+    @pytest.mark.asyncio
+    async def test_sync_recent_reconciles_legacy_venue_row(self, adapter, db_session, mlb_league):
+        """A sync from before the venue bridge existed may already have a
+        venue row keyed on the raw API name; once the bridge takes over,
+        games on that legacy row must be reassigned onto the canonical
+        park-id row instead of being orphaned."""
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=TEAMS_CSV)):
+            await adapter.import_teams()
+
+        mon = db_session.query(Team).filter(Team.abbreviation == "MON").one()
+        oak = db_session.query(Team).filter(Team.abbreviation == "OAK").one()
+        legacy_venue = Venue(
+            source="retrosheet", source_venue_id="Oakland Coliseum", name="Oakland Coliseum"
+        )
+        db_session.add(legacy_venue)
+        db_session.flush()
+        legacy_game = Game(
+            source="retrosheet", source_game_id="19990401_MON_OAK_0", league_id=mlb_league.id,
+            home_team_id=oak.id, away_team_id=mon.id, home_score=3, away_score=1,
+            start_date=datetime(1999, 4, 1), has_time=False, season=1999, season_type="regular",
+            venue_id=legacy_venue.id, neutral_site=False,
+        )
+        db_session.add(legacy_game)
+        db_session.commit()
+
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)), \
+             patch.object(adapter, "_fetch_schedule", AsyncMock(return_value=STATSAPI_PAYLOAD)):
+            result = await adapter.sync_recent(since=date(2024, 7, 1))
+
+        assert result.games_imported == 1
+        assert db_session.query(Venue).count() == 1  # legacy row merged away, not orphaned
+        venue = db_session.query(Venue).one()
+        assert venue.source_venue_id == "OAK01"
+        db_session.refresh(legacy_game)
+        assert legacy_game.venue_id == venue.id  # reassigned onto the canonical row
 
     @pytest.mark.asyncio
     async def test_sync_recent_falls_back_when_no_park_match(self, adapter, db_session):

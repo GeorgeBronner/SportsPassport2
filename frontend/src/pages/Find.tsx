@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import Omnibox from '../components/find/Omnibox';
+import Alert from '../components/common/Alert';
 import TeamBadge from '../components/common/TeamBadge';
 import StampCard from '../components/passport/StampCard';
 import { attendanceApi } from '../api/attendance';
@@ -34,6 +35,7 @@ const Find: React.FC = () => {
   const league = searchParams.get('league') ?? '';
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showAllTeams, setShowAllTeams] = useState(false);
 
   const setLeague = (code: string) => {
@@ -45,9 +47,10 @@ const Find: React.FC = () => {
     attendanceApi
       .getAttendedGames()
       .then(setAttendances)
-      // "Your teams" just stays empty on failure — but a silent catch makes
-      // that indistinguishable from having logged no games.
-      .catch((err) => console.error('Failed to load attended games', err))
+      .catch((err) => {
+        console.error('Failed to load attended games', err);
+        setError('Failed to load your games');
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -94,6 +97,8 @@ const Find: React.FC = () => {
         <h1 className="text-2xl md:text-3xl font-bold mb-6 text-ink">
           Every game you've seen — and every one you haven't. Yet.
         </h1>
+
+        {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
         <div className="max-w-3xl">
           <Omnibox

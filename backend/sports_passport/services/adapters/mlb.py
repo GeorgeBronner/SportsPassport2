@@ -38,7 +38,9 @@ from datetime import date, datetime
 import httpx
 
 from sports_passport.core.config import settings
+from sports_passport.models.game import Game
 from sports_passport.models.team import Team
+from sports_passport.models.venue import Venue
 from sports_passport.services.adapters import local_time
 from sports_passport.services.adapters.base import ImportResult, LeagueAdapter
 from sports_passport.services.importer import get_league, upsert_game, upsert_team, upsert_venue
@@ -333,6 +335,36 @@ class MlbAdapter(LeagueAdapter):
         result.merge(await self.import_postseason(start_season, end_season))
         return result
 
+    def _reconcile_legacy_venue(self, legacy_name: str, canonical_id: str) -> None:
+        """Merge a venue row a pre-bridge sync already created under the raw
+        API name onto the canonical Retrosheet-park-id row.
+
+        Before the park-name bridge existed, `_upsert_statsapi_game` keyed
+        every synced venue on the raw API name, so a database that's been
+        syncing this park for a while may already have a
+        `(source, venue_name)` row with games attached to it. Once the bridge
+        takes over, upserting under `(source, canonical_id)` would otherwise
+        silently orphan those games onto an abandoned row instead of
+        converging them onto the historical backfill's row as intended.
+        `games.venue_id` is the only FK onto `venues.id` (attendance only
+        references `game_id`), so reassigning it is sufficient to merge.
+        """
+        legacy = (
+            self.db.query(Venue)
+            .filter(Venue.source == self.source, Venue.source_venue_id == legacy_name)
+            .first()
+        )
+        if legacy is None:
+            return
+        canonical, _ = upsert_venue(
+            self.db, source=self.source, source_venue_id=canonical_id, name=legacy.name
+        )
+        if canonical.id == legacy.id:
+            return
+        self.db.query(Game).filter(Game.venue_id == legacy.id).update({"venue_id": canonical.id})
+        self.db.delete(legacy)
+        self.db.flush()
+
     def _upsert_statsapi_game(
         self, league_id: int, game: dict, by_code: dict, venue_cache: dict,
         park_ids_by_name: dict[str, str], result: ImportResult,
@@ -380,6 +412,8 @@ class MlbAdapter(LeagueAdapter):
                     "MLB sync: venue %r has no active Retrosheet park match; "
                     "won't bridge to the historical backfill's venue row", venue_name,
                 )
+            else:
+                self._reconcile_legacy_venue(venue_name, source_venue_id)
             venue, created = upsert_venue(
                 self.db, source=self.source, source_venue_id=source_venue_id, name=venue_name,
             )
