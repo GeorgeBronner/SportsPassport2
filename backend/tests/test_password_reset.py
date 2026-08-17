@@ -2,6 +2,7 @@
 Tests for change-password and forgot/reset-password endpoints.
 """
 from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 
 from sports_passport.models.password_reset_token import PasswordResetToken
 from sports_passport.routers.password_reset import _hash_token
@@ -147,6 +148,31 @@ class TestResetPassword:
             json={"token": "not-a-real-token", "new_password": "brandnewpassword"},
         )
         assert response.status_code == 400
+
+    def test_reset_password_rejects_token_that_expires_before_the_claim(
+        self, client, test_user, db_session
+    ):
+        """The initial SELECT and the atomic claim UPDATE both check expiry
+        against a freshly-taken timestamp — a token that was still valid at
+        the SELECT but expires before the claim (e.g. during password
+        hashing) must not be honored."""
+        raw_token = self._create_token(db_session, test_user)
+        token = db_session.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == test_user.id
+        ).first()
+
+        select_time = token.expires_at - timedelta(milliseconds=1)
+        claim_time = token.expires_at + timedelta(milliseconds=1)
+        with patch("sports_passport.routers.password_reset.datetime") as mock_datetime:
+            mock_datetime.now.side_effect = [select_time, claim_time]
+            response = client.post(
+                "/api/auth/reset-password",
+                json={"token": raw_token, "new_password": "brandnewpassword"},
+            )
+
+        assert response.status_code == 400
+        db_session.refresh(token)
+        assert token.used is False
 
     def test_reset_password_rejects_second_redemption(self, client, test_user, db_session):
         """The token claim is an atomic UPDATE...WHERE used=false, not a

@@ -36,7 +36,18 @@ export const useTimedMessage = (timeoutMs = DEFAULT_TIMEOUT_MS) => {
     setMessage('');
   }, [clearTimer]);
 
+  // A persistent set must win over a still-running timer from an earlier
+  // show() — otherwise a timed toast followed within its window by a
+  // persistent one gets silently wiped when the stale timer fires.
+  const setPersistentMessage = useCallback(
+    (text: string) => {
+      clearTimer();
+      setMessage(text);
+    },
+    [clearTimer]
+  );
+
   useEffect(() => clearTimer, [clearTimer]);
 
-  return { message, setMessage, show, dismiss } as const;
+  return { message, setMessage: setPersistentMessage, show, dismiss } as const;
 };

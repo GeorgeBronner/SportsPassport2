@@ -143,17 +143,28 @@ def reset_password(request: Request, body: ResetPasswordRequest, db: Session = D
         )
 
     # Atomically claim the token: the initial SELECT above only checked it was
-    # unused, and two concurrent requests bearing the same raw token could
-    # both pass that check before either commits. This UPDATE...WHERE is the
-    # actual point of no return — only the request whose row it affects may
-    # proceed to change the password.
+    # unused and unexpired, and two concurrent requests bearing the same raw
+    # token could both pass that check before either commits — or the token
+    # could expire during validate_password/get_password_hash, in between.
+    # This UPDATE...WHERE (re-checking both conditions against a freshly-taken
+    # timestamp) is the actual point of no return — only the request whose row
+    # it affects may proceed to change the password.
+    claim_time = datetime.now(UTC)
     claimed = (
         db.query(PasswordResetToken)
         .filter(
             PasswordResetToken.id == reset_token.id,
             PasswordResetToken.used == False,  # noqa: E712
+            PasswordResetToken.expires_at > claim_time,
         )
-        .update({"used": True})
+        # Default synchronize_session='auto' re-evaluates this filter in
+        # Python against already-loaded objects to keep the session's
+        # identity map current — but SQLite hands back a naive datetime for
+        # expires_at regardless of the column's DateTime(timezone=True), so
+        # comparing it against the tz-aware claim_time above raises. Nothing
+        # reads reset_token.used again after this call, so there's nothing
+        # for that sync to do anyway.
+        .update({"used": True}, synchronize_session=False)
     )
     if claimed == 0:
         db.rollback()
