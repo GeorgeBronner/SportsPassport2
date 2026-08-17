@@ -127,11 +127,6 @@ export interface GameListItem {
   venue: Venue | null;
 }
 
-export interface SeasonInfo {
-  season: number;
-  game_count: number;
-}
-
 // Attendance types
 export interface Attendance {
   id: number;
@@ -214,21 +209,6 @@ export interface AttendanceVenuesResponse {
   games_without_venue: number;
 }
 
-export interface BulkAttendanceItem {
-  game_id: number;
-  notes?: string;
-}
-
-export interface BulkAttendanceRequest {
-  games: BulkAttendanceItem[];
-}
-
-export interface BulkAttendanceResponse {
-  created: number;
-  skipped: number;
-  errors: string[];
-}
-
 // Admin / import types
 export interface ImportResult {
   league: string;
@@ -255,18 +235,3 @@ export interface AdminStatusRow {
   last_sync_error: string | null;
 }
 
-// Filter types
-export interface GameFilters {
-  league?: string;
-  season?: number;
-  team?: string;
-  skip?: number;
-  limit?: number;
-}
-
-export interface TeamFilters {
-  league?: string;
-  conference?: string;
-  search?: string;
-  franchise_id?: number;
-}

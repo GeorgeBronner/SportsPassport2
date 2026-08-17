@@ -94,18 +94,6 @@ def _parse_mdy_year(raw: str) -> int | None:
     return parsed.year if parsed else None
 
 
-# Retrosheet's raw game-number field uses legacy letter suffixes ("A"/"B") for
-# suspended-game continuations that the Stats API always encodes numerically —
-# both source_game_id builders must run their game number through this so a
-# game recorded as "A" by one path and "1" by the other still converge on the
-# same id instead of upserting a duplicate row.
-_GAME_NUMBER_ALIASES = {"A": "1", "B": "2"}
-
-
-def _normalize_game_number(raw: str) -> str:
-    return _GAME_NUMBER_ALIASES.get(raw, raw)
-
-
 class MlbAdapter(LeagueAdapter):
     league_code = "MLB"
     source = "retrosheet"
@@ -273,7 +261,7 @@ class MlbAdapter(LeagueAdapter):
             if attendance <= 0:
                 attendance = None
 
-        game_number = _normalize_game_number(row[F_GAME_NUM])
+        game_number = row[F_GAME_NUM]  # "0"=single, "1"/"2"/"3"/"A"/"B"=doubleheader games
         source_game_id = f"{row[F_DATE]}_{vis_code}_{home_code}_{game_number}"
 
         _, created = upsert_game(
@@ -403,8 +391,7 @@ class MlbAdapter(LeagueAdapter):
             return
 
         official_date = (game.get("officialDate") or "").replace("-", "")
-        raw_game_number = "0" if game.get("doubleHeader") == "N" else str(game.get("gameNumber", 1))
-        game_number = _normalize_game_number(raw_game_number)
+        game_number = "0" if game.get("doubleHeader") == "N" else str(game.get("gameNumber", 1))
         source_game_id = f"{official_date}_{vis_code}_{home_code}_{game_number}"
 
         try:

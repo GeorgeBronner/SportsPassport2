@@ -30,5 +30,5 @@ class User(Base):
 
     # Relationships
     attended_games: Mapped[list["UserGameAttendance"]] = relationship(
-        "UserGameAttendance", back_populates="user", cascade="all, delete-orphan", lazy="selectin"
+        "UserGameAttendance", back_populates="user", cascade="all, delete-orphan"
     )

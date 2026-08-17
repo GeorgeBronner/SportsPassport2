@@ -52,5 +52,5 @@ class Game(Base):
     )
     venue: Mapped["Venue | None"] = relationship("Venue", back_populates="games")
     user_attendances: Mapped[list["UserGameAttendance"]] = relationship(
-        "UserGameAttendance", back_populates="game", cascade="all, delete-orphan", lazy="selectin"
+        "UserGameAttendance", back_populates="game", cascade="all, delete-orphan"
     )
