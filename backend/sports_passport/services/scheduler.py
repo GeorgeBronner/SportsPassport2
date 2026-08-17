@@ -13,7 +13,7 @@ The scheduler is started/stopped from the FastAPI lifespan and is guarded by
 """
 import asyncio
 import logging
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -65,6 +65,22 @@ def get_or_create_sync_state(db: Session, league: League) -> SyncState:
     return state
 
 
+def sweep_stale_syncs(db: Session) -> int:
+    """Mark any SyncState row left at "running" as an interrupted error.
+
+    The only way a row is left at "running" is if the process died between
+    run_sync_for_league setting that status and its finally block clearing it
+    — call once at startup so a crash mid-sync doesn't leave the admin status
+    page stuck showing "running" forever. Returns the number of rows swept.
+    """
+    stale = db.query(SyncState).filter(SyncState.last_status == "running").all()
+    for state in stale:
+        state.last_status = "error"
+        state.last_error = "Interrupted (process restarted mid-sync)"
+    db.commit()
+    return len(stale)
+
+
 def compute_since(state: SyncState, today: date, lookback_days: int) -> date:
     """Adaptive lookback window.
 
@@ -100,17 +116,17 @@ async def run_sync_for_league(
         raise KeyError(f"Unknown league: {league_code}")
 
     state = get_or_create_sync_state(db, league)
+    started = datetime.now(UTC).replace(tzinfo=None)
     window_start = (
         since
         if since is not None
-        else compute_since(state, date.today(), settings.sync_lookback_days)
+        else compute_since(state, started.date(), settings.sync_lookback_days)
     )
 
     state.last_status = "running"
     db.commit()
 
     result = ImportResult(league=league.code)
-    started = datetime.now()
     adapter = None
     try:
         adapter = get_adapter(league_code, db)
@@ -133,7 +149,9 @@ async def run_sync_for_league(
         if adapter is not None:
             await adapter.aclose()  # release the adapter's pooled connections
         state.last_run_at = started
-        state.last_duration_ms = int((datetime.now() - started).total_seconds() * 1000)
+        state.last_duration_ms = int(
+            (datetime.now(UTC).replace(tzinfo=None) - started).total_seconds() * 1000
+        )
         state.last_games_imported = result.games_imported
         state.last_games_updated = result.games_updated
         state.last_error = result.errors[0] if result.errors else None

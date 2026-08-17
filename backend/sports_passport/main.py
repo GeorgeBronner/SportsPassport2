@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import sentry_sdk
-from fastapi import FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,11 +14,16 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from sports_passport.core.config import settings
+from sports_passport.core.dependencies import get_current_admin_user
 from sports_passport.core.limiter import limiter
 from sports_passport.db.database import SessionLocal
 from sports_passport.db.seed import seed_leagues
 from sports_passport.routers import admin, attendance, auth, games, leagues, password_reset, teams
-from sports_passport.services.scheduler import shutdown_scheduler, start_scheduler
+from sports_passport.services.scheduler import (
+    shutdown_scheduler,
+    start_scheduler,
+    sweep_stale_syncs,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +57,9 @@ async def lifespan(app: FastAPI):
     """
     with SessionLocal() as db:
         seed_leagues(db)
+        swept = sweep_stale_syncs(db)
+        if swept:
+            logger.warning("Swept %d stale sync run(s) left 'running' by a previous crash", swept)
     start_scheduler()
     try:
         yield
@@ -66,7 +74,9 @@ app = FastAPI(
     version="0.2.0",
     lifespan=lifespan,
 )
-Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+Instrumentator().instrument(app).expose(
+    app, endpoint="/metrics", dependencies=[Depends(get_current_admin_user)]
+)
 
 # Rate limiting (forgot/reset-password endpoints)
 app.state.limiter = limiter

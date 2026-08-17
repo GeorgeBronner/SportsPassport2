@@ -28,6 +28,7 @@ comes from the four companion files above via `import_postseason` (all-time
 files filtered to the requested season range). Spring training exists in
 neither source and is skipped by `sync_recent` (see docs/open_issues.md).
 """
+import asyncio
 import csv
 import io
 import logging
@@ -104,16 +105,20 @@ class MlbAdapter(LeagueAdapter):
         response.raise_for_status()
         return response.text
 
+    @staticmethod
+    def _parse_zipped_rows(content: bytes) -> list[list[str]]:
+        with zipfile.ZipFile(io.BytesIO(content)) as zf:
+            name = zf.namelist()[0]
+            text = zf.read(name).decode("utf-8")
+        return list(csv.reader(io.StringIO(text)))
+
     async def _get_zipped_rows(self, url: str) -> list[list[str]]:
         # Retrosheet season zips are large; they get longer than the default.
         response = await self.http.get(url, timeout=60.0)
         if response.status_code == 404:
             return []
         response.raise_for_status()
-        with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
-            name = zf.namelist()[0]
-            text = zf.read(name).decode("utf-8")
-        return list(csv.reader(io.StringIO(text)))
+        return await asyncio.to_thread(self._parse_zipped_rows, response.content)
 
     async def _get_gamelog_rows(self, season: int) -> list[list[str]]:
         return await self._get_zipped_rows(GAMELOG_URL.format(season=season))

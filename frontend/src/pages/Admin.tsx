@@ -8,6 +8,7 @@ import Button from '../components/common/Button';
 import Loading from '../components/common/Loading';
 import Alert from '../components/common/Alert';
 import { apiErrorMessage } from '../utils/errors';
+import { useTimedMessage } from '../hooks/useTimedMessage';
 
 const currentYear = new Date().getFullYear();
 // Mirrors the backend default (settings.sync_hour); display-only.
@@ -25,7 +26,8 @@ const Admin: React.FC = () => {
   const [status, setStatus] = useState<AdminStatusRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { message: success, setMessage: setSuccess, show: showSuccess, dismiss: dismissSuccess } =
+    useTimedMessage();
   const [selectedLeague, setSelectedLeague] = useState('');
   const [startSeason, setStartSeason] = useState(currentYear - 1);
   const [endSeason, setEndSeason] = useState(currentYear);
@@ -134,8 +136,7 @@ const Admin: React.FC = () => {
     try {
       const updatedUser = await adminApi.promoteUser(userId);
       setUsers(users.map((u) => (u.id === userId ? updatedUser : u)));
-      setSuccess('User promoted to admin');
-      setTimeout(() => setSuccess(''), 3000);
+      showSuccess('User promoted to admin');
     } catch {
       setError('Failed to promote user');
     }
@@ -145,8 +146,7 @@ const Admin: React.FC = () => {
     try {
       const updatedUser = await adminApi.demoteUser(userId);
       setUsers(users.map((u) => (u.id === userId ? updatedUser : u)));
-      setSuccess('User demoted from admin');
-      setTimeout(() => setSuccess(''), 3000);
+      showSuccess('User demoted from admin');
     } catch {
       setError('Failed to demote user');
     }
@@ -166,7 +166,7 @@ const Admin: React.FC = () => {
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
-      {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
+      {success && <Alert type="success" message={success} onClose={dismissSuccess} />}
 
       <Card className="mb-4">
         <h2 className="kicker mb-3">Data management</h2>

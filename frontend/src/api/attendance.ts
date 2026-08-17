@@ -5,20 +5,12 @@ import type {
   AttendanceUpdate,
   AttendanceStats,
   AttendanceVenuesResponse,
-  BulkAttendanceRequest,
-  BulkAttendanceResponse,
 } from '../types/api';
 
 export const attendanceApi = {
   // Mark a game as attended
   createAttendance: async (data: AttendanceCreate): Promise<Attendance> => {
     const response = await apiClient.post<Attendance>('/attendance/', data);
-    return response.data;
-  },
-
-  // Mark multiple games as attended
-  bulkCreateAttendance: async (data: BulkAttendanceRequest): Promise<BulkAttendanceResponse> => {
-    const response = await apiClient.post<BulkAttendanceResponse>('/attendance/bulk', data);
     return response.data;
   },
 
