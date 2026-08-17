@@ -41,8 +41,8 @@ class Team(Base):
     # Relationships
     league: Mapped["League"] = relationship("League", back_populates="teams")
     home_games: Mapped[list["Game"]] = relationship(
-        "Game", foreign_keys="Game.home_team_id", back_populates="home_team"
+        "Game", foreign_keys="Game.home_team_id", back_populates="home_team", lazy="selectin"
     )
     away_games: Mapped[list["Game"]] = relationship(
-        "Game", foreign_keys="Game.away_team_id", back_populates="away_team"
+        "Game", foreign_keys="Game.away_team_id", back_populates="away_team", lazy="selectin"
     )

@@ -57,6 +57,7 @@ Two known limitations, both left as-is:
 - `neutral_site` is always False for the ASA era: ASA has no such field. The
   Kaggle era detects it from the venue string, where it marks 4 games.
 """
+import asyncio
 import csv
 import logging
 import os
@@ -552,7 +553,8 @@ class MlsAdapter(LeagueAdapter):
             canonical = KAGGLE_TEAM_ALIASES.get(raw)
             return by_name.get(canonical) if canonical else None
 
-        for row in self._read_matches_csv():
+        rows = await asyncio.to_thread(self._read_matches_csv)
+        for row in rows:
             try:
                 season = int(row["year"])
             except (KeyError, TypeError, ValueError):

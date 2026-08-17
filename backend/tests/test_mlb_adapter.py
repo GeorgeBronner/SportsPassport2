@@ -12,7 +12,7 @@ import pytest
 from sports_passport.models.game import Game
 from sports_passport.models.team import Team
 from sports_passport.models.venue import Venue
-from sports_passport.services.adapters.mlb import MlbAdapter
+from sports_passport.services.adapters.mlb import MlbAdapter, _normalize_game_number
 
 TEAMS_CSV = (
     "WAS,MON,NL,E,Montreal,Expos,,4/8/1969,10/3/2004,Montreal,QC\n"
@@ -290,3 +290,36 @@ class TestMlbSync:
         assert any("parkcode.txt" in e for e in result.errors)
         venue = db_session.query(Venue).one()
         assert venue.source_venue_id == "Oakland Coliseum"  # fell back to raw name
+
+
+class TestNormalizeGameNumber:
+    """Retrosheet's letter suffixes must map onto the Stats API's numeric
+    convention so the two ingestion paths build the same source_game_id for
+    the same real game."""
+
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [("0", "0"), ("1", "1"), ("2", "2"), ("3", "3"), ("A", "1"), ("B", "2")],
+    )
+    def test_normalizes(self, raw, expected):
+        assert _normalize_game_number(raw) == expected
+
+    @pytest.mark.asyncio
+    async def test_retrosheet_letter_suffix_converges_with_statsapi_id(self, adapter, db_session):
+        """A Retrosheet doubleheader game recorded with the "A" continuation
+        code must upsert the same row a later Stats API sync reports as game
+        number 1, not a duplicate."""
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=TEAMS_CSV)):
+            await adapter.import_teams()
+
+        lettered_row = [
+            "19700406", "0", "Tue", "OAK", "AL", "1", "MON", "NL", "1",
+            "3", "2", "54", "D", "", "", "", "MON01", "12345", "150",
+        ]
+        lettered_row[1] = "A"  # F_GAME_NUM
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)), \
+             patch.object(adapter, "_get_gamelog_rows", AsyncMock(return_value=[lettered_row])):
+            await adapter.import_season(1970)
+
+        game = db_session.query(Game).one()
+        assert game.source_game_id == "19700406_OAK_MON_1"

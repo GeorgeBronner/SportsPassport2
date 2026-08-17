@@ -8,8 +8,11 @@ import Alert from '../components/common/Alert';
 import StampCard from '../components/passport/StampCard';
 import TeamBadge from '../components/common/TeamBadge';
 import LeagueChips from '../components/common/LeagueChips';
+import ResultBadge from '../components/common/ResultBadge';
 import { LEAGUE_ORDER, leagueColor } from '../utils/leagues';
 import { formatDateShort } from '../utils/format';
+import { getGameResult } from '../utils/gameResult';
+import { useTimedMessage } from '../hooks/useTimedMessage';
 
 const RECENT_STAMPS = 12;
 
@@ -18,7 +21,7 @@ const MyGames: React.FC = () => {
   const [attendedGames, setAttendedGames] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { message: success, show: showSuccess, dismiss: dismissSuccess } = useTimedMessage();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editNotes, setEditNotes] = useState('');
 
@@ -50,8 +53,7 @@ const MyGames: React.FC = () => {
     try {
       await attendanceApi.deleteAttendance(id);
       setAttendedGames((current) => current.filter((a) => a.id !== id));
-      setSuccess('Game removed');
-      setTimeout(() => setSuccess(''), 3000);
+      showSuccess('Game removed');
     } catch {
       setError('Failed to remove game');
     }
@@ -68,8 +70,7 @@ const MyGames: React.FC = () => {
       );
       setEditingId(null);
       setEditNotes('');
-      setSuccess('Notes updated');
-      setTimeout(() => setSuccess(''), 3000);
+      showSuccess('Notes updated');
     } catch {
       setError('Failed to update notes');
     }
@@ -123,7 +124,7 @@ const MyGames: React.FC = () => {
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
-      {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
+      {success && <Alert type="success" message={success} onClose={dismissSuccess} />}
 
       {attendedGames.length === 0 ? (
         <div className="bg-panel border border-line rounded-xl py-14 text-center">
@@ -206,14 +207,7 @@ const MyGames: React.FC = () => {
             <div className="bg-panel border border-line rounded-xl divide-y divide-[var(--line)]">
               {visible.map((attendance) => {
                 const game = attendance.game;
-                const played = game.home_score !== null && game.away_score !== null;
-                const homeResult = !played
-                  ? null
-                  : game.home_score! > game.away_score!
-                    ? 'W'
-                    : game.home_score! < game.away_score!
-                      ? 'L'
-                      : 'T';
+                const homeResult = getGameResult(game.home_score, game.away_score);
                 return (
                   <div
                     key={attendance.id}
@@ -259,21 +253,13 @@ const MyGames: React.FC = () => {
                       )}
                     </span>
                     {homeResult && (
-                      <span
-                        role="img"
-                        aria-label={`Home team ${
+                      <ResultBadge
+                        result={homeResult}
+                        size="sm"
+                        label={`Home team ${
                           homeResult === 'W' ? 'won' : homeResult === 'L' ? 'lost' : 'tied'
                         }`}
-                        className={`inline-block w-[17px] h-[17px] rounded text-center leading-[17px] text-[9.5px] font-extrabold text-white shrink-0 ${
-                          homeResult === 'W'
-                            ? 'bg-win'
-                            : homeResult === 'T'
-                              ? 'bg-ink-3'
-                              : 'bg-loss'
-                        }`}
-                      >
-                        {homeResult}
-                      </span>
+                      />
                     )}
                     {game.venue && (
                       // The gutter used to end here with ~270px of nothing; the

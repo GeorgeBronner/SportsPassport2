@@ -84,6 +84,8 @@ export interface Venue {
   state: string | null;
   country: string | null;
   capacity: number | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 // Game types

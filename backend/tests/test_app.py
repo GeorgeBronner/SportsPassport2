@@ -68,6 +68,20 @@ class TestCorsConfig:
         assert s.cors_origin_list == ["http://a.example", "http://b.example"]
 
 
+class TestMetricsEndpoint:
+    def test_metrics_requires_auth(self, client):
+        response = client.get("/metrics")
+        assert response.status_code == 401
+
+    def test_metrics_rejects_non_admin(self, client, auth_headers):
+        response = client.get("/metrics", headers=auth_headers)
+        assert response.status_code == 403
+
+    def test_metrics_allows_admin(self, client, admin_headers):
+        response = client.get("/metrics", headers=admin_headers)
+        assert response.status_code == 200
+
+
 class TestLikePattern:
     def test_wildcards_are_escaped(self):
         assert contains_pattern("100%") == "%100\\%%"

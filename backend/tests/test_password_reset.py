@@ -148,6 +148,25 @@ class TestResetPassword:
         )
         assert response.status_code == 400
 
+    def test_reset_password_rejects_second_redemption(self, client, test_user, db_session):
+        """The token claim is an atomic UPDATE...WHERE used=false, not a
+        read-then-later-write — a second request with the same token must be
+        rejected even though the first request's read-side check would also
+        have passed for it (guards the fix for the check-then-use race)."""
+        raw_token = self._create_token(db_session, test_user)
+
+        first = client.post(
+            "/api/auth/reset-password",
+            json={"token": raw_token, "new_password": "brandnewpassword"},
+        )
+        assert first.status_code == 200
+
+        second = client.post(
+            "/api/auth/reset-password",
+            json={"token": raw_token, "new_password": "anotherpassword"},
+        )
+        assert second.status_code == 400
+
     def test_reset_password_too_short(self, client, test_user, db_session):
         raw_token = self._create_token(db_session, test_user)
 

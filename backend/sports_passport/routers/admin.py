@@ -158,24 +158,38 @@ def data_status(
 ):
     """Per-league row counts, season coverage, and nightly-sync status (Admin only)"""
     sync_by_league_id = {s.league_id: s for s in db.query(SyncState).all()}
+    # dict() directly on the query result trips pyright's overload resolution
+    # for SQLAlchemy Row tuples (picks a bytes-mapping overload instead of the
+    # iterable-of-pairs one) — the comprehension sidesteps it.
+    game_counts = {  # noqa: C416
+        league_id: count
+        for league_id, count in db.query(
+            Game.league_id, func.count(Game.id)
+        ).group_by(Game.league_id).all()
+    }
+    team_counts = {  # noqa: C416
+        league_id: count
+        for league_id, count in db.query(
+            Team.league_id, func.count(Team.id)
+        ).group_by(Team.league_id).all()
+    }
+    season_ranges = {
+        league_id: (first_season, last_season)
+        for league_id, first_season, last_season in db.query(
+            Game.league_id, func.min(Game.season), func.max(Game.season)
+        ).group_by(Game.league_id).all()
+    }
     rows = []
     for league in db.query(League).order_by(League.code).all():
-        game_count = db.query(func.count(Game.id)).filter(Game.league_id == league.id).scalar()
-        team_count = db.query(func.count(Team.id)).filter(Team.league_id == league.id).scalar()
-        # Aggregates always yield exactly one row (both values NULL when the
-        # league has no games), so .one() is total here and keeps the result
-        # non-Optional for the subscripts below.
-        season_range = db.query(
-            func.min(Game.season), func.max(Game.season)
-        ).filter(Game.league_id == league.id).one()
+        first_season, last_season = season_ranges.get(league.id, (None, None))
         state = sync_by_league_id.get(league.id)
         rows.append({
             "league": league.code,
             "adapter_available": league.code in ADAPTERS,
-            "teams": team_count,
-            "games": game_count,
-            "first_season": season_range[0],
-            "last_season": season_range[1],
+            "teams": team_counts.get(league.id, 0),
+            "games": game_counts.get(league.id, 0),
+            "first_season": first_season,
+            "last_season": last_season,
             # Nightly-sync fields (enabled defaults true until a row is created)
             "sync_enabled": state.enabled if state else True,
             "last_sync_at": state.last_run_at.isoformat() if state and state.last_run_at else None,

@@ -4,6 +4,7 @@ import Layout from '../components/layout/Layout';
 import Loading from '../components/common/Loading';
 import Alert from '../components/common/Alert';
 import TeamBadge from '../components/common/TeamBadge';
+import ResultBadge from '../components/common/ResultBadge';
 import Omnibox from '../components/find/Omnibox';
 import SeasonChart from '../components/find/SeasonChart';
 import Tooltip from '../components/common/Tooltip';
@@ -16,6 +17,7 @@ import type { GameListItem, Team, TeamAttendanceStats } from '../types/api';
 import { leagueColor } from '../utils/leagues';
 import { formatDateShort, yearOf } from '../utils/format';
 import { apiErrorMessage } from '../utils/errors';
+import { getGameResult } from '../utils/gameResult';
 
 const CURRENT_SEASON = new Date().getFullYear();
 
@@ -286,9 +288,7 @@ const TeamDetail: React.FC = () => {
                   const isHome = game.home_team.id === teamId;
                   const my = isHome ? game.home_score : game.away_score;
                   const opp = isHome ? game.away_score : game.home_score;
-                  const played = my !== null && opp !== null;
-                  const won = played && my! > opp!;
-                  const tied = played && my === opp;
+                  const result = getGameResult(my, opp);
                   const attended = attendanceByGame.has(game.id);
                   const site = game.neutral_site ? 'N' : isHome ? 'H' : 'A';
                   return (
@@ -352,15 +352,15 @@ const TeamDetail: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-2 px-2 whitespace-nowrap font-mono font-bold overflow-hidden">
-                        {played ? (
+                        {result ? (
                           <>
-                            <span
-                              className={`inline-block w-[18px] h-[18px] rounded text-center leading-[18px] text-[10px] font-extrabold text-white mr-1.5 ${
-                                won ? 'bg-win' : tied ? 'bg-ink-3' : 'bg-loss'
+                            <ResultBadge
+                              result={result}
+                              className="mr-1.5"
+                              label={`${team.name} ${
+                                result === 'W' ? 'won' : result === 'T' ? 'tied' : 'lost'
                               }`}
-                            >
-                              {won ? 'W' : tied ? 'T' : 'L'}
-                            </span>
+                            />
                             <span className="text-ink">
                               {my}–{opp}
                               {game.overtime_flag ? ` ${game.overtime_flag}` : ''}

@@ -76,6 +76,7 @@ Individual games are attributed correctly in every case; only the summary span
 overreaches, and narrowing it would need a schema change to hold multiple
 ranges per team.
 """
+import asyncio
 import csv
 import io
 import logging
@@ -607,7 +608,7 @@ class NflAdapter(LeagueAdapter):
         result = ImportResult(league=self.league_code)
 
         rows = (
-            self._spreadspoke_rows(start_season, end_season)
+            await asyncio.to_thread(self._spreadspoke_rows, start_season, end_season)
             if start_season < FIRST_NFLVERSE_SEASON
             else []
         )

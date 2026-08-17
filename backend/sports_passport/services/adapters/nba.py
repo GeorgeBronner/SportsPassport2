@@ -156,7 +156,7 @@ class NbaAdapter(LeagueAdapter):
     async def import_teams(self) -> ImportResult:
         result = ImportResult(league=self.league_code)
         league = get_league(self.db, self.league_code)
-        rows = self._read_games_csv()
+        rows = await asyncio.to_thread(self._read_games_csv)
 
         seasons_by_key: dict[str, set] = {}
         franchise_seasons: dict[str, set] = {}
@@ -335,7 +335,7 @@ class NbaAdapter(LeagueAdapter):
         venue_cache: dict[str, int] = {}
         synced_index = self._synced_row_index(league.id)
 
-        rows = self._read_games_csv()
+        rows = await asyncio.to_thread(self._read_games_csv)
         for row in rows:
             if row["gameType"] not in GAME_TYPES:
                 continue

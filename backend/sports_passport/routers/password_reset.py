@@ -142,8 +142,27 @@ def reset_password(request: Request, body: ResetPasswordRequest, db: Session = D
             detail="Invalid or expired reset link.",
         )
 
+    # Atomically claim the token: the initial SELECT above only checked it was
+    # unused, and two concurrent requests bearing the same raw token could
+    # both pass that check before either commits. This UPDATE...WHERE is the
+    # actual point of no return — only the request whose row it affects may
+    # proceed to change the password.
+    claimed = (
+        db.query(PasswordResetToken)
+        .filter(
+            PasswordResetToken.id == reset_token.id,
+            PasswordResetToken.used == False,  # noqa: E712
+        )
+        .update({"used": True})
+    )
+    if claimed == 0:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset link.",
+        )
+
     user.password_hash = get_password_hash(body.new_password)
-    reset_token.used = True
     db.commit()
 
     logger.info("Password reset completed for user_id=%s", user.id)

@@ -5,7 +5,7 @@ The scheduler itself (APScheduler) is not started in tests (conftest sets
 SCHEDULER_ENABLED=false); these exercise the sync *logic* — adaptive lookback,
 per-league state recording, enable/disable — with a mocked adapter.
 """
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from unittest.mock import AsyncMock, Mock, patch
 
 from sports_passport.models.sync_state import SyncState
@@ -15,6 +15,7 @@ from sports_passport.services.scheduler import (
     compute_since,
     run_nightly_sync,
     run_sync_for_league,
+    sweep_stale_syncs,
     sync_all_enabled,
 )
 
@@ -138,6 +139,50 @@ class TestRunSyncForLeague:
             run_sync_for_league(db_session, "CFB", since=since)
         )
         adapter.sync_recent.assert_awaited_once_with(since=since)
+
+    @patch('sports_passport.services.scheduler.get_adapter')
+    def test_records_utc_timestamps(self, mock_get_adapter, db_session):
+        """last_run_at/last_success_at must be naive UTC, matching the
+        convention on games.start_date, not server-local time."""
+        mock_get_adapter.return_value = _mock_adapter()
+        import asyncio
+        before = datetime.now(UTC).replace(tzinfo=None)
+        asyncio.run(run_sync_for_league(db_session, "CFB"))
+        after = datetime.now(UTC).replace(tzinfo=None)
+        from sports_passport.models.league import League
+        league = db_session.query(League).filter(League.code == "CFB").first()
+        state = db_session.query(SyncState).filter(SyncState.league_id == league.id).first()
+        assert before <= state.last_run_at <= after
+        assert before <= state.last_success_at <= after
+
+
+class TestSweepStaleSyncs:
+    """Startup recovery for a SyncState row left at "running" by a crash."""
+
+    def test_sweeps_stale_running_row(self, db_session):
+        from sports_passport.models.league import League
+
+        league = db_session.query(League).filter(League.code == "CFB").first()
+        db_session.add(SyncState(league_id=league.id, last_status="running"))
+        db_session.commit()
+
+        swept = sweep_stale_syncs(db_session)
+
+        assert swept == 1
+        state = db_session.query(SyncState).filter(SyncState.league_id == league.id).first()
+        assert state.last_status == "error"
+        assert state.last_error is not None
+
+    def test_leaves_non_running_rows_alone(self, db_session):
+        from sports_passport.models.league import League
+
+        league = db_session.query(League).filter(League.code == "CFB").first()
+        db_session.add(SyncState(league_id=league.id, last_status="success"))
+        db_session.commit()
+
+        assert sweep_stale_syncs(db_session) == 0
+        state = db_session.query(SyncState).filter(SyncState.league_id == league.id).first()
+        assert state.last_status == "success"
 
 
 class TestSyncAllEnabled:
