@@ -774,3 +774,39 @@ quoting — would touch the ~33 files across the codebase that import from
 `sports_passport.models.<name>` directly rather than the package root, entirely to
 unblock a lint rule. Revisit only if another 3.14-style migration hits the same
 wall, or if the models package is restructured for an unrelated reason anyway.
+
+## 13. MLB venues synced under a bare name, no city/state/coordinates — **RESOLVED 2026-09-02**
+
+**Symptom.** An attendance entry at Truist Park (2026-08-28) showed no location. On
+production the game pointed at a `venues` row keyed `retrosheet` / `Truist Park` with
+null city, state and coordinates, while the same building already existed as
+`retrosheet` / `ATL03` ("Suntrust Park", Atlanta GA, geocoded). 13 of the 30 current
+parks were in the same state, each carrying 60–75 orphaned 2026 games: Yankee Stadium,
+Angel Stadium, Busch Stadium, Truist Park, American Family Field, Daikin Park, loanDepot
+park, Oracle Park, Rate Field, Globe Life Field, UNIQLO Field at Dodger Stadium,
+T-Mobile Park, Sutter Health Park.
+
+**Root cause.** `sync_recent` learns a venue only from the MLB Stats API, which reports
+the park's *current* name and nothing else. City/state come solely from Retrosheet's
+`parkcode.txt` during historical backfill and coordinates solely from
+`venue_coordinates.csv`, both keyed on the Retrosheet park id — so a synced row only
+ever gets a location if the sync bridge maps its name onto that park id. The bridge
+matched on normalized name, and Retrosheet lags naming-rights renames by years
+(ATL03 is still "Suntrust Park", SEA03 "Safeco Field", SFO03 "AT&T Park", HOU03
+"Minute Maid Park", ...). Every miss fell back to a raw-name row, logged nightly as
+`MLB sync: venue 'Truist Park' has no active Retrosheet park match`.
+
+**Fix.** `mlb.py` now bridges on the Stats API **venue id** first
+(`STATSAPI_VENUE_PARK_IDS`, a hand-verified map of the 30 current parks plus the
+temporary/neutral-site parks the backfill has seen), falling back to the name match
+only for a venue not in the map. The id never changes with the sign on the building.
+No data migration is needed: the existing `_reconcile_legacy_venue` step runs on the
+next nightly sync, reassigns every game on a raw-name row onto the park-id row, deletes
+the raw row, and renames the canonical row to the current name — so the Truist Park
+entry lands on ATL03 with Atlanta GA and coordinates on its own after deploy.
+
+**Known remaining gap.** Parks Retrosheet's `parkcode.txt` has no row for at all
+(`SAC01` Sutter Health Park, `TAM02` Steinbrenner Field, `MEX02`, `BST01`, `SEO01`,
+`BIR01`) now merge onto their park-id row but still have no city/state/coordinates,
+because nothing ever supplied one. A small MLB venue seed CSV (same shape as
+`nfl_stadiums.csv`) is the fix; not done here.

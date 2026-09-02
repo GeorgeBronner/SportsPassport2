@@ -63,6 +63,65 @@ GAMELOG_URL = "https://www.retrosheet.org/gamelogs/gl{season}.zip"
 POSTSEASON_GAMELOG_URL = "https://www.retrosheet.org/gamelogs/gl{code}.zip"
 POSTSEASON_FILE_CODES = ("ws", "lc", "dv", "wc")
 
+# MLB Stats API venue id -> Retrosheet park id, for the sync venue bridge.
+#
+# Sync only ever learns a venue from the Stats API, which reports the park's
+# *current* name; the historical backfill keys venues on Retrosheet park ids.
+# Matching the two on name breaks the moment a naming-rights deal changes the
+# sign faster than Retrosheet updates parkcode.txt — which in practice is most
+# of the league (Retrosheet still calls Truist Park "Suntrust Park", T-Mobile
+# Park "Safeco Field", Oracle Park "AT&T Park", ...). The Stats API venue id
+# survives every rename, so it is the key that keeps a synced game on the same
+# row the backfill already gave a city, state and coordinates. Name matching
+# remains the fallback for a venue not listed here.
+#
+# Every entry is a park the backfill has actually seen (or that parkcode.txt
+# lists), so mapping to it never invents a venue row. Verified against
+# `statsapi.mlb.com/api/v1/teams?sportId=1&hydrate=venue` on 2026-09-02.
+STATSAPI_VENUE_PARK_IDS: dict[int, str] = {
+    1: "ANA01",     # Angel Stadium
+    2: "BAL12",     # Oriole Park at Camden Yards
+    3: "BOS07",     # Fenway Park
+    4: "CHI12",     # Rate Field
+    5: "CLE08",     # Progressive Field
+    7: "KAN06",     # Kauffman Stadium
+    12: "STP01",    # Tropicana Field
+    14: "TOR02",    # Rogers Centre
+    15: "PHO01",    # Chase Field
+    17: "CHI11",    # Wrigley Field
+    19: "DEN02",    # Coors Field
+    22: "LOS03",    # Dodger Stadium
+    31: "PIT08",    # PNC Park
+    32: "MIL06",    # American Family Field
+    680: "SEA03",   # T-Mobile Park
+    2392: "HOU03",  # Daikin Park
+    2394: "DET05",  # Comerica Park
+    2395: "SFO03",  # Oracle Park
+    2529: "SAC01",  # Sutter Health Park (Athletics, 2025-)
+    2602: "CIN09",  # Great American Ball Park
+    2680: "SAN02",  # Petco Park
+    2681: "PHI13",  # Citizens Bank Park
+    2889: "STL10",  # Busch Stadium
+    3289: "NYC20",  # Citi Field
+    3309: "WAS11",  # Nationals Park
+    3312: "MIN04",  # Target Field
+    3313: "NYC21",  # Yankee Stadium
+    4169: "MIA02",  # loanDepot park
+    4705: "ATL03",  # Truist Park
+    5325: "ARL03",  # Globe Life Field
+    # Temporary homes and neutral-site parks
+    2523: "TAM02",  # George M. Steinbrenner Field (Rays, 2025)
+    2735: "WIL02",  # Journey Bank Ballpark, Williamsport (Little League Classic)
+    2756: "BUF05",  # Sahlen Field, Buffalo (Blue Jays, 2020-21)
+    3949: "BIR01",  # Rickwood Field, Birmingham (2024)
+    5010: "FTB01",  # Fort Bragg Field (2016)
+    5150: "SEO01",  # Gocheok Sky Dome, Seoul (2024)
+    5340: "MEX02",  # Estadio Alfredo Harp Helu, Mexico City
+    5381: "LON01",  # London Stadium
+    5445: "DYE01",  # Field of Dreams, Dyersville
+    6130: "BST01",  # Bristol Motor Speedway (2025)
+}
+
 # Fixed field positions in a gamelog row (0-indexed); see
 # https://www.retrosheet.org/gamelogs/glfields.txt
 F_DATE, F_GAME_NUM, F_VIS_TEAM, F_VIS_LEAGUE = 0, 1, 3, 4
@@ -206,6 +265,21 @@ class MlbAdapter(LeagueAdapter):
                     continue
                 by_name[key] = park_id
         return by_name
+
+    @classmethod
+    def _bridge_park_id(
+        cls, statsapi_venue_id: int | None, venue_name: str, park_ids_by_name: dict[str, str],
+    ) -> str | None:
+        """Retrosheet park id for a Stats API venue, or None if unknown.
+
+        The venue id map wins: it is immune to the sponsor renames that make
+        the name match go stale (see STATSAPI_VENUE_PARK_IDS). The name match
+        is the fallback for a venue the map doesn't list yet.
+        """
+        park_id = STATSAPI_VENUE_PARK_IDS.get(statsapi_venue_id) if statsapi_venue_id else None
+        if park_id is None:
+            park_id = park_ids_by_name.get(cls._normalize_park_name(venue_name))
+        return park_id
 
     def _team_lookup(self, league_id: int) -> dict[str, int]:
         teams = self.db.query(Team).filter(Team.league_id == league_id).all()
@@ -402,20 +476,23 @@ class MlbAdapter(LeagueAdapter):
             result.errors.append(f"game {game.get('gamePk')}: bad date")
             return
 
-        venue_name = (game.get("venue") or {}).get("name")
+        venue = game.get("venue") or {}
+        venue_name = venue.get("name")
         venue_id = venue_cache.get(venue_name)
         if venue_id is None and venue_name:
             # Bridge to the Retrosheet park id the historical backfill already
             # keys this venue on, so the two paths converge on one row instead
-            # of sync minting a second under the raw API name. A miss (e.g. a
-            # renamed park Retrosheet hasn't caught up on) falls back to the
+            # of sync minting a second under the raw API name. A miss (a park
+            # neither the id map nor parkcode.txt knows) falls back to the
             # old behavior rather than failing the sync.
-            source_venue_id = park_ids_by_name.get(self._normalize_park_name(venue_name))
+            source_venue_id = self._bridge_park_id(venue.get("id"), venue_name, park_ids_by_name)
             if source_venue_id is None:
                 source_venue_id = venue_name
                 logger.warning(
-                    "MLB sync: venue %r has no active Retrosheet park match; "
-                    "won't bridge to the historical backfill's venue row", venue_name,
+                    "MLB sync: venue %r (Stats API id %r) matches neither "
+                    "STATSAPI_VENUE_PARK_IDS nor an active Retrosheet park; "
+                    "won't bridge to the historical backfill's venue row",
+                    venue_name, venue.get("id"),
                 )
             else:
                 self._reconcile_legacy_venue(venue_name, source_venue_id)
