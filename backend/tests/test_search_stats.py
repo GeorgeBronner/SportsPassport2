@@ -138,6 +138,10 @@ class TestTeamAttendanceStats:
         venue_names = {v["name"] for v in data["venues"]}
         assert venue_names == {"Bryant-Denny Stadium", "Michigan Stadium"}
         assert data["first_game_date"] < data["last_game_date"]
+        # Naive-UTC timestamps must carry an explicit offset so the browser
+        # doesn't parse them as local time (same guarantee as /attendance/stats).
+        assert data["first_game_date"].endswith("+00:00")
+        assert data["last_game_date"].endswith("+00:00")
 
     def test_scoped_to_current_user(self, client, admin_headers, sample_teams, attended_games):
         # Another user sees no attendance for the same team

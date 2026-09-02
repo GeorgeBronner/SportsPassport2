@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
+
+from sports_passport.core.serializers import naive_utc_isoformat
 
 
 class TeamBase(BaseModel):
@@ -57,3 +59,7 @@ class TeamAttendanceStats(BaseModel):
     venues: list[TeamVenueCount]
     first_game_date: datetime | None = None
     last_game_date: datetime | None = None
+
+    @field_serializer("first_game_date", "last_game_date")
+    def _serialize_game_dates(self, value: datetime | None) -> str | None:
+        return naive_utc_isoformat(value)
