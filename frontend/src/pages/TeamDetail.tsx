@@ -34,6 +34,10 @@ const TeamDetail: React.FC = () => {
   const [attendanceByGame, setAttendanceByGame] = useState<Map<number, number>>(new Map());
   const [season, setSeason] = useState<number | ''>('');
   const [attendedOnly, setAttendedOnly] = useState(false);
+  // Default order flips with the view — a single season reads best oldest-
+  // first, the "Recent" cross-season log reads best newest-first — but the
+  // user can override either via the Date header click.
+  const [dateOrder, setDateOrder] = useState<'asc' | 'desc'>('desc');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { tip, bind } = useTooltip();
@@ -80,6 +84,10 @@ const TeamDetail: React.FC = () => {
       stale = true;
     };
   }, [teamId, loadAttendance]);
+
+  useEffect(() => {
+    setDateOrder(season === '' ? 'desc' : 'asc');
+  }, [season]);
 
   useEffect(() => {
     if (!teamId) return;
@@ -142,7 +150,12 @@ const TeamDetail: React.FC = () => {
     return years;
   }, [team]);
 
-  const visibleGames = attendedOnly ? games.filter((g) => attendanceByGame.has(g.id)) : games;
+  const visibleGames = useMemo(() => {
+    const filtered = attendedOnly ? games.filter((g) => attendanceByGame.has(g.id)) : games;
+    const sorted = [...filtered].sort((a, b) => a.start_date.localeCompare(b.start_date));
+    if (dateOrder === 'desc') sorted.reverse();
+    return sorted;
+  }, [games, attendedOnly, attendanceByGame, dateOrder]);
 
   if (loading) return <Loading message="Loading team..." />;
   if (!team) {
@@ -272,7 +285,20 @@ const TeamDetail: React.FC = () => {
               </colgroup>
               <thead>
                 <tr className="[&>th]:text-left [&>th]:py-1.5 [&>th]:px-2 [&>th]:text-[10px] [&>th]:uppercase [&>th]:tracking-[0.16em] [&>th]:text-ink-3 [&>th]:font-bold [&>th]:border-b [&>th]:border-line-strong">
-                  <th>Date</th>
+                  <th>
+                    <button
+                      type="button"
+                      onClick={() => setDateOrder((o) => (o === 'asc' ? 'desc' : 'asc'))}
+                      className="flex items-center gap-1 uppercase tracking-[0.16em] text-[10px] font-bold text-ink-3 hover:text-ink cursor-pointer"
+                    >
+                      Date
+                      <span aria-hidden="true">{dateOrder === 'asc' ? '↑' : '↓'}</span>
+                      <span className="sr-only">
+                        , sorted {dateOrder === 'asc' ? 'oldest first' : 'newest first'}, click to
+                        reverse
+                      </span>
+                    </button>
+                  </th>
                   <th>
                     <span aria-hidden="true">H/A</span>
                     <span className="sr-only">Home, away, or neutral site</span>
