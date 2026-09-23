@@ -5,11 +5,11 @@ A web application for tracking games you've attended across **CFB, MLB, NFL, NBA
 1970 for the pro leagues (1990 for CFB/CBB, 1996 for MLS).
 
 **Status:** Deployed — staging (`docker31`) and production (Oracle Cloud). See
-[docs/SP3_plan.md](docs/SP3_plan.md) for phase progress and
+[docs/SP2_plan.md](docs/SP2_plan.md) for phase progress and
 [docs/deployment.md](docs/deployment.md) for the deploy process.
 
 This is the successor to the college-football-only tracker (preserved at `../cfb-tracker`).
-Planning docs: [SP3_plan.md](docs/SP3_plan.md) · [SP3_data_sources.md](docs/SP3_data_sources.md) ·
+Planning docs: [SP2_plan.md](docs/SP2_plan.md) · [SP2_data_sources.md](docs/SP2_data_sources.md) ·
 [open_issues.md](docs/open_issues.md)
 
 ## Features

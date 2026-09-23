@@ -8,7 +8,7 @@
   Hand-built venue location lookups (city/state/lat-lon) for leagues whose live
   source doesn't carry them — `backend/sports_passport/data/seed/{nfl_stadiums,nhl_arenas,nba_arenas,mls_stadiums}.csv`,
   loaded via `services/adapters/venue_seed.py` — are committed and wired into
-  their adapters; see `docs/SP3_plan.md` Phase 4/7 for scope notes. `nfl_stadiums.csv`
+  their adapters; see `docs/SP2_plan.md` Phase 4/7 for scope notes. `nfl_stadiums.csv`
   also carries 29 `hist-`-prefixed rows for pre-1999 grounds nflverse never saw; the
   prefix keeps them from ever colliding with a real nflverse `stadium_id`.
   `data/seed/venue_coordinates.csv` is a different animal: not hand-built but
@@ -48,7 +48,7 @@
   Docker bind-mount volume (database, logos, `raw/` bulk files), and a mount shadows
   whatever the image put there. Committed code assets belong next to the code that
   reads them — see `tests/test_venue_seed.py` for why.
-- **Compliance rules** (from `docs/SP3_data_sources.md` — do not violate): MLB Stats API is
+- **Compliance rules** (from `docs/SP2_data_sources.md` — do not violate): MLB Stats API is
   sync-only, never bulk backfill (Retrosheet for that); ESPN's hidden API (NBA sync,
   team logos) is unofficial — throttled, descriptive User-Agent, never bulk; never
   scrape Sports-Reference sites (this includes **FBref**, for MLS). nba.com is

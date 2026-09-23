@@ -4,7 +4,7 @@ Free, keyless, official historical record; permissive license ("recipients
 are free to make any use of the data, including commercial"). Like the
 CFB/NHL/NFL adapters, games are fetched live from Retrosheet's static file
 server rather than downloaded once into `data/raw/` — it's a plain static
-host with no rate limit or ToS concern (see docs/SP3_data_sources.md), so a
+host with no rate limit or ToS concern (see docs/SP2_data_sources.md), so a
 local copy buys nothing over re-fetching per import.
 
 - Franchise/team directory (one row per team-identity era, franchise-linked
@@ -21,7 +21,7 @@ local copy buys nothing over re-fetching per import.
 
 Compliance guardrail: Retrosheet is the bulk-backfill source. The MLB
 Stats API (`sync_recent`) must never be used for bulk backfill per its
-terms (docs/SP3_data_sources.md) — only for small "since date" queries.
+terms (docs/SP2_data_sources.md) — only for small "since date" queries.
 
 Scope note: the per-season gamelogs cover regular season only; postseason
 comes from the four companion files above via `import_postseason` (all-time

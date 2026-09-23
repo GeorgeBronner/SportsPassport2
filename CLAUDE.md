@@ -5,8 +5,8 @@ basketball) **and MLS**.
 Evolution of the original college football tracker (preserved at `../cfb-tracker`). Personal/family
 use, Docker-deployed.
 
-Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase status),
-[SP3_data_sources.md](docs/SP3_data_sources.md) (data source research),
+Key docs, all under `docs/`: [SP2_plan.md](docs/SP2_plan.md) (build plan + phase status),
+[SP2_data_sources.md](docs/SP2_data_sources.md) (data source research),
 [open_issues.md](docs/open_issues.md) (known data gaps/defects).
 
 ## Tech Stack
@@ -30,7 +30,7 @@ Key docs, all under `docs/`: [SP3_plan.md](docs/SP3_plan.md) (build plan + phase
   to the one rule and say why in a comment — see `alembic/env.py` and
   `core/config.py` for the shape.
 - **Code organization**: routers focused by domain (auth, leagues, games, teams, attendance, admin); add schemas to the matching schema file; test new endpoints before committing.
-- Keep documentation (this file, `docs/SP3_plan.md` phase checkboxes) updated when features change.
+- Keep documentation (this file, `docs/SP2_plan.md` phase checkboxes) updated when features change.
 
 ## Common Commands
 ```bash
