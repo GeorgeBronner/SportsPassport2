@@ -810,3 +810,84 @@ entry lands on ATL03 with Atlanta GA and coordinates on its own after deploy.
 `BIR01`) now merge onto their park-id row but still have no city/state/coordinates,
 because nothing ever supplied one. A small MLB venue seed CSV (same shape as
 `nfl_stadiums.csv`) is the fix; not done here.
+
+## 14. CFB nightly sync permanently stuck in "error" on an untracked opponent — **RESOLVED 2026-09-21**
+
+**Symptom.** Production's `sync_state` row for CFB had `last_status = error` every
+night since 2026-08-13, `last_error = "game 401907702: unmatched team Rocky Mountain @
+University of Mary"`, and `last_success_at` frozen at that same date — even though the
+same nightly run was upserting ~3,600 other games without issue. Found while auditing
+prod on 2026-09-21 (`sync_state` queried directly, since neither this error nor CFB's
+NBA-adjacent counterpart below ever reached Sentry — see #15's symptom for why).
+
+**Root cause.** `CfbAdapter.import_teams` (`services/adapters/cfb.py`) only ever asked
+CFBD for `classification=fbs` and `classification=fcs` teams. CFBD's own **unfiltered**
+`/teams` (1,933 schools, verified live against the production API key) already carries
+both opponents — `id 2826 "Rocky Mountain"` (`classification: null`) and `id 559
+"University of Mary"` (`classification: "ii"`) — because CFBD's game data occasionally
+includes an FBS team's Division II/III or NAIA "money game", which `import_season`'s
+unmatched-team check (correctly, per its own comment) records rather than silently
+drops. Two things made one such game permanent rather than a one-night blip:
+
+1. `sync_recent` re-imports the **entire season** every run (CFBD's `/games` has no
+   date filter — already documented in `sync_recent`'s own comment), so the same
+   unmatched game reappeared every single night rather than aging out.
+2. `run_sync_for_league` (`services/scheduler.py`) marks a league `error` whenever
+   `result.errors` is non-empty, and `compute_since` only advances the adaptive lookback
+   window after a `success` — so one permanently-unmatched game pinned the window at
+   2026-08-13 forever, on top of masking the league's actual (healthy) status.
+
+**Fix.**
+
+1. `import_teams` gained a third best-effort pass over CFBD's unfiltered `/teams`,
+   the same pattern already used for the FCS pass — any team not already seen from the
+   FBS/FCS pulls is upserted with `classification="other"` as its fallback.
+2. Fixed a latent bug the above surfaced: `_upsert_team_row` computed
+   `team_data.get("classification", default_classification)` — `dict.get`'s default only
+   fires on a *missing* key, and CFBD sends `classification: null` (a present key) for
+   an unclassified school, so the fallback never actually applied. Now
+   `team_data.get("classification") or default_classification`.
+3. `sync_recent` now calls `import_teams()` itself before its season loop, rather than
+   relying on a separate historical/admin import to have already seen a given opponent.
+   The nightly scheduler only ever calls `sync_recent`, never `import_teams` directly, so
+   without this a newly-scheduled money game against a school CFBD hadn't been asked
+   about yet would have reproduced this exact bug again under a different school's name.
+
+Regression coverage in `tests/test_cfb_adapter.py`: the classification-default fix
+(`TestCfbImportTeams`), `import_season` resolving a below-FCS opponent pulled in by the
+catch-all pass, and `sync_recent` resolving one on its own with no prior `import_teams`
+call. Full suite (381 tests), `ruff check` and `pyright` all clean.
+
+## 15. NBA sync source dead again — ESPN's hidden scoreboard now Akamai-blocked too — open
+
+**Symptom.** Same audit that found #14 above showed NBA's `sync_state` stuck on
+`last_status = error` since 2026-08-04, `last_error` a `403 Forbidden` from ESPN's
+scoreboard endpoint. Reproduced live, today, with a direct request from **both** the
+Oracle production container and the `docker31` staging host:
+
+```text
+status 403
+<HTML><TITLE>Access Denied</TITLE>...
+Reference #18.90f6d517.1790028853.74d90ad7  https://errors.edgesuite.net/...
+```
+
+`errors.edgesuite.net` is Akamai's bot-management block page — the identical signature
+`nba.py`'s own module docstring already recorded for `stats.nba.com`/`cdn.nba.com`
+being abandoned in 2026-08-01. This is the **second** NBA live-data source in a row to
+get Akamai-blocked from this project's hosts, and it isn't host-specific (both hosts
+hit it), so a header/UA change or a different IP won't fix it — the endpoint itself is
+now closed to non-browser traffic from here.
+
+**Why this stayed invisible.** Unlike a raised exception, both this and #14 are
+adapter-internal: `nba.py`'s `sync_recent` catches `httpx.HTTPError` per-day and appends
+to `result.errors` (`nba.py:486`) rather than re-raising, so nothing reaches
+`logger.exception` and nothing reaches Sentry — only `sync_state.last_error` recorded
+it. Confirmed via `sentry issue list bronner/sportspassport2-backend` (90d, all
+statuses): zero issues mention CFB or NBA; the only issue on file is an unrelated,
+already-resolved-itself CBB `ConnectError` blip. Worth knowing generally: a `SyncState`
+row going red is currently the *only* signal for either of these — Sentry won't show it.
+
+**Fix — not applied yet, needs a decision.** See `docs/NBA_data_fix.md` for the full
+options writeup, comparison table and recommendation (TheSportsDB, forward-facing only
+— NBA's 1946+ historical data is unaffected, it comes from the Kaggle bulk CSV and
+doesn't touch this endpoint at all).

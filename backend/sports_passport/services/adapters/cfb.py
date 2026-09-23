@@ -49,7 +49,10 @@ class CfbAdapter(LeagueAdapter):
             abbreviation=team_data.get("abbreviation"),
             conference=team_data.get("conference"),
             division=team_data.get("division"),
-            classification=team_data.get("classification", default_classification),
+            # `or`, not dict.get's default: CFBD returns the key with a null
+            # value (not a missing key) for a team it hasn't classified, e.g.
+            # the below-FCS opponents pulled in by the catch-all import.
+            classification=team_data.get("classification") or default_classification,
         )
         return created
 
@@ -77,6 +80,26 @@ class CfbAdapter(LeagueAdapter):
                     result.teams_imported += 1
         except Exception as e:
             result.errors.append(f"FCS team import skipped: {e}")
+
+        # An FBS team occasionally schedules a "money game" against a
+        # Division II/III or NAIA opponent — rare, but CFBD's own /games
+        # still reports it. CFBD's unfiltered /teams (no classification
+        # filter) turns out to already carry those schools too (verified:
+        # id 2826 "Rocky Mountain", id 559 "University of Mary", both absent
+        # from the fbs/fcs pulls above) — import the rest of its roster,
+        # best-effort, so import_season's unmatched-team check (see below)
+        # never permanently wedges on an opponent CFBD knows about but we
+        # never asked for. See docs/open_issues.md #14.
+        try:
+            all_teams = await self._get("/teams")
+            for team_data in all_teams:
+                if team_data.get("id") in seen:
+                    continue
+                seen.add(team_data.get("id"))
+                if self._upsert_team_row(league.id, team_data, "other"):
+                    result.teams_imported += 1
+        except Exception as e:
+            result.errors.append(f"non-FBS/FCS team import skipped: {e}")
 
         self.db.commit()
         return result
@@ -188,9 +211,18 @@ class CfbAdapter(LeagueAdapter):
         # window spanning a season boundary (since in one season, today in
         # the next) must still cover both — a single season() call would
         # silently miss whichever end since didn't land in.
+        #
+        # Refresh the team roster first, every run: a newly-scheduled money
+        # game against a school CFBD hadn't returned before (see
+        # docs/open_issues.md #14) would otherwise unmatched-team-error every
+        # night until the next historical/admin re-import happened to catch
+        # it. import_teams is a handful of idempotent upserts, cheap next to
+        # the season pulls below.
+        result = ImportResult(league=self.league_code)
+        result.merge(await self.import_teams())
+
         first_season = self._season_of(since)
         last_season = self._season_of(date.today())
-        result = ImportResult(league=self.league_code)
         for season in range(first_season, last_season + 1):
             logger.info(
                 "CFB sync since %s: no date filter on CFBD /games, re-syncing all of season %s",
