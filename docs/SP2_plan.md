@@ -1,9 +1,9 @@
 # SportsPassport2 Build Plan — First Draft
 
-Multi-league game attendance tracker (codename SP3 during planning; **the app keeps the name
-SportsPassport2** and lives in `E:\Documents\Coding\myProjects\SportsPassport2`). Track games
-attended across **College Football (CFB), MLB, NFL, NBA, and NHL**, extensible to future
-leagues (MLS, etc.). Direct evolution of the original college football tracker (preserved at
+Multi-league game attendance tracker (**SportsPassport2**, SP2 for short; lives in
+`E:\Documents\Coding\myProjects\SportsPassport2`). Track games attended across **College
+Football (CFB), MLB, NFL, NBA, and NHL**, extensible to future leagues (MLS, etc.). Direct
+evolution of the original college football tracker (preserved at
 `E:\Documents\Coding\myProjects\cfb-tracker`), reusing its proven stack and porting its CFB
 integration. Phase progress is tracked in this document's own phase checkboxes
 (`tasks/todo.md` was retired).
@@ -15,12 +15,12 @@ Companion doc: [SP2_data_sources.md](SP2_data_sources.md) — full data source r
 ## 1. Goals & Scope (First Draft)
 
 **In scope:**
-- User accounts (email/password + JWT, same as SP2)
+- User accounts (email/password + JWT, same as the CFB tracker)
 - Game database for 5 leagues: CFB (1990+), MLB/NFL/NBA/NHL (1970+)
 - Mark games attended, with personal notes
 - Stats dashboard: games by league, by team, by season, unique venues, states visited
 - Admin: per-league data import + refresh
-- Docker Compose deployment, single container, same as SP2
+- Docker Compose deployment, single container, same as the CFB tracker
 
 **Added beyond the original first-draft scope:** CBB (D-I men's college basketball, 1990+) —
 see §5 Phase 8. Not part of the original 5-league plan; added once the CFB/pro-league adapters
@@ -31,25 +31,25 @@ up during MLS-expansion research.
 - MLS or other additional leagues
 - Box scores / player stats (we only store teams, date, location, score + a few extras)
 - Social features, sharing, photos
-- Migration tool for existing SP2 attendance data (Phase 7 stretch goal)
+- Migration tool for the CFB tracker's existing attendance data (Phase 7 stretch goal)
 
 **Data floor:** 1970 for the four pro leagues (sources support earlier — importers take a
-`start_season` parameter so we can deepen later), 1990 for CFB (matches SP2 / CFBD coverage).
+`start_season` parameter so we can deepen later), 1990 for CFB (matches the CFB tracker / CFBD coverage).
 ~~**Exception:** NFL ships with a 1999 floor~~ — closed 2026-08-01 (Phase 11): the Kaggle
 Spreadspoke file is freely downloadable again and now backs NFL 1970–1998.
 
 ---
 
-## 2. Tech Stack (carry over from SP2)
+## 2. Tech Stack (carry over from the CFB tracker)
 
 | Layer | Choice | Notes |
 |-------|--------|-------|
-| Backend | FastAPI + SQLAlchemy + Alembic + Pydantic | Identical to SP2 |
+| Backend | FastAPI + SQLAlchemy + Alembic + Pydantic | Identical to the CFB tracker |
 | DB | SQLite (WAL mode + busy_timeout, see §6) | ~493k game rows loaded as of 2026-07-14 (MLB 123k, NBA 73k, CBB 179k, NHL 57k, CFB 52k, NFL 7k) — well within SQLite comfort zone |
-| Auth | JWT + bcrypt | Port from SP2 unchanged |
-| Frontend | React 18 + TypeScript, Vite, Tailwind, React Router, Axios | Port SP2 frontend, add league dimension |
+| Auth | JWT + bcrypt | Port from the CFB tracker unchanged |
+| Frontend | React 18 + TypeScript, Vite, Tailwind, React Router, Axios | Port the CFB tracker's frontend, add league dimension |
 | Deploy | Docker + Docker Compose, frontend built to `backend/static/`, port 8000 | Same pattern; new container name |
-| Package mgmt | uv (backend), npm (frontend) | Same as SP2 |
+| Package mgmt | uv (backend), npm (frontend) | Same as the CFB tracker |
 
 Repo/folder: `E:\Documents\Coding\myProjects\SportsPassport2` (fresh repo; the old app is
 preserved at `cfb-tracker`). Backend package name: `sports_passport` (drop the sport-specific
@@ -59,7 +59,7 @@ preserved at `cfb-tracker`). Backend package name: `sports_passport` (drop the s
 
 ## 3. Data Model
 
-Generalize SP2's schema; `league` becomes a first-class entity. Key change from SP2:
+Generalize the CFB tracker's schema; `league` becomes a first-class entity. Key change from the CFB tracker:
 `api_game_id` becomes a **(source, source_game_id)** pair since each league has a different
 upstream, and NFL/MLB historical rows come from CSVs without a native ID (we synthesize a
 deterministic key, e.g. `date:away:home`).
@@ -89,8 +89,8 @@ games
   attendance (nullable), overtime_flag (nullable — OT/SO for NHL, extra innings for MLB),
   source, source_game_id  → UNIQUE(source, source_game_id)
 
-users            — unchanged from SP2
-user_game_attendance — unchanged from SP2 (user_id, game_id, notes, created_at)
+users            — unchanged from the CFB tracker
+user_game_attendance — unchanged from the CFB tracker (user_id, game_id, notes, created_at)
 ```
 
 **Design decisions baked in:**
@@ -102,7 +102,7 @@ user_game_attendance — unchanged from SP2 (user_id, game_id, notes, created_at
   hand-built `data/nba_arenas.csv` (team → arena → season range) as seed data and join
   during import (see §5.4).
 - All importers are **idempotent upserts** keyed on `(source, source_game_id)` — safe to
-  re-run, same as SP2's refresh pattern.
+  re-run, same as the CFB tracker's refresh pattern.
 
 ---
 
@@ -116,7 +116,7 @@ sports_passport/
   services/
     adapters/
       base.py          # LeagueAdapter ABC
-      cfb.py           # CollegeFootballData.com  (port of SP2 services/cfb_api.py)
+      cfb.py           # CollegeFootballData.com  (port of the CFB tracker's services/cfb_api.py)
       mlb.py           # Retrosheet bulk + MLB Stats API sync
       nfl.py           # Kaggle/Spreadspoke CSV bulk + nflverse games.csv sync
       nba.py           # Kaggle bulk CSV backfill + ESPN scoreboard sync
@@ -140,7 +140,7 @@ free APIs with tiny request counts.
 
 | League | `import_teams` | `import_historical` (one-time) | `sync_recent` (ongoing) |
 |--------|----------------|-------------------------------|------------------------|
-| **CFB** | CFBD `/teams/fbs` (API key, same as SP2) | CFBD `/games?year=` 1990→now (port SP2 code) | CFBD `/games?year={current}` |
+| **CFB** | CFBD `/teams/fbs` (API key, same as the CFB tracker) | CFBD `/games?year=` 1990→now (port the CFB tracker's code) | CFBD `/games?year={current}` |
 | **MLB** | Retrosheet `CurrentNames.csv` (franchise-linked team-identity eras, back to 1871) | **Retrosheet game logs** ZIP, fetched live per season (1970+; has date, teams, score, park code, attendance, day/night). Park code → venue via `parkcode.txt` (has real city/state). Regular season only — see §5 Phase 3 scope note | **MLB Stats API** `/api/v1/schedule?startDate=&endDate=` — team resolved via its `teamCode` field, which matches Retrosheet's codes exactly, so sync rows land on the same games the bulk import created |
 | **NFL** | nflverse `teams.csv` + franchise ids derived from `games.csv` team abbreviations, plus 7 pre-1999 identities hard-coded in the adapter (`HISTORICAL_TEAMS`) | **nflverse `games.csv`** raw GitHub URL for 1999+ — plain HTTP GET, no key, auto-updated — and the **Kaggle "Spreadspoke" CSV** (`backend/data/raw/nfl/spreadspoke_scores.csv`) for 1970–1998, split at `FIRST_NFLVERSE_SEASON` (see §5 Phase 11) | Same `games.csv` fetch, filtered by date — nflverse only |
 | **NBA** | Derived from `Games.csv` itself (distinct team-identity eras seen in the data) | **Kaggle `Games.csv`** (`backend/data/raw/nba/Games.csv`, manually downloaded — `stats.nba.com` is unreachable from the dev sandbox, see §5 Phase 4 status). Venue only available for the dataset's current season; historical venues come from the `nba_arenas.csv` seed (built 2026-07-27) | **ESPN scoreboard** `site.web.api.espn.com/.../basketball/nba/scoreboard?dates=` (moved off the Akamai-blocked `site.api.` host 2026-09-23, open_issues.md #15) — replaced `stats.nba.com/scoreboardv2` on 2026-08-01, which is Akamai-blocked from every host this app runs on (see Phase 4). Reconciles onto bulk rows by natural key, since ESPN carries no NBA `gameId` |
@@ -153,7 +153,7 @@ free APIs with tiny request counts.
 - No Sports-Reference scraping anywhere.
 - nflverse/Retrosheet/NHL API: no restrictions relevant to us.
 
-**Python deps added over SP2:** `nba_api`, `pandas` (CSV wrangling for Retrosheet/Kaggle
+**Python deps added over the CFB tracker:** `nba_api`, `pandas` (CSV wrangling for Retrosheet/Kaggle
 files). MLB/NHL/nflverse are plain `httpx` calls — no extra deps.
 
 ---
@@ -184,7 +184,7 @@ files). MLB/NHL/nflverse are plain `httpx` calls — no extra deps.
 
 ### Phase 2 — First two adapters: NHL, then CFB (1–2 days) ✅ DONE 2026-07-11
 Start with NHL (single official source for everything = simplest proof of the architecture),
-then CFB (port of known-working SP2 code = validates parity with SP2).
+then CFB (port of the CFB tracker's known-working code = validates parity with it).
 - [x] NHL adapter (`adapters/nhl.py`): teams (62 all-time incl. defunct, with the API's own
       `franchiseId` mapped to our `franchise_id`), season backfill via standings +
       club-schedule-season with dedupe and 0.25s throttle, sync via `/v1/score/{date}`,
@@ -374,7 +374,7 @@ generalization) and added the league dimension:
       switcher — Dashboard/Statistics already show every league at once via
       `AttendanceStats.games_by_league`, so a global switcher would have no effect there.
       Selecting a league re-scopes the team/season dropdowns and resets the team selection.
-- [x] Game search/browse: league, season, team filters; mark-attended flow unchanged from SP2's
+- [x] Game search/browse: league, season, team filters; mark-attended flow unchanged from the CFB tracker's
       UX. Season/date filters already existed; added league.
 - [x] Stats dashboard: "Games by League" section added to both Dashboard and Statistics,
       sourced from the backend's existing (previously unused by the frontend)
@@ -440,7 +440,7 @@ generalization) and added the league dimension:
       Container-restart scheduler-resume check still pending an actual deploy.
 
 ### Phase 7 — Stretch (post-first-draft)
-- [ ] SP2 attendance migration script (SP2 SQLite → SP3, matching games on date+teams)
+- [ ] Attendance migration script (original CFB tracker SQLite → SP2, matching games on date+teams)
 - [ ] Franchise rollup stats; MLS adapter (ESPN/TheSportsDB per research); deepen history pre-1970
 - [x] **Done (2026-07-27):** `data/seed/nba_arenas.csv` — hand-built NBA team → arena →
       season-range lookup, scoped to **1990-present** (66 rows) rather than the original
@@ -648,7 +648,7 @@ far below its neighbors). Two distinct problems found:
 
 ## 7. Decisions Already Made (don't re-litigate during build)
 
-1. Reuse SP2 stack wholesale — this is an evolution, not a rewrite.
+1. Reuse the CFB tracker's stack wholesale — this is an evolution, not a rewrite.
 2. League adapters + common `games` schema is the extensibility mechanism.
 3. Free sources only; no paid API in the first draft. Paid fallbacks documented in
    SP2_data_sources.md if a free source dies.

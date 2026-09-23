@@ -1,4 +1,4 @@
-# SP3 Data Sources Research
+# SP2 Data Sources Research
 
 Research into game-level data sources (teams, location, date, score) for MLB, NFL, NBA, and NHL,
 covering at least 1990 back to 1970 where possible. Modeled on the SportsPassport2 approach:
@@ -25,10 +25,10 @@ unofficial endpoints with mature client libraries (`nba_api`, ESPN).
 
 ---
 
-## Architecture Notes (SP2 Model Applied to SP3)
+## Architecture Notes (CFB Tracker Model Applied to SP2)
 
-SportsPassport2 does a bulk historical import from CollegeFootballData.com plus an admin
-"refresh" endpoint. For SP3 the equivalent is:
+The original CFB tracker (`../cfb-tracker`) does a bulk historical import from
+CollegeFootballData.com plus an admin "refresh" endpoint. For SP2 the equivalent is:
 
 1. **Initial load**: download bulk files (CSV/JSON) per league, normalize into a common
    `games` schema (`league`, `season`, `date`, `home_team`, `away_team`, `home_score`,
@@ -182,7 +182,7 @@ scores/boxscores need the GOAT plan (~$39.99/mo per [SportsAPI.com's review](htt
 | 3 | [BALLDONTLIE](https://www.balldontlie.io/) | 1946–present | Freemium (5 req/min free; scores on paid tiers) | Nice API; free tier too limited for backfill |
 | 4 | [ESPN hidden API](https://github.com/pseudo-r/Public-ESPN-API) | Recent decades | Free (unofficial) | Backup update source |
 | 5 | [SportsDataIO NBA](https://sportsdata.io/nba-api) | Deep history | Paid | Commercial-grade |
-| 6 | [API-Sports API-NBA](https://api-sports.io/) | ~2008–present | Freemium (100 req/day free) | History too shallow for SP3 backfill |
+| 6 | [API-Sports API-NBA](https://api-sports.io/) | ~2008–present | Freemium (100 req/day free) | History too shallow for SP2 backfill |
 | 7 | [BigDataBall NBA](https://www.bigdataball.com/datasets/nba-data/) | Recent seasons | Paid (per-season Excel) | Betting/DFS oriented; overkill here |
 | 8 | [MySportsFeeds](https://www.mysportsfeeds.com/data-feeds/) | Recent seasons | Free non-commercial / paid | Limited history |
 | 9 | [Basketball-Reference](https://www.basketball-reference.com/) | 1946–present | Free to browse; **no bulk/scrape** | See Sports-Reference warning below |
@@ -436,15 +436,15 @@ A single provider for all four leagues is appealing for code simplicity, but non
 multi-sport options match the per-league picks on historical depth. Best use: a **uniform
 ongoing-update layer** (one adapter, four leagues) while historical loads stay per-league.
 
-| Source | Leagues | Cost | Historical Depth | Verdict for SP3 |
+| Source | Leagues | Cost | Historical Depth | Verdict for SP2 |
 |--------|---------|------|------------------|-----------------|
 | [ESPN hidden API](https://github.com/pseudo-r/Public-ESPN-API) | All 4 + MLS + more | Free (unofficial, no key) | Varies; solid for recent decades via `?dates=` | Best free multi-sport update layer; unofficial = could break |
 | [TheSportsDB](https://www.thesportsdb.com/free_sports_api) | All 4 + MLS + more | Free / $9-ish Patreon premium | Spotty for old seasons | Good for team/venue/logo metadata; weak on deep history |
 | [BALLDONTLIE](https://www.balldontlie.io/) | All 4 + 20 leagues | Free tier 5 req/min; GOAT $39.99/mo; All-Access $299.99/mo | NBA to 1946; others multi-decade | Nicest paid multi-sport option for a hobby budget |
 | [MySportsFeeds](https://www.mysportsfeeds.com/) | All 4 | Free for personal non-commercial (on request) | Limited older history | Worth requesting hobbyist access for the update layer |
-| [SportsDataIO](https://sportsdata.io/) | All 4 + more | Paid, contact sales; free scrambled trial | Decades | The "suggested paid" across the board if SP3 ever goes commercial |
+| [SportsDataIO](https://sportsdata.io/) | All 4 + more | Paid, contact sales; free scrambled trial | Decades | The "suggested paid" across the board if SP2 ever goes commercial |
 | [Sportradar](https://sportradar.com/media-tech/data-content/sports-data-api/) | All 4 + everything | Paid, enterprise | Deep | Enterprise-grade; overkill and over-budget for a hobby |
-| [API-Sports](https://api-sports.io/) | All 4 | Free 100 req/day per sport; paid tiers | Only ~2008+ | History too shallow for SP3 |
+| [API-Sports](https://api-sports.io/) | All 4 | Free 100 req/day per sport; paid tiers | Only ~2008+ | History too shallow for SP2 |
 | [Highlightly](https://highlightly.net/sport-api/) | All 4 + more | Free 100 req/day; paid tiers | Recent focus | Highlights/odds oriented; not a fit |
 
 ---
@@ -455,10 +455,10 @@ ongoing-update layer** (one adapter, four leagues) while historical loads stay p
   baseball-reference)**: fantastic to browse, but their
   [data-use policy](https://www.sports-reference.com/data_use.html) prohibits building
   sites/tools on scraped data, they [rate-limit and block scrapers](https://www.sports-reference.com/bot-traffic.html)
-  (20 req/min → day-long bans), and custom exports start at $5,000. **Do not build SP3's
+  (20 req/min → day-long bans), and custom exports start at $5,000. **Do not build SP2's
   pipeline on these.** Listed above only for completeness/manual verification.
 - **MLB Stats API terms**: free for individual, non-commercial, *non-bulk* use. Use Retrosheet
-  for bulk; keep statsapi calls to incremental updates. If SP3 ever becomes commercial,
+  for bulk; keep statsapi calls to incremental updates. If SP2 ever becomes commercial,
   revisit (MLBAM written authorization or a paid provider).
 - **stats.nba.com**: undocumented and known to throttle/block aggressive clients. Backfill
   slowly (sleep between requests) or just use the Kaggle bulk CSV and avoid the issue.

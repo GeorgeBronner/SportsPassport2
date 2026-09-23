@@ -1,4 +1,4 @@
-# SP3 Open Issues
+# SP2 Open Issues
 
 Known data gaps and defects, discovered while importing the attendance history from
 `Bronner Sporting Venues - Raw Sportspassport.csv` (2026-07-15). Each issue lists the
