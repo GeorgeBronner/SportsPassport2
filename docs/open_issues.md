@@ -858,7 +858,7 @@ Regression coverage in `tests/test_cfb_adapter.py`: the classification-default f
 catch-all pass, and `sync_recent` resolving one on its own with no prior `import_teams`
 call. Full suite (381 tests), `ruff check` and `pyright` all clean.
 
-## 15. NBA sync source dead again — ESPN's hidden scoreboard now Akamai-blocked too — **fix pending prod verification**
+## 15. NBA sync source dead again — ESPN's hidden scoreboard now Akamai-blocked too — **RESOLVED 2026-09-23**
 
 **Symptom.** Same audit that found #14 above showed NBA's `sync_state` stuck on
 `last_status = error` since 2026-08-04, `last_error` a `403 Forbidden` from ESPN's
@@ -908,5 +908,7 @@ The invisibility is fixed separately and for every league: `run_sync_for_league`
 `logger.error`s whenever an adapter returns a non-empty `result.errors` without
 raising, and ERROR-level records reach Sentry through its default logging integration.
 
-**Still to do:** confirm `site.web.api.espn.com` answers from inside the Oracle and
-`docker31` containers, then mark this resolved once `sync_state` flips to `success`.
+**Verified 2026-09-23 after deploy (#23):** `site.web.api.espn.com` returns 200 with all
+15 games for 2026-04-12 from inside both the Oracle and `docker31` containers. A manual
+`run_sync_for_league(db, "NBA")` on each host went `success` with 0 errors, backfilling
+2026-08-02 onward (offseason, so 0 games), and `sync_state` is green on both.
