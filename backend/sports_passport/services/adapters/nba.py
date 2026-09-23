@@ -13,7 +13,7 @@ an Akamai "Access Denied" — verified from the Oracle production host *and*
 from a residential connection, with and without browser-shaped headers.
 The Phase 4 hypothesis that a non-cloud IP would get through is disproved,
 so there is no network this app runs on where that endpoint works. Sync now
-uses ESPN's scoreboard, which SP3_data_sources.md already designates as
+uses ESPN's scoreboard, which SP2_data_sources.md already designates as
 NBA's backup update source, and which additionally carries venue data that
 scoreboardv2 never returned.
 

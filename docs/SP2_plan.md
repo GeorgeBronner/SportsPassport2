@@ -8,7 +8,7 @@ leagues (MLS, etc.). Direct evolution of the original college football tracker (
 integration. Phase progress is tracked in this document's own phase checkboxes
 (`tasks/todo.md` was retired).
 
-Companion doc: [SP3_data_sources.md](SP3_data_sources.md) — full data source research.
+Companion doc: [SP2_data_sources.md](SP2_data_sources.md) — full data source research.
 
 ---
 
@@ -136,7 +136,7 @@ class LeagueAdapter(ABC):
 falling back to API pagination where the source is an API. `sync_recent` only ever touches
 free APIs with tiny request counts.
 
-### Per-league source wiring (from SP3_data_sources.md recommendations)
+### Per-league source wiring (from SP2_data_sources.md recommendations)
 
 | League | `import_teams` | `import_historical` (one-time) | `sync_recent` (ongoing) |
 |--------|----------------|-------------------------------|------------------------|
@@ -333,7 +333,7 @@ deferred to Phase 7 and has since been built. Original work committed in `4065c9
         connection alike, with and without browser-shaped headers. The
         cloud-IP hypothesis was wrong — this endpoint is unreachable from
         anywhere this app runs. `sync_recent` moved to ESPN's scoreboard,
-        which `SP3_data_sources.md` already lists as NBA's backup update
+        which `SP2_data_sources.md` already lists as NBA's backup update
         source, and which also carries the venue data `scoreboardv2` never
         returned. Because ESPN has no NBA `gameId`, the adapter reconciles on
         (league, home, away, start ±12h) so synced rows and bulk rows converge
@@ -450,12 +450,12 @@ generalization) and added the league dimension:
 
 ### Phase 8 — CBB adapter (added beyond original scope) ✅ DONE 2026-07-12
 Not part of the original 5-league plan (see §1). Added after Phase 5 once CBB data-source
-research (`SP3_data_sources.md`) turned up CollegeBasketballData.com (CBBD) — CFBD's sister
+research (`SP2_data_sources.md`) turned up CollegeBasketballData.com (CBBD) — CFBD's sister
 project, same maintainer, and (live-confirmed) the same API key.
 - [x] `CbbAdapter` (`backend/sports_passport/services/adapters/cbb.py`, source `cbbd`) — reuses
       `settings.cfb_api_key` directly rather than a separate CBB key setting.
 - [x] **Two research findings corrected via live testing during the build** (see
-      `SP3_data_sources.md`'s CBB section for the full correction):
+      `SP2_data_sources.md`'s CBB section for the full correction):
   - The research's "2003 floor" was wrong — real, clean game data exists back to at least 1950
     (1,240 games that season, real teams/scores, verified live). The app ships with a **1990
     floor anyway**, matching CFB's — a scope decision (bounds decades of conference-realignment
@@ -534,7 +534,7 @@ SQL query against the database.
 Added to unblock the one attended MLS game in `open_issues.md` #1b. The seventh
 league, and the first built on **two sources split at a hard season boundary** —
 `FIRST_ASA_SEASON = 2013` — so the same match can never arrive twice.
-- [x] Source research live-tested before ranking (`SP3_data_sources.md` MLS section):
+- [x] Source research live-tested before ranking (`SP2_data_sources.md` MLS section):
       the ASA API won on UTC-native timestamps, complete per-season slates, and
       **venue coordinates supplied directly** — the only source in this project that
       does, so the 2013+ era needed no hand-built seed at all.
@@ -651,7 +651,7 @@ far below its neighbors). Two distinct problems found:
 1. Reuse SP2 stack wholesale — this is an evolution, not a rewrite.
 2. League adapters + common `games` schema is the extensibility mechanism.
 3. Free sources only; no paid API in the first draft. Paid fallbacks documented in
-   SP3_data_sources.md if a free source dies.
+   SP2_data_sources.md if a free source dies.
 4. Bulk files for backfill, APIs for sync — never bulk-crawl a rate-limited/ToS-restricted API.
 5. 1970 floor for pro leagues, 1990 for CFB; `start_season` parameterized for later deepening.
 6. Venue completeness target: MLB/NFL/NHL/CFB from source data; NBA via hand-built seed file;

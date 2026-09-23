@@ -35,7 +35,7 @@ files if regular-season coverage is ever extended earlier.
 Seeded an `MLS` league and built `services/adapters/mls.py` on two sources split at
 a hard season boundary, then logged attendance for user_id 2 on the game above
 (attendance id 238, game id 500952 — NYCFC @ NY Red Bulls 1-2 at Red Bull Arena,
-Harrison NJ). See `docs/SP3_data_sources.md` for the source research.
+Harrison NJ). See `docs/SP2_data_sources.md` for the source research.
 
 - **2013-present: American Soccer Analysis** (`app.americansocceranalysis.com`,
   free, keyless) is authoritative for teams, venues, games and sync. One request
@@ -98,7 +98,7 @@ Two limitations accepted rather than fixed, both recorded in `mls.py`'s docstrin
   endpoint does return spring-training games (`gameType=S`), so the fix would be
   adding `"S": "spring"` to `STATSAPI_GAME_TYPES` (plus a `season_type='spring'`
   convention) and fetching the specific dates needed — small "since date" queries
-  are compliant; bulk backfill via the Stats API is not (SP3_data_sources.md).
+  are compliant; bulk backfill via the Stats API is not (SP2_data_sources.md).
   Spring-training venues (e.g. Steinbrenner Field) would also be new `venues` rows.
 - The 2025-03-23 Rays @ Yankees game stays permanently unloggable for user_id 2.
 
@@ -320,7 +320,7 @@ the only changes are the version stamp and the new unique index. Backup kept at
 ## 7. NBA and NFL `start_date` held Eastern, not UTC — **RESOLVED 2026-08-01**
 
 Raised by CodeRabbit on PR #9. `games.start_date` is documented as UTC
-(`SP3_plan.md` §3), `core/serializers.py` stamps a UTC offset on it, and the
+(`SP2_plan.md` §3), `core/serializers.py` stamps a UTC offset on it, and the
 frontend renders `has_time = true` rows in the viewer's timezone (issue #5).
 Two bulk paths broke that contract by writing a naive **US Eastern** wall
 clock into the column: the NBA Kaggle `Games.csv` (`gameDate`) and nflverse
@@ -473,7 +473,7 @@ timezone.
 
 ## 9. NFL team eras: reused abbreviations and single-span coverage — open (cosmetic)
 
-Introduced 2026-08-01 by the NFL 1970–1998 backfill (SP3_plan.md Phase 11), which
+Introduced 2026-08-01 by the NFL 1970–1998 backfill (SP2_plan.md Phase 11), which
 adds 7 pre-merger-era team identities alongside the 35 nflverse ones. Both points
 are recorded here rather than treated as defects: games are attributed correctly
 in every case, and the fixes are schema changes, not adapter changes.
@@ -897,7 +897,7 @@ own `SportsPassport/0.2` UA. So `settings.espn_api_url` now points there and not
 `nba.py`'s parsing changed. Override on a host without a deploy via
 `ESPN_API_URL=https://site.web.api.espn.com/apis/site/v2/sports`.
 
-The TheSportsDB plan in `docs/NBA_data_fix.md` is shelved: its free key truncates
+The earlier plan to move to TheSportsDB was dropped: its free key truncates
 (3 of 15 games for a full slate; `lookup_all_teams` answers with a demo soccer league),
 so it was never actually free for this use. Free sources that also answered on
 2026-09-23, should this host close too: ESPN's `sports.core.api.espn.com` (same data,

@@ -110,7 +110,7 @@ curl -L -o nfl.zip https://www.kaggle.com/api/v1/datasets/download/tobycrabtree/
 
 Note that **only `GET` works** — a `HEAD` probe against that URL returns 404, which is an easy
 way to wrongly conclude the dataset is gone. This is the same access pattern the MLS Kaggle
-file uses. It now backs NFL 1970–1998 (SP3_plan.md Phase 11); nflverse still owns 1999+.
+file uses. It now backs NFL 1970–1998 (SP2_plan.md Phase 11); nflverse still owns 1999+.
 
 **Quality, measured rather than assumed** (see Phase 11 for the full write-up): on the
 1999–2024 overlap it agrees with nflverse exactly — 6,991 games each, zero per-season
@@ -246,7 +246,7 @@ inferred from marketing/blog pages without a live API call. Live testing while b
 `CbbAdapter` found real, clean game data (real teams, real scores) at `season=1950` (1,240
 games) and every decade sampled between 1950 and 2024. **The app's CBB adapter ships with a 1990
 floor anyway** — a scope decision matching CFB's floor, not a data-availability limit; see
-`SP3_plan.md` Phase 8. The paragraph immediately below (recommending 2003) is the original,
+`SP2_plan.md` Phase 8. The paragraph immediately below (recommending 2003) is the original,
 inaccurate research and is kept for context on how the recommendation changed, not as current
 guidance.
 
@@ -422,7 +422,7 @@ architecture, just a CBB-appropriate classification value and the same style of 
 Build `CbbAdapter` on **CollegeBasketballData.com** for both historical backfill and ongoing sync
 — it's the only source here with clean licensing, a documented API, and an auth pattern that's
 already proven out in `CfbAdapter`. **Built 2026-07-12** (`backend/sports_passport/services/
-adapters/cbb.py`); see `SP3_plan.md` Phase 8 for the shipped floor year (1990, a scope choice,
+adapters/cbb.py`); see `SP2_plan.md` Phase 8 for the shipped floor year (1990, a scope choice,
 not the 2003 data limit originally assumed here) and final verification numbers. Keep ESPN's
 scoreboard endpoint in reserve as a backup ongoing-sync source, same role it plays for the other
 four leagues, if CBBD's free tier ever proves too thin. Treat NCAA.com scrapers and the Kaggle

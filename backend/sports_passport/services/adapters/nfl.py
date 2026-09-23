@@ -35,7 +35,7 @@ itself is the per-era team identity (STL and LA Rams are separate team
 rows), matching the CFB/NHL pattern. `gametime` in the nflverse data is US
 Eastern local time for every game regardless of where it is played, so
 `_parse_start` converts it to UTC — `games.start_date` is defined as UTC
-(SP3_plan.md §3) and the API serializer stamps an explicit UTC offset on
+(SP2_plan.md §3) and the API serializer stamps an explicit UTC offset on
 it, so storing Eastern here would publish a time 4-5 hours off.
 
 Spreadspoke caveats, all handled here:

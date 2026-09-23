@@ -1,6 +1,6 @@
 """Convert the naive US Eastern wall-clock times that some bulk sources
 publish into the UTC that `games.start_date` is defined to hold
-(SP3_plan.md §3).
+(SP2_plan.md §3).
 
 Two adapters need this: NFL (nflverse documents `gametime` as US Eastern)
 and NBA (the Kaggle `Games.csv` publishes `gameDate` in Eastern too).

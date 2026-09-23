@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # cdn.) answers Akamai "Access Denied" from both the Oracle production host
     # and a residential connection, with or without browser-shaped headers, so
     # the originally-planned scoreboardv2 sync could never run anywhere.
-    # SP3_data_sources.md already lists ESPN as NBA's backup update source.
+    # SP2_data_sources.md already lists ESPN as NBA's backup update source.
     # The site.web. host, not site.: by 2026-09 Akamai 403s every non-browser
     # request to site.api.espn.com, while site.web.api.espn.com serves the
     # identical /apis/site/v2 payload (see docs/open_issues.md #15).
