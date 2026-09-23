@@ -106,6 +106,29 @@ class TestRunSyncForLeague:
         assert state.last_success_at is None
 
     @patch('sports_passport.services.scheduler.get_adapter')
+    def test_soft_errors_logged_at_error_level(self, mock_get_adapter, db_session, caplog):
+        """Errors an adapter records without raising must still reach Sentry,
+        which only sees ERROR-level log records."""
+        import asyncio
+        mock_get_adapter.return_value = _mock_adapter(
+            errors=["2026-09-21: fetch failed (403)", "2026-09-22: fetch failed (403)"]
+        )
+        with caplog.at_level("ERROR", logger=scheduler.__name__):
+            asyncio.run(run_sync_for_league(db_session, "CFB"))
+        errors = [r for r in caplog.records if r.levelname == "ERROR"]
+        assert len(errors) == 1
+        assert "CFB" in errors[0].getMessage()
+        assert "2 error(s)" in errors[0].getMessage()
+
+    @patch('sports_passport.services.scheduler.get_adapter')
+    def test_clean_sync_logs_no_error(self, mock_get_adapter, db_session, caplog):
+        import asyncio
+        mock_get_adapter.return_value = _mock_adapter()
+        with caplog.at_level("ERROR", logger=scheduler.__name__):
+            asyncio.run(run_sync_for_league(db_session, "CFB"))
+        assert not [r for r in caplog.records if r.levelname == "ERROR"]
+
+    @patch('sports_passport.services.scheduler.get_adapter')
     def test_recovers_from_failed_flush(self, mock_get_adapter, db_session):
         """A DB error inside sync_recent must not leave the session unable to
         commit the outcome (regression: finally-block db.commit() would raise
