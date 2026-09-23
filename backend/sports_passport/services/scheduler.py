@@ -145,6 +145,16 @@ async def run_sync_for_league(
         db.rollback()
         result.errors.append(str(e))
         logger.exception("Sync for %s failed", league_code)
+    else:
+        # Adapters record per-request failures (a 403, a bad row) in
+        # result.errors rather than raising, so without this a league can sit
+        # red on SyncState for weeks while Sentry sees nothing — see
+        # open_issues.md #14/#15. logger.error is what reaches Sentry.
+        if result.errors:
+            logger.error(
+                "Sync for %s finished with %d error(s); first: %s",
+                league_code, len(result.errors), result.errors[0],
+            )
     finally:
         if adapter is not None:
             await adapter.aclose()  # release the adapter's pooled connections

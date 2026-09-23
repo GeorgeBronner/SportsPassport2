@@ -1,5 +1,11 @@
 # NBA Sync Data Source — Fix Options
 
+> **Superseded 2026-09-23.** Not implemented. ESPN's `site.web.api.espn.com` host turned
+> out to serve the same scoreboard unblocked, so sync moved hosts and kept its parser.
+> TheSportsDB's free key also truncates results (3 of 15 games on a full slate), so it
+> was never the free option this doc assumed. See `docs/open_issues.md` #15. The research
+> below is kept for the next time the source has to change.
+
 `NbaAdapter.sync_recent` (`backend/sports_passport/services/adapters/nba.py`) is broken again.
 See `docs/open_issues.md` #15 for the full incident writeup — this doc is the options research
 it points to, plus a plan for whichever option gets picked.

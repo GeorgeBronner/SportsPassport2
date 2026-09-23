@@ -858,7 +858,7 @@ Regression coverage in `tests/test_cfb_adapter.py`: the classification-default f
 catch-all pass, and `sync_recent` resolving one on its own with no prior `import_teams`
 call. Full suite (381 tests), `ruff check` and `pyright` all clean.
 
-## 15. NBA sync source dead again — ESPN's hidden scoreboard now Akamai-blocked too — open
+## 15. NBA sync source dead again — ESPN's hidden scoreboard now Akamai-blocked too — **fix pending prod verification**
 
 **Symptom.** Same audit that found #14 above showed NBA's `sync_state` stuck on
 `last_status = error` since 2026-08-04, `last_error` a `403 Forbidden` from ESPN's
@@ -887,7 +887,26 @@ statuses): zero issues mention CFB or NBA; the only issue on file is an unrelate
 already-resolved-itself CBB `ConnectError` blip. Worth knowing generally: a `SyncState`
 row going red is currently the *only* signal for either of these — Sentry won't show it.
 
-**Fix — not applied yet, needs a decision.** See `docs/NBA_data_fix.md` for the full
-options writeup, comparison table and recommendation (TheSportsDB, forward-facing only
-— NBA's 1946+ historical data is unaffected, it comes from the Kaggle bulk CSV and
-doesn't touch this endpoint at all).
+**Fix — moved hosts, not sources (2026-09-23; open until a prod nightly goes green).**
+The block is per-*hostname*, not per-API: `site.api.espn.com` 403s for every client
+(verified again from a residential connection with a browser UA, and it hits NHL's
+scoreboard there too), but **`site.web.api.espn.com`** serves the identical
+`/apis/site/v2/.../scoreboard` payload with a 200 — all 15 games on 2026-04-12, same
+`season`/`venue.id`/`status`/competitor shape the parser already reads, with the app's
+own `SportsPassport/0.2` UA. So `settings.espn_api_url` now points there and nothing in
+`nba.py`'s parsing changed. Override on a host without a deploy via
+`ESPN_API_URL=https://site.web.api.espn.com/apis/site/v2/sports`.
+
+The TheSportsDB plan in `docs/NBA_data_fix.md` is shelved: its free key truncates
+(3 of 15 games for a full slate; `lookup_all_teams` answers with a demo soccer league),
+so it was never actually free for this use. Free sources that also answered on
+2026-09-23, should this host close too: ESPN's `sports.core.api.espn.com` (same data,
+paginated `$ref`s), Yahoo's `api-secure.sports.yahoo.com` scoreboard, theScore's
+`api.thescore.com`. Still blocked: `cdn.nba.com`, `stats.nba.com`, Sofascore.
+
+The invisibility is fixed separately and for every league: `run_sync_for_league` now
+`logger.error`s whenever an adapter returns a non-empty `result.errors` without
+raising, and ERROR-level records reach Sentry through its default logging integration.
+
+**Still to do:** confirm `site.web.api.espn.com` answers from inside the Oracle and
+`docker31` containers, then mark this resolved once `sync_state` flips to `success`.

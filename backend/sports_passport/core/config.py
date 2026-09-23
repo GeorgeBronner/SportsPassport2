@@ -32,7 +32,10 @@ class Settings(BaseSettings):
     # and a residential connection, with or without browser-shaped headers, so
     # the originally-planned scoreboardv2 sync could never run anywhere.
     # SP3_data_sources.md already lists ESPN as NBA's backup update source.
-    espn_api_url: str = "https://site.api.espn.com/apis/site/v2/sports"
+    # The site.web. host, not site.: by 2026-09 Akamai 403s every non-browser
+    # request to site.api.espn.com, while site.web.api.espn.com serves the
+    # identical /apis/site/v2 payload (see docs/open_issues.md #15).
+    espn_api_url: str = "https://site.web.api.espn.com/apis/site/v2/sports"
 
     # Directory holding bulk historical files (Retrosheet, Kaggle CSVs)
     data_dir: str = "data"

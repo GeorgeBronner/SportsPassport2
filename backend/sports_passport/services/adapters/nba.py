@@ -17,6 +17,14 @@ uses ESPN's scoreboard, which SP3_data_sources.md already designates as
 NBA's backup update source, and which additionally carries venue data that
 scoreboardv2 never returned.
 
+ESPN's own `site.api.espn.com` then went the same way (Akamai 403 from
+every host, found 2026-09-21), but the `site.web.api.espn.com` host serves
+the identical scoreboard payload and was not blocked, so sync moved hosts
+rather than sources (`settings.espn_api_url`). If that host closes too,
+the free fallbacks that answered at the time were ESPN's paginated
+`sports.core.api.espn.com`, Yahoo's and theScore's scoreboard APIs — see
+docs/open_issues.md #15.
+
 ESPN cannot supply the NBA's own 8-char gameId, so synced rows cannot share
 `source_game_id` with the bulk import. `_find_by_natural_key` reconciles the
 two on (league, home, away, start +/- NATURAL_KEY_WINDOW) so that
