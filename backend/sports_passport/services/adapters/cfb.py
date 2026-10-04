@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 class CfbAdapter(LeagueAdapter):
     league_code = "CFB"
     source = "cfbd"
+    # CFBD has no date filter on /games, so the nightly sync pulls a whole
+    # season. On a college football Saturday night that response has hit the
+    # 30s default (two Sentry ReadTimeouts, both at the 01:00 run).
+    http_timeout_seconds = 60.0
 
     def __init__(self, db):
         super().__init__(db)
@@ -130,7 +134,11 @@ class CfbAdapter(LeagueAdapter):
         games_data = await self._get("/games", params={
             "year": season,
             "seasonType": "both",
-            "division": "fbs",
+            # `classification`, never `division`: CFBD silently ignores an
+            # unknown parameter, and `division` returned every NCAA division
+            # (~3,900 games a season instead of ~950) from the scaffold on.
+            # Means "at least one FBS team", so FBS-vs-FCS games stay in.
+            "classification": "fbs",
         })
 
         # Team/venue lookups by source id, resolved once per season. Keyed on
@@ -206,7 +214,7 @@ class CfbAdapter(LeagueAdapter):
 
     async def sync_recent(self, since: date) -> ImportResult:
         # CFBD's /games only filters by year + seasonType, never by date, so
-        # "recent" means re-upserting whole seasons (~800 games each). The
+        # "recent" means re-upserting whole seasons (~950 games each). The
         # upserts are idempotent, so this is wasteful rather than wrong. A
         # window spanning a season boundary (since in one season, today in
         # the next) must still cover both — a single season() call would

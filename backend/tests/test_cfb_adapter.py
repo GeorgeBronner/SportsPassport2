@@ -129,6 +129,23 @@ class TestCfbImportSeason:
         assert result.games_imported == 1
         assert not result.errors
 
+    @pytest.mark.asyncio
+    async def test_import_season_filters_games_with_classification_not_division(
+        self, adapter, cfb_league
+    ):
+        # CFBD's /games takes `classification`; it silently ignores `division`,
+        # which the adapter sent from the scaffold on, so every nightly sync
+        # pulled all NCAA divisions (~4x the payload) and stored D-II/D-III
+        # games. The mocked _get can't notice an ignored filter, so pin the
+        # request itself.
+        get = AsyncMock(side_effect=_fake_get())
+        with patch.object(adapter, "_get", get):
+            await adapter.import_season(2023)
+
+        params = next(c.kwargs["params"] for c in get.await_args_list if c.args[0] == "/games")
+        assert params["classification"] == "fbs"
+        assert "division" not in params
+
 
 class TestCfbSyncRecent:
     @pytest.mark.asyncio
