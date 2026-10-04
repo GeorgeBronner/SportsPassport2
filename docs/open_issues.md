@@ -912,3 +912,35 @@ raising, and ERROR-level records reach Sentry through its default logging integr
 15 games for 2026-04-12 from inside both the Oracle and `docker31` containers. A manual
 `run_sync_for_league(db, "NBA")` on each host went `success` with 0 errors, backfilling
 2026-08-02 onward (offseason, so 0 games), and `sync_state` is green on both.
+
+## 16. CFB pulled every NCAA division; nightly sync timing out on Saturdays — **FIX ON BRANCH, prod cleanup pending**
+
+**Symptom.** Two Sentry `ReadTimeout`s from `adapters/cfb.py` in `_get`
+(SPORTSPASSPORT2-BACKEND-G 2026-09-27, -H 2026-10-04), both at the 01:00 nightly run
+after a college football Saturday. Each one costs that night's whole CFB sync.
+
+**Root cause.** `import_season` sent `division: "fbs"` to CFBD's `/games`. The
+parameter is called `classification` (verified against CFBD's OpenAPI spec, 2026-10-04),
+and CFBD silently ignores the unknown one, so every season pull returned all NCAA
+divisions. 2025: ~3,900 games instead of 934. Combined with the existing whole-season
+nightly re-sync (no date filter on `/games`), the response outgrew the 30 s default
+read timeout under game-night load. The bug dates from the scaffold (82bd7f9) and the
+historical backfill shares `import_season`, so it affected every season.
+
+This also recasts #14: "Rocky Mountain @ University of Mary" was a D-II/NAIA game that
+only arrived because of the ignored filter, not an FBS money game. The catch-all
+`/teams` pass #14 added is now mostly redundant, but is kept as cheap insurance for a
+real FBS-vs-D-II game.
+
+**Fix.** `classification: "fbs"` (live-verified: returns every game with at least one FBS
+team, FBS-vs-FCS included, and nothing else) and a 60 s CFB timeout. Regression test
+pins the request parameters, since the mocked `_get` can't notice an ignored filter.
+
+**Prod data audit (read-only, 2026-10-04).** 56,096 CFB games. Compared per season
+against CFBD's `classification=fbs` IDs (37 calls): **27,409 games are out of scope**
+(2003–2026; 1990–2002 are clean), 28,687 in scope, and no in-scope game is missing.
+Attendance rows on the out-of-scope set: **0** (169 CFB attendance rows total).
+Team classification can't be used to pick the delete set: it's CFBD's *current*
+level, not the game-season's (and 1,379 of 1,933 CFB teams are tagged `fcs`).
+After cleanup only 269 CFB teams would have games; the rest stay in the team list
+because `list_teams` doesn't filter on having games.
