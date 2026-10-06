@@ -913,7 +913,7 @@ raising, and ERROR-level records reach Sentry through its default logging integr
 `run_sync_for_league(db, "NBA")` on each host went `success` with 0 errors, backfilling
 2026-08-02 onward (offseason, so 0 games), and `sync_state` is green on both.
 
-## 16. CFB pulled every NCAA division; nightly sync timing out on Saturdays — **FIX ON BRANCH, prod cleanup pending**
+## 16. CFB pulled every NCAA division; nightly sync timing out on Saturdays — **RESOLVED 2026-10-06**
 
 **Symptom.** Two Sentry `ReadTimeout`s from `adapters/cfb.py` in `_get`
 (SPORTSPASSPORT2-BACKEND-G 2026-09-27, -H 2026-10-04), both at the 01:00 nightly run
@@ -955,3 +955,11 @@ above). The first `sync_recent` after deploy re-tags existing rows, because
 `upsert_team` overwrites classification.
 After cleanup only 269 CFB teams would have games; the rest stay in the team list
 because `list_teams` doesn't filter on having games.
+
+**Prod cleanup (2026-10-06).** Fix deployed in #25. With the container stopped and a
+`.backup` taken (`data/sports_passport.pre-cfb-cleanup.db`), the same per-season
+comparison against CFBD deleted the 27,409 out-of-scope games. The run would have aborted
+on any failed fetch or any attendance on the delete set; there was none. `import_teams` then
+re-tagged CFB teams to CFBD's own values: 138 `fbs`, 128 `fcs`, 170 `ii`, 246 `iii`,
+1,251 `other`. Afterwards: 28,687 CFB games, each season matching CFBD's FBS count; 269
+CFB teams with games; integrity and foreign-key checks clean; no orphaned attendance.
