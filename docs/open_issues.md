@@ -927,20 +927,31 @@ nightly re-sync (no date filter on `/games`), the response outgrew the 30 s defa
 read timeout under game-night load. The bug dates from the scaffold (82bd7f9) and the
 historical backfill shares `import_season`, so it affected every season.
 
-This also recasts #14: "Rocky Mountain @ University of Mary" was a D-II/NAIA game that
-only arrived because of the ignored filter, not an FBS money game. The catch-all
-`/teams` pass #14 added is now mostly redundant, but is kept as cheap insurance for a
-real FBS-vs-D-II game.
+**Same bug on `/teams`.** `import_teams` asked `/teams` for `classification: "fcs"`, but
+`/teams` takes only `conference` and `year`. Live-verified 2026-10-06: with or without
+the param it returns the same 1,933 schools (138 `fbs`, 128 `fcs`, 170 `ii`, 246 `iii`,
+1,251 `null`). The "FCS" pass therefore upserted every school and defaulted the 1,251
+nulls to `fcs`. That is the whole of prod's 1,379 `fcs` tags (1,251 + 128), and it
+left #14's catch-all pass with nothing to do.
 
-**Fix.** `classification: "fbs"` (live-verified: returns every game with at least one FBS
-team, FBS-vs-FCS included, and nothing else) and a 60 s CFB timeout. Regression test
-pins the request parameters, since the mocked `_get` can't notice an ignored filter.
+This also recasts #14 twice over. "Rocky Mountain @ University of Mary" was a D-II/NAIA
+game that only arrived because of the ignored `/games` filter, not an FBS money game.
+And both schools were already in the ignored-filter "FCS" pull, so what actually fixed
+#14 was `sync_recent` calling `import_teams` (its fix item 3), not the catch-all pass.
+
+**Fix.** `classification: "fbs"` on `/games` (live-verified: returns every game with at
+least one FBS team, FBS-vs-FCS included, and nothing else) and a 60 s CFB timeout.
+`import_teams` now makes one unfiltered `/teams` pull after `/teams/fbs`: each school
+keeps CFBD's own classification, and unclassified ones get `other`. Regression tests pin
+both requests' parameters, since the mocked `_get` can't notice an ignored filter.
 
 **Prod data audit (read-only, 2026-10-04).** 56,096 CFB games. Compared per season
 against CFBD's `classification=fbs` IDs (37 calls): **27,409 games are out of scope**
 (2003–2026; 1990–2002 are clean), 28,687 in scope, and no in-scope game is missing.
 Attendance rows on the out-of-scope set: **0** (169 CFB attendance rows total).
 Team classification can't be used to pick the delete set: it's CFBD's *current*
-level, not the game-season's (and 1,379 of 1,933 CFB teams are tagged `fcs`).
+level, not the game-season's, and on prod it is also wrong (the 1,379 `fcs` tags
+above). The first `sync_recent` after deploy re-tags existing rows, because
+`upsert_team` overwrites classification.
 After cleanup only 269 CFB teams would have games; the rest stay in the team list
 because `list_teams` doesn't filter on having games.

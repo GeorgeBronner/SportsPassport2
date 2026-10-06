@@ -54,8 +54,7 @@ class CfbAdapter(LeagueAdapter):
             conference=team_data.get("conference"),
             division=team_data.get("division"),
             # `or`, not dict.get's default: CFBD returns the key with a null
-            # value (not a missing key) for a team it hasn't classified, e.g.
-            # the below-FCS opponents pulled in by the catch-all import.
+            # value (not a missing key) for a team it hasn't classified.
             classification=team_data.get("classification") or default_classification,
         )
         return created
@@ -73,27 +72,14 @@ class CfbAdapter(LeagueAdapter):
             if self._upsert_team_row(league.id, team_data, "fbs"):
                 result.teams_imported += 1
 
-        # FCS teams are opponents in some FBS games; import is best-effort.
-        try:
-            fcs_teams = await self._get("/teams", params={"classification": "fcs"})
-            for team_data in fcs_teams:
-                if team_data.get("id") in seen:
-                    continue
-                seen.add(team_data.get("id"))
-                if self._upsert_team_row(league.id, team_data, "fcs"):
-                    result.teams_imported += 1
-        except Exception as e:
-            result.errors.append(f"FCS team import skipped: {e}")
-
-        # An FBS team occasionally schedules a "money game" against a
-        # Division II/III or NAIA opponent — rare, but CFBD's own /games
-        # still reports it. CFBD's unfiltered /teams (no classification
-        # filter) turns out to already carry those schools too (verified:
-        # id 2826 "Rocky Mountain", id 559 "University of Mary", both absent
-        # from the fbs/fcs pulls above) — import the rest of its roster,
-        # best-effort, so import_season's unmatched-team check (see below)
-        # never permanently wedges on an opponent CFBD knows about but we
-        # never asked for. See docs/open_issues.md #14.
+        # Every other school — FCS opponents, and the occasional Division II/III
+        # or NAIA "money game" opponent CFBD's /games still reports — from one
+        # unfiltered /teams pull, best-effort. /teams has no classification
+        # filter (CFBD silently ignores one, same as `division` on /games), so
+        # each row keeps CFBD's own classification; the 1,200-odd it hasn't
+        # classified get "other". Without these, import_season's unmatched-
+        # team check would permanently wedge on an opponent we never asked
+        # for. See docs/open_issues.md #14 and #16.
         try:
             all_teams = await self._get("/teams")
             for team_data in all_teams:
@@ -103,7 +89,7 @@ class CfbAdapter(LeagueAdapter):
                 if self._upsert_team_row(league.id, team_data, "other"):
                     result.teams_imported += 1
         except Exception as e:
-            result.errors.append(f"non-FBS/FCS team import skipped: {e}")
+            result.errors.append(f"non-FBS team import skipped: {e}")
 
         self.db.commit()
         return result

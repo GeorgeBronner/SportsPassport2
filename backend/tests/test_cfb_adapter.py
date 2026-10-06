@@ -20,11 +20,15 @@ GEORGIA = {
 }
 # Real CFBD payload shape for a below-FCS opponent, matching the schools that
 # wedged CFB's nightly sync in docs/open_issues.md #14: present in CFBD's
-# unfiltered /teams, absent from /teams/fbs and classification=fcs, and
-# carrying classification: null rather than a missing key.
+# unfiltered /teams, absent from /teams/fbs, and carrying classification: null
+# rather than a missing key.
 ROCKY_MOUNTAIN = {
     "id": 2826, "school": "Rocky Mountain", "mascot": "Battlin' Bears",
     "abbreviation": None, "conference": None, "classification": None,
+}
+MONTANA = {
+    "id": 149, "school": "Montana", "mascot": "Grizzlies",
+    "abbreviation": "MONT", "conference": "Big Sky", "classification": "fcs",
 }
 
 
@@ -39,10 +43,9 @@ def _game(**over):
     return row
 
 
-def _fake_get(fbs_teams=None, fcs_teams=None, other_teams=None, games=None, games_by_year=None,
+def _fake_get(fbs_teams=None, other_teams=None, games=None, games_by_year=None,
               venues=None):
     fbs_teams = fbs_teams if fbs_teams is not None else [ALABAMA, GEORGIA]
-    fcs_teams = fcs_teams if fcs_teams is not None else []
     other_teams = other_teams if other_teams is not None else []
     games = games if games is not None else []
     games_by_year = games_by_year or {}
@@ -52,8 +55,8 @@ def _fake_get(fbs_teams=None, fcs_teams=None, other_teams=None, games=None, game
         if endpoint == "/teams/fbs":
             return fbs_teams
         if endpoint == "/teams":
-            if (params or {}).get("classification") == "fcs":
-                return fcs_teams
+            # CFBD's /teams has no classification filter; it ignores one and
+            # returns every school, so the fake does too.
             return other_teams
         if endpoint == "/venues":
             return venues
@@ -87,6 +90,24 @@ class TestCfbImportTeams:
         # for a school it hasn't put in a division — the default only kicks
         # in via `or`, not dict.get's missing-key default.
         assert team.classification == "other"
+
+    @pytest.mark.asyncio
+    async def test_import_teams_keeps_cfbds_own_classification_from_one_unfiltered_pull(
+        self, adapter, db_session, cfb_league
+    ):
+        # Regression for docs/open_issues.md #16: the adapter asked /teams for
+        # classification=fcs, which CFBD ignores, and defaulted every unclassified
+        # school it got back to "fcs" (1,379 "FCS" teams on prod; ~130 are real).
+        get = AsyncMock(side_effect=_fake_get(other_teams=[ALABAMA, MONTANA, ROCKY_MOUNTAIN]))
+        with patch.object(adapter, "_get", get):
+            result = await adapter.import_teams()
+
+        assert not result.errors
+        teams_calls = [c for c in get.await_args_list if c.args[0] == "/teams"]
+        assert len(teams_calls) == 1
+        assert not teams_calls[0].kwargs.get("params")
+        by_id = {t.source_team_id: t.classification for t in db_session.query(Team)}
+        assert by_id == {"333": "fbs", "61": "fbs", "149": "fcs", "2826": "other"}
 
 
 class TestCfbImportSeason:
