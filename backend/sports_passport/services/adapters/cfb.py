@@ -10,6 +10,7 @@ from typing import Any
 
 from sports_passport.core.config import settings
 from sports_passport.models.team import Team
+from sports_passport.services.adapters import local_time, venue_seed
 from sports_passport.services.adapters.base import ImportResult, LeagueAdapter
 from sports_passport.services.importer import get_league, upsert_game, upsert_team, upsert_venue
 
@@ -103,7 +104,8 @@ class CfbAdapter(LeagueAdapter):
                 source=self.source,
                 source_venue_id=str(venue_data.get("id")),
                 name=venue_data.get("name"),
-                city=venue_data.get("city"),
+                # CFBD misspells a couple of cities (open_issues.md #11).
+                city=venue_seed.correct_city(venue_data.get("city"), venue_data.get("state")),
                 state=venue_data.get("state"),
                 country=venue_data.get("countryCode") or "USA",
                 capacity=venue_data.get("capacity"),
@@ -158,6 +160,12 @@ class CfbAdapter(LeagueAdapter):
             start_date = self._parse_date(game_data.get("startDate"))
             if not start_date:
                 continue
+            # An unscheduled kickoff comes as a midnight-Eastern placeholder,
+            # not a real time. Park it date-only on its Eastern game day, the
+            # way cbb.py treats startTimeTbd.
+            has_time = not game_data.get("startTimeTBD", False)
+            if not has_time:
+                start_date = local_time.date_only(local_time.utc_to_eastern(start_date))
 
             venue_id = None
             if game_data.get("venueId") is not None:
@@ -173,7 +181,7 @@ class CfbAdapter(LeagueAdapter):
                 home_score=game_data.get("homePoints"),
                 away_score=game_data.get("awayPoints"),
                 start_date=start_date,
-                has_time=True,
+                has_time=has_time,
                 season=season,
                 season_type=game_data.get("seasonType"),
                 week=game_data.get("week"),

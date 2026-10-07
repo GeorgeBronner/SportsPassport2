@@ -203,7 +203,6 @@ would have been churn that made the code less idiomatic. `pyproject.toml` now se
 `[tool.ruff.lint.flake8-bugbear] extend-immutable-calls` for `fastapi.Depends`,
 `Query`, `Path`, `Body`, `Header`, `File` and `Form`, which silences those callables
 specifically while B008 stays on for genuine mutable-default bugs elsewhere.
-   (e.g. Florida Marlins `FLO`, St. Louis Browns `SLA`) are untouched.
 
 ## 5. CFB (and other late-kickoff) games displaying a day late — **RESOLVED 2026-07-17**
 
@@ -233,9 +232,8 @@ attaches an explicit UTC offset when serializing these fields, applied via
 (`frontend/src/utils/format.ts`) now renders `has_time=true` games in the
 viewer's own local timezone (no explicit `timeZone` override) and keeps
 `has_time=false` rows pinned to UTC. Very late West Coast/Hawaii kickoffs that
-themselves cross midnight in the viewer's local timezone are a known remaining
-edge case, not fully solvable without per-venue timezone data — see issue #7,
-which quantifies it and confirms it now applies uniformly across all leagues.
+themselves cross midnight in the viewer's local timezone still show a day late —
+**won't fix**, see issue #7's "Known remaining issue".
 
 ## 6. `alembic upgrade head` fails from every database state — **RESOLVED 2026-07-23**
 
@@ -400,7 +398,7 @@ NBA's rate of "ET-rendered date differs from the venue-local game day" is now
 0.03%, against CBB 0.13% and CFB 0.58% — i.e. in line with the leagues that
 were already storing UTC correctly.
 
-### Known remaining issue
+### Known remaining issue — **WON'T FIX, permanently deferred 2026-10-06**
 
 The residual is issue #5's unchanged edge case, now shared uniformly by every
 league: a game that crosses midnight in the *viewer's* timezone displays on
@@ -409,15 +407,23 @@ and the app has no notion of the venue's local "game day". A late West Coast
 game viewed from the East Coast is the common instance; the 14 rows above are
 the extreme one. Closing it properly means displaying each game's date in its
 *venue's* timezone rather than the viewer's — which is the point at which a
-real timezone column on `venues` would earn its keep. Not worth it for a
-handful of rows today.
+real timezone column on `venues` would earn its keep.
 
-Two smaller things deliberately left alone:
+**Decision**: the app will keep rendering in the viewer's timezone. Only a
+handful of late games are affected, each by exactly one day, and the fix needs
+a timezone on every venue plus a second rendering path. This is closed; don't
+re-litigate it on the next open-issues pass.
 
-- CFB sets `has_time=True` unconditionally (`cfb.py:146`) where CBB gates on
-  `startTimeTbd`, so ~518 unscheduled 2026 games publish CFBD's midnight-ET
-  placeholder as though it were a real kickoff. Harmless while no clock time
-  is displayed.
+Two smaller things:
+
+- ~~CFB set `has_time=True` unconditionally where CBB gates on `startTimeTbd`,
+  so unscheduled games published CFBD's midnight-ET placeholder as though it
+  were a real kickoff.~~ **Fixed 2026-10-06**: `cfb.py` now reads CFBD's
+  `startTimeTBD` and parks those games date-only (noon UTC, issue #8) on their
+  Eastern game day. 252 of 2026's 888 games are TBD as of that date, and the
+  nightly whole-season sync corrects them in place. Only two earlier games
+  carry the flag (one each in 2020 and 2024); they keep their old rows until
+  those seasons are re-imported, and their displayed date is the same either way.
 - NBA seasons 1973 and 1975 have 17 and 24 distinct clock values against 1–2
   for every other pre-1996 season, so the Kaggle source may carry partially
   real times for those two years. They fall below the 1996 cutoff and are
@@ -466,8 +472,7 @@ is why those rows are `has_time=False` to begin with.
 
 **Note this does not close issue #5's edge case**, which is about `has_time=True`
 rows and is unaffected: a game crossing midnight in the *viewer's* timezone still
-displays on the following day. Closing that still means rendering in the venue's
-timezone.
+displays on the following day. That one is won't-fix — see #7.
 
 ---
 
@@ -683,14 +688,22 @@ venues table:
 
 | Venue | City as stored | Effect |
 |---|---|---|
-| Orlando City Stadium | `Orlanda`, FL | 250km misplacement — **corrected in the DB** |
+| Orlando City Stadium | `Orlanda`, FL | 250km misplacement — **fixed at the source, see below** |
 | Lambeau Field | `Greenbay`, WI | none; the venue name resolved correctly anyway |
 
-Both come from the import sources, so a re-import will reintroduce them — the
-durable fix is city normalisation in the adapter, which is **not done**. When
-that happens, `Orlando City Stadium` will need re-placing again. There is no
-general defence available here: a same-state check wouldn't have caught it
+Both come from CFBD's `/venues`, so a re-import used to reintroduce them. There
+is no general defence available here: a same-state check wouldn't have caught it
 (26.32/-81.69 *is* in Florida).
+
+**Durable fix (2026-10-06).** `venue_seed.CITY_CORRECTIONS` maps
+`(city, state)` typos to the real name, and CFB `import_venues` applies it. To
+look for others, every CFBD city was compared against the other sources' cities in
+the same state. These two are the only typos. The other near-matches are
+legitimate (`Saint Louis` / `St. Louis`, `North Easton` / `South Easton`), so
+they're left alone. Orlando City Stadium is now in `venue_coordinates.csv`, at
+the MLS row's coordinates for the same building (Inter&Co Stadium), so it can't
+lose its placement again. Migration `1c7a62f94269` fixes the existing rows,
+because the nightly CFB sync never re-reads `/venues`.
 
 A caveat on scope: quality outside the US is visibly poorer, since neither the
 name nor the city disambiguates well — `London Stadium` resolved ~13km off and
@@ -805,11 +818,17 @@ next nightly sync, reassigns every game on a raw-name row onto the park-id row, 
 the raw row, and renames the canonical row to the current name — so the Truist Park
 entry lands on ATL03 with Atlanta GA and coordinates on its own after deploy.
 
-**Known remaining gap.** Parks Retrosheet's `parkcode.txt` has no row for at all
-(`SAC01` Sutter Health Park, `TAM02` Steinbrenner Field, `MEX02`, `BST01`, `SEO01`,
-`BIR01`) now merge onto their park-id row but still have no city/state/coordinates,
-because nothing ever supplied one. A small MLB venue seed CSV (same shape as
-`nfl_stadiums.csv`) is the fix; not done here.
+**Follow-up gap — RESOLVED 2026-10-06.** Retrosheet's `parkcode.txt` has no row at
+all for six parks: `SAC01` Sutter Health Park, `TAM02` Steinbrenner Field, `MEX02`
+Estadio Alfredo Harp Helu, `BST01` Bristol Motor Speedway, `SEO01` Gocheok Sky Dome
+and `BIR01` Rickwood Field. They merged onto their park-id rows but had no
+city/state/coordinates, and the backfill had named four of them by bare park id.
+`data/seed/mlb_parks.csv` now supplies all six, with each coordinate checked
+against Nominatim. `mlb.py` falls back to it on the backfill path when
+`parkcode.txt` has no row, and applies it on the sync path. `parkcode.txt` stays
+authoritative for every park it lists. Migration `1c7a62f94269` fills the existing
+rows. That's needed because only SAC01 is still synced nightly. It also sets their
+`country`: the model's `"USA"` default had stamped that on Seoul and Mexico City.
 
 ## 14. CFB nightly sync permanently stuck in "error" on an untracked opponent — **RESOLVED 2026-09-21**
 

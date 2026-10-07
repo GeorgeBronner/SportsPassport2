@@ -221,7 +221,9 @@ then CFB (port of the CFB tracker's known-working code = validates parity with i
       `data/raw/` — same live-fetch pattern as CFB/NHL/NFL, since Retrosheet is a plain
       static host with no rate limit), franchise-links relocated teams via `CurrentNames.csv`
       column 1 (e.g. Expos→Nationals), and resolves park codes to venues (with real
-      city/state, unlike NHL/NFL's name-only venues) via `parkcode.txt`.
+      city/state, unlike NHL/NFL's name-only venues) via `parkcode.txt`. The few recent
+      temporary/neutral-site parks `parkcode.txt` doesn't list come from `mlb_parks.csv`
+      (`open_issues.md` #13).
 - **Decision (2026-07-11):** the Kaggle "Spreadspoke" CSV that was supposed to cover NFL
   1966–1998 now sits behind a Kaggle login or a $24.99/yr paid tier (site changed since the
   original research pass) — not a plain HTTP fetch. User chose to ship NFL on nflverse alone

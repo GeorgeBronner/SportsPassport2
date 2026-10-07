@@ -42,7 +42,7 @@ from sports_passport.core.config import settings
 from sports_passport.models.game import Game
 from sports_passport.models.team import Team
 from sports_passport.models.venue import Venue
-from sports_passport.services.adapters import local_time
+from sports_passport.services.adapters import local_time, venue_seed
 from sports_passport.services.adapters.base import ImportResult, LeagueAdapter
 from sports_passport.services.importer import get_league, upsert_game, upsert_team, upsert_venue
 
@@ -308,14 +308,20 @@ class MlbAdapter(LeagueAdapter):
         park_id = row[F_PARK_ID]
         venue_id = venue_cache.get(park_id)
         if venue_id is None and park_id:
-            park = parks.get(park_id, {})
+            park = parks.get(park_id)
+            seed = None if park else venue_seed.lookup_mlb_park(park_id)
+            if park:
+                fields = {
+                    "name": park.get("NAME") or park_id,
+                    "city": park.get("CITY") or None,
+                    "state": park.get("STATE") or None,
+                }
+            elif seed:
+                fields = {"name": seed["name"], **venue_seed.venue_fields(seed)}
+            else:
+                fields = {"name": park_id}
             venue, created = upsert_venue(
-                self.db,
-                source=self.source,
-                source_venue_id=park_id,
-                name=park.get("NAME") or park_id,
-                city=park.get("CITY") or None,
-                state=park.get("STATE") or None,
+                self.db, source=self.source, source_venue_id=park_id, **fields,
             )
             venue_id = venue.id
             venue_cache[park_id] = venue_id
@@ -496,8 +502,12 @@ class MlbAdapter(LeagueAdapter):
                 )
             else:
                 self._reconcile_legacy_venue(venue_name, source_venue_id)
+            # The Stats API gives only a name. A park parkcode.txt doesn't list
+            # would otherwise never get a location (open_issues.md #13).
+            seed = venue_seed.lookup_mlb_park(source_venue_id)
             venue, created = upsert_venue(
                 self.db, source=self.source, source_venue_id=source_venue_id, name=venue_name,
+                **(venue_seed.venue_fields(seed) if seed else {}),
             )
             venue_id = venue.id
             venue_cache[venue_name] = venue_id

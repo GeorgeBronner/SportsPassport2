@@ -22,7 +22,7 @@ import tempfile
 import pytest
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HEAD = "b2c6d1e8f4a7"
+HEAD = "1c7a62f94269"
 
 # Revisions real databases have been found stamped at. None = empty database.
 # Each non-None case also gets the *current* full schema from create_all, which
@@ -263,6 +263,51 @@ class TestUpgradeConvergence:
         assert con.execute("SELECT notes FROM user_game_attendance").fetchall() == [("kept",)]
         assert con.execute("SELECT count(*) FROM games").fetchone()[0] == 1
         con.close()
+
+
+class TestVenueLocationRepair:
+    def test_upgrade_fills_blank_venue_locations_without_overwriting(self, tmp_db):
+        """`1c7a62f94269` (open_issues.md #11, #13): fills seed-only MLB parks
+        and fixes CFBD city typos, but never replaces a value already there."""
+        _create_all(tmp_db)
+        assert _alembic(["stamp", "b2c6d1e8f4a7"], tmp_db).returncode == 0
+
+        con = sqlite3.connect(tmp_db)
+        con.executemany(
+            "INSERT INTO venues "
+            "(source, source_venue_id, name, city, state, country, latitude, longitude) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                ("retrosheet", "TAM02", "TAM02", None, None, None, None, None),
+                ("retrosheet", "SAC01", "Sutter Health Park", None, None, "USA", 1.0, 2.0),
+                # The model's country default stamps "USA" even on a foreign park.
+                ("retrosheet", "SEO01", "SEO01", None, None, "USA", None, None),
+                ("cfbd", "5403", "Orlando City Stadium", "Orlanda", "FL", "US", None, None),
+                ("cfbd", "3798", "Lambeau Field", "Greenbay", "WI", "US", 44.5, -88.06),
+            ],
+        )
+        con.commit()
+        con.close()
+
+        result = _alembic(["upgrade", "head"], tmp_db)
+        assert result.returncode == 0, f"upgrade failed:\n{result.stderr}"
+
+        con = sqlite3.connect(f"file:{tmp_db}?mode=ro", uri=True)
+        rows = {
+            r[0]: r[1:]
+            for r in con.execute(
+                "SELECT source_venue_id, name, city, state, latitude, longitude, country "
+                "FROM venues"
+            )
+        }
+        con.close()
+        assert rows["TAM02"] == (
+            "George M. Steinbrenner Field", "Tampa", "FL", 27.9802, -82.5067, "USA",
+        )
+        assert rows["SAC01"] == ("Sutter Health Park", "West Sacramento", "CA", 1.0, 2.0, "USA")
+        assert rows["SEO01"] == ("Gocheok Sky Dome", "Seoul", None, 37.4982, 126.8671, "South Korea")
+        assert rows["5403"] == ("Orlando City Stadium", "Orlando", "FL", 28.5411, -81.3893, "US")
+        assert rows["3798"] == ("Lambeau Field", "Green Bay", "WI", 44.5, -88.06, "US")
 
 
 class TestSchemaParity:

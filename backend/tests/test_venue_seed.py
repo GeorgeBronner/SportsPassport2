@@ -21,6 +21,7 @@ SEED_LOADERS = (
     venue_seed.nfl_stadiums,
     venue_seed._nba_arenas_by_team,
     venue_seed._nhl_arenas_by_tricode,
+    venue_seed._mlb_parks,
 )
 
 
@@ -52,6 +53,7 @@ def test_seed_files_load_from_an_unrelated_cwd(tmp_path, monkeypatch):
     assert len(venue_seed.nfl_stadiums()) > 0
     assert len(venue_seed._nba_arenas_by_team()) > 0
     assert len(venue_seed._nhl_arenas_by_tricode()) > 0
+    assert len(venue_seed._mlb_parks()) > 0
 
 
 def test_lookups_return_usable_rows_from_an_unrelated_cwd(tmp_path, monkeypatch):
@@ -78,7 +80,7 @@ def test_every_seed_row_carries_usable_coordinates():
     values through `float()`, so a malformed one survives a truthiness test
     and raises mid-sync instead.
     """
-    rows = list(venue_seed.nfl_stadiums().values())
+    rows = list(venue_seed.nfl_stadiums().values()) + list(venue_seed._mlb_parks().values())
     for by_key in (venue_seed._nba_arenas_by_team(), venue_seed._nhl_arenas_by_tricode()):
         for group in by_key.values():
             rows.extend(group)
@@ -96,3 +98,19 @@ def test_every_seed_row_carries_usable_coordinates():
             bad.append(row)
 
     assert not bad, f"seed rows with missing or unusable coordinates: {bad}"
+
+
+def test_mlb_park_seed_covers_parks_missing_from_parkcode():
+    """open_issues.md #13: the parks Retrosheet ids in its game logs but never
+    lists in parkcode.txt."""
+    for park_id in ("SAC01", "TAM02", "MEX02", "BST01", "SEO01", "BIR01"):
+        assert venue_seed.lookup_mlb_park(park_id), park_id
+    assert venue_seed.lookup_mlb_park("NYC21") is None  # parkcode.txt owns this one
+
+
+def test_correct_city_fixes_known_typos_only_in_their_state():
+    assert venue_seed.correct_city("Orlanda", "FL") == "Orlando"
+    assert venue_seed.correct_city("Greenbay", "WI") == "Green Bay"
+    assert venue_seed.correct_city("Orlanda", "TX") == "Orlanda"
+    assert venue_seed.correct_city("Saint Louis", "MO") == "Saint Louis"
+    assert venue_seed.correct_city(None, "FL") is None
