@@ -34,6 +34,9 @@ Stadium/Meadowlands). They stay separate venue rows — they are genuinely
 different buildings, and a venue someone attended should not be silently
 merged into its replacement — so a handful of pairs share coordinates to
 within a few hundred metres. That is well inside the precision this map needs.
+
+MLB is keyed by Retrosheet park id, and only covers the handful of parks
+Retrosheet's own parkcode.txt doesn't list — see `lookup_mlb_park`.
 """
 import csv
 from functools import lru_cache
@@ -114,6 +117,45 @@ def lookup_mls_stadium(name: str) -> dict | None:
     pre-2013 grounds the Kaggle bulk file references but ASA never lists.
     """
     return _mls_stadiums().get(name)
+
+
+@lru_cache(maxsize=1)
+def _mlb_parks() -> dict[str, dict]:
+    """Retrosheet park id -> seed row."""
+    with open(_seed_path("mlb_parks.csv"), newline="", encoding="utf-8") as f:
+        return {row["park_id"]: row for row in csv.DictReader(f)}
+
+
+def lookup_mlb_park(park_id: str) -> dict | None:
+    """Location for a Retrosheet park id that parkcode.txt has no row for.
+
+    Retrosheet assigns ids to recent temporary and neutral-site parks (the
+    Athletics' Sacramento years, the Rays' 2025 season at Steinbrenner Field,
+    the Seoul and Mexico City series) in its game logs before, or without,
+    listing them in parkcode.txt — so neither the backfill nor the sync path
+    had any city/state/coordinates for them. The backfill consults this only
+    when parkcode.txt has no row; sync, which never sees parkcode.txt's
+    locations, applies it for any park listed here. Should Retrosheet later
+    list one of these parks, the two values would be expected to agree.
+    """
+    return _mlb_parks().get(park_id)
+
+
+# (city, state) as an import source spells it -> the real city name. Typos in
+# CFBD's /venues, found by comparing its cities against every other source's
+# for the same state (2026-10-06). Keyed on state too, so a correction can
+# never rewrite a same-named city elsewhere. "Saint Louis"-style spellings are
+# legitimate variants, not typos, and are deliberately left alone.
+CITY_CORRECTIONS: dict[tuple[str, str], str] = {
+    ("Orlanda", "FL"): "Orlando",
+    ("Greenbay", "WI"): "Green Bay",
+}
+
+
+def correct_city(city: str | None, state: str | None) -> str | None:
+    if city is None or state is None:
+        return city
+    return CITY_CORRECTIONS.get((city, state), city)
 
 
 @lru_cache(maxsize=1)

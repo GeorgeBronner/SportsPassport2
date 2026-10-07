@@ -22,7 +22,7 @@ import tempfile
 import pytest
 
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HEAD = "b2c6d1e8f4a7"
+HEAD = "1c7a62f94269"
 
 # Revisions real databases have been found stamped at. None = empty database.
 # Each non-None case also gets the *current* full schema from create_all, which
@@ -263,6 +263,89 @@ class TestUpgradeConvergence:
         assert con.execute("SELECT notes FROM user_game_attendance").fetchall() == [("kept",)]
         assert con.execute("SELECT count(*) FROM games").fetchone()[0] == 1
         con.close()
+
+
+class TestVenueLocationRepair:
+    def test_upgrade_repairs_venue_locations_and_tbd_games(self, tmp_db):
+        """`1c7a62f94269` (open_issues.md #7, #11, #13): merges pre-bridge
+        raw-name MLB rows, fills seed-only MLB parks without overwriting a
+        value already there, fixes CFBD city typos and the mis-geocoded
+        Orlando City Stadium, and parks old TBD CFB games date-only."""
+        _create_all(tmp_db)
+        assert _alembic(["stamp", "b2c6d1e8f4a7"], tmp_db).returncode == 0
+
+        con = sqlite3.connect(tmp_db)
+        con.executemany(
+            "INSERT INTO venues "
+            "(source, source_venue_id, name, city, state, country, latitude, longitude) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                ("retrosheet", "TAM02", "TAM02", None, None, None, None, None),
+                ("retrosheet", "SAC01", "Sutter Health Park", None, None, "USA", 1.0, 2.0),
+                # The model's country default stamps "USA" even on a foreign park.
+                ("retrosheet", "SEO01", "SEO01", None, None, "USA", None, None),
+                # Where the typo geocoded it: southwest Florida.
+                ("cfbd", "5403", "Orlando City Stadium", "Orlanda", "FL", "US", 26.32, -81.69),
+                ("cfbd", "3798", "Lambeau Field", "Greenbay", "WI", "US", 44.5, -88.06),
+                # Pre-bridge sync rows keyed on the raw API name: one with a
+                # park-id twin to merge into, one without.
+                ("retrosheet", "MEX02", "MEX02", None, None, "USA", None, None),
+                ("retrosheet", "Estadio Alfredo Harp Helu", "Estadio Alfredo Harp Helu",
+                 None, None, "USA", None, None),
+                ("retrosheet", "Rickwood Field", "Rickwood Field", None, None, "USA", None, None),
+            ],
+        )
+        legacy_mex = con.execute(
+            "SELECT id FROM venues WHERE source_venue_id = 'Estadio Alfredo Harp Helu'"
+        ).fetchone()[0]
+        con.executemany(
+            "INSERT INTO games (league_id, home_team_id, away_team_id, start_date, has_time, "
+            "season, neutral_site, source, source_game_id, venue_id) "
+            "VALUES (1, 1, 2, ?, 1, ?, 0, ?, ?, ?)",
+            [
+                ("2026-04-25 22:05:00.000000", 2026, "retrosheet", "20260425_SDN_ARI_0", legacy_mex),
+                ("2024-08-31 04:00:00.000000", 2024, "cfbd", "401643703", None),
+                ("2024-08-31 23:30:00.000000", 2024, "cfbd", "401643999", None),
+            ],
+        )
+        con.commit()
+        con.close()
+
+        result = _alembic(["upgrade", "head"], tmp_db)
+        assert result.returncode == 0, f"upgrade failed:\n{result.stderr}"
+
+        con = sqlite3.connect(f"file:{tmp_db}?mode=ro", uri=True)
+        rows = {
+            r[0]: r[1:]
+            for r in con.execute(
+                "SELECT source_venue_id, name, city, state, latitude, longitude, country "
+                "FROM venues"
+            )
+        }
+        games = {
+            r[0]: r[1:]
+            for r in con.execute(
+                "SELECT g.source_game_id, g.start_date, g.has_time, v.source_venue_id "
+                "FROM games g LEFT JOIN venues v ON v.id = g.venue_id"
+            )
+        }
+        con.close()
+        assert "Estadio Alfredo Harp Helu" not in rows  # merged away
+        assert rows["MEX02"] == (
+            "Estadio Alfredo Harp Helu", "Mexico City", None, 19.4037, -99.0852, "Mexico",
+        )
+        assert games["20260425_SDN_ARI_0"][2] == "MEX02"
+        assert "Rickwood Field" not in rows  # re-keyed, then filled
+        assert rows["BIR01"][:3] == ("Rickwood Field", "Birmingham", "AL")
+        assert games["401643703"][:2] == ("2024-08-31 12:00:00.000000", 0)
+        assert games["401643999"][:2] == ("2024-08-31 23:30:00.000000", 1)  # not TBD
+        assert rows["TAM02"] == (
+            "George M. Steinbrenner Field", "Tampa", "FL", 27.9802, -82.5067, "USA",
+        )
+        assert rows["SAC01"] == ("Sutter Health Park", "West Sacramento", "CA", 1.0, 2.0, "USA")
+        assert rows["SEO01"] == ("Gocheok Sky Dome", "Seoul", None, 37.4982, 126.8671, "South Korea")
+        assert rows["5403"] == ("Orlando City Stadium", "Orlando", "FL", 28.5411, -81.3893, "US")
+        assert rows["3798"] == ("Lambeau Field", "Green Bay", "WI", 44.5, -88.06, "US")
 
 
 class TestSchemaParity:

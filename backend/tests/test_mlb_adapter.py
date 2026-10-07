@@ -313,6 +313,58 @@ class TestMlbSync:
         synced = db_session.query(Game).filter(Game.source_game_id == "20240705_MON_OAK_0").one()
         assert synced.venue_id == venue.id
 
+    @pytest.mark.asyncio
+    async def test_parks_missing_from_parkcode_get_their_location_from_the_seed(
+        self, adapter, db_session,
+    ):
+        """open_issues.md #13: parkcode.txt has no row for Sutter Health Park,
+        so neither path used to give SAC01 a city, state or coordinates. The
+        backfill now takes them from mlb_parks.csv, and so does sync."""
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=TEAMS_CSV)):
+            await adapter.import_teams()
+
+        sac_row = list(GAMELOG_ROW_1970)
+        sac_row[F_PARK_ID] = "SAC01"
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)), \
+             patch.object(adapter, "_get_gamelog_rows", AsyncMock(return_value=[sac_row])):
+            await adapter.import_season(1970)
+
+        venue = db_session.query(Venue).one()
+        assert venue.source_venue_id == "SAC01"
+        assert venue.name == "Sutter Health Park"  # not the bare park id
+        assert (venue.city, venue.state, venue.country) == ("West Sacramento", "CA", "USA")
+        assert venue.latitude == pytest.approx(38.58, abs=0.01)
+
+        # A row sync created before the seed existed: name only, no location.
+        venue.city = venue.state = venue.country = None
+        venue.latitude = venue.longitude = None
+        db_session.commit()
+
+        payload = {
+            "dates": [{
+                "date": "2025-07-05",
+                "games": [{
+                    "gamePk": 5, "gameType": "R", "season": "2025",
+                    "gameDate": "2025-07-05T02:05:00Z", "officialDate": "2025-07-04",
+                    "doubleHeader": "N", "gameNumber": 1,
+                    "venue": {"id": 2529, "name": "Sutter Health Park"},
+                    "teams": {
+                        "away": {"team": {"teamCode": "mon"}, "score": 2},
+                        "home": {"team": {"teamCode": "oak"}, "score": 5},
+                    },
+                }],
+            }]
+        }
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)), \
+             patch.object(adapter, "_fetch_schedule", AsyncMock(return_value=payload)):
+            result = await adapter.sync_recent(since=date(2025, 7, 1))
+
+        assert not result.errors
+        db_session.refresh(venue)
+        assert db_session.query(Venue).count() == 1
+        assert (venue.city, venue.state) == ("West Sacramento", "CA")
+        assert venue.longitude == pytest.approx(-121.51, abs=0.01)
+
     def test_bridge_park_id_prefers_venue_id_then_name(self):
         by_name = {"oaklandcoliseum": "OAK01", "suntrustpark": "ATL03"}
         # id map wins even when the name would match something else

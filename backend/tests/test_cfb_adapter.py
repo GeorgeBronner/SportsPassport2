@@ -1,13 +1,14 @@
 """
 Tests for the CFB adapter using mocked CollegeFootballData.com (CFBD) payloads.
 """
-from datetime import date
+from datetime import date, datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from sports_passport.models.game import Game
 from sports_passport.models.team import Team
+from sports_passport.models.venue import Venue
 from sports_passport.services.adapters.cfb import CfbAdapter
 
 ALABAMA = {
@@ -166,6 +167,42 @@ class TestCfbImportSeason:
         params = next(c.kwargs["params"] for c in get.await_args_list if c.args[0] == "/games")
         assert params["classification"] == "fbs"
         assert "division" not in params
+
+
+class TestCfbTimesAndVenues:
+    @pytest.mark.asyncio
+    async def test_tbd_kickoff_is_stored_date_only_on_its_eastern_game_day(
+        self, adapter, db_session, cfb_league,
+    ):
+        """open_issues.md #7: CFBD sends an unscheduled kickoff as a
+        midnight-Eastern placeholder (real payload shape, 2026-10-06). It must
+        not be published as a real 8pm-Pacific kickoff the day before."""
+        games = [
+            _game(id=1, startDate="2026-10-17T04:00:00.000Z", startTimeTBD=True),
+            _game(id=2, startDate="2026-11-28T05:00:00.000Z", startTimeTBD=True),
+            _game(id=3, startDate="2026-10-17T23:30:00.000Z", startTimeTBD=False),
+        ]
+        with patch.object(adapter, "_get", side_effect=_fake_get(games=games)):
+            await adapter.import_teams()
+            await adapter.import_season(2026)
+
+        by_id = {g.source_game_id: g for g in db_session.query(Game).all()}
+        assert (by_id["1"].has_time, by_id["1"].start_date) == (False, datetime(2026, 10, 17, 12))
+        assert (by_id["2"].has_time, by_id["2"].start_date) == (False, datetime(2026, 11, 28, 12))
+        assert (by_id["3"].has_time, by_id["3"].start_date) == (True, datetime(2026, 10, 17, 23, 30))
+
+    @pytest.mark.asyncio
+    async def test_import_venues_corrects_misspelled_cities(self, adapter, db_session):
+        """open_issues.md #11: CFBD's own typos, which also defeated geocoding."""
+        venues = [
+            {"id": 5403, "name": "Orlando City Stadium", "city": "Orlanda", "state": "FL"},
+            {"id": 3798, "name": "Lambeau Field", "city": "Greenbay", "state": "WI"},
+        ]
+        with patch.object(adapter, "_get", side_effect=_fake_get(venues=venues)):
+            await adapter.import_venues()
+
+        cities = {v.source_venue_id: v.city for v in db_session.query(Venue).all()}
+        assert cities == {"5403": "Orlando", "3798": "Green Bay"}
 
 
 class TestCfbSyncRecent:

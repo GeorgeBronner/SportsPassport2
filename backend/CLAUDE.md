@@ -6,7 +6,7 @@
   Adding a league = one adapter module + one seed row.
 - Bulk files for historical backfill live in `backend/data/raw/<league>/` (gitignored).
   Hand-built venue location lookups (city/state/lat-lon) for leagues whose live
-  source doesn't carry them — `backend/sports_passport/data/seed/{nfl_stadiums,nhl_arenas,nba_arenas,mls_stadiums}.csv`,
+  source doesn't carry them — `backend/sports_passport/data/seed/{nfl_stadiums,nhl_arenas,nba_arenas,mls_stadiums,mlb_parks}.csv`,
   loaded via `services/adapters/venue_seed.py` — are committed and wired into
   their adapters; see `docs/SP2_plan.md` Phase 4/7 for scope notes. `nfl_stadiums.csv`
   also carries 29 `hist-`-prefixed rows for pre-1999 grounds nflverse never saw; the
