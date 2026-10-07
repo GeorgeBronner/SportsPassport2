@@ -133,8 +133,10 @@ def lookup_mlb_park(park_id: str) -> dict | None:
     Athletics' Sacramento years, the Rays' 2025 season at Steinbrenner Field,
     the Seoul and Mexico City series) in its game logs before, or without,
     listing them in parkcode.txt — so neither the backfill nor the sync path
-    had any city/state/coordinates for them. parkcode.txt stays authoritative
-    for every park it does list; this only fills the gap.
+    had any city/state/coordinates for them. The backfill consults this only
+    when parkcode.txt has no row; sync, which never sees parkcode.txt's
+    locations, applies it for any park listed here. Should Retrosheet later
+    list one of these parks, the two values would be expected to agree.
     """
     return _mlb_parks().get(park_id)
 

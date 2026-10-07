@@ -422,8 +422,9 @@ Two smaller things:
   `startTimeTBD` and parks those games date-only (noon UTC, issue #8) on their
   Eastern game day. 252 of 2026's 888 games are TBD as of that date, and the
   nightly whole-season sync corrects them in place. Only two earlier games
-  carry the flag (one each in 2020 and 2024); they keep their old rows until
-  those seasons are re-imported, and their displayed date is the same either way.
+  carry the flag (CFBD ids 401249415 in 2020 and 401643703 in 2024). Nightly sync
+  never re-imports those seasons, and the 2024 placeholder showed a day early
+  west of Eastern, so migration `1c7a62f94269` fixes both directly.
 - NBA seasons 1973 and 1975 have 17 and 24 distinct clock values against 1–2
   for every other pre-1996 season, so the Kaggle source may carry partially
   real times for those two years. They fall below the 1996 cutoff and are
@@ -826,9 +827,25 @@ city/state/coordinates, and the backfill had named four of them by bare park id.
 `data/seed/mlb_parks.csv` now supplies all six, with each coordinate checked
 against Nominatim. `mlb.py` falls back to it on the backfill path when
 `parkcode.txt` has no row, and applies it on the sync path. `parkcode.txt` stays
-authoritative for every park it lists. Migration `1c7a62f94269` fills the existing
-rows. That's needed because only SAC01 is still synced nightly. It also sets their
-`country`: the model's `"USA"` default had stamped that on Seoul and Mexico City.
+authoritative on the backfill path for every park it lists. Migration `1c7a62f94269`
+fills the existing rows. That's needed because only SAC01 is still synced nightly. It
+also sets their `country`: the model's `"USA"` default had stamped that on Seoul and
+Mexico City.
+
+The same migration merges leftover raw-name rows. Syncs before the id bridge had
+filed one-off parks under their API name; on the dev DB, for example,
+`Estadio Alfredo Harp Helu` and `Journey Bank Ballpark` sat beside MEX02 and WIL02.
+`_reconcile_legacy_venue` only merges a park when it is synced again, which these
+parks never are, so the migration moves their games onto the park-id row and
+deletes the duplicate.
+
+**Still open: Las Vegas Ballpark** (Stats API venue 5355, six Athletics home games
+in June 2026). Retrosheet hasn't assigned it a park id yet (`parkcode.txt` only
+has `LAS01`, Cashman Field, 1996), so it can't go in `STATSAPI_VENUE_PARK_IDS` or
+`mlb_parks.csv` without inventing an id. Until it gets one, it stays a raw-name row
+with no location. Once Retrosheet publishes the 2026 game logs, add the id to both.
+The raw row then merges the next time the park is synced. If it never is, merge it
+with a data migration, the way `1c7a62f94269` does.
 
 ## 14. CFB nightly sync permanently stuck in "error" on an untracked opponent — **RESOLVED 2026-09-21**
 

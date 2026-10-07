@@ -325,7 +325,8 @@ class TestMlbSync:
 
         sac_row = list(GAMELOG_ROW_1970)
         sac_row[F_PARK_ID] = "SAC01"
-        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)),              patch.object(adapter, "_get_gamelog_rows", AsyncMock(return_value=[sac_row])):
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)), \
+             patch.object(adapter, "_get_gamelog_rows", AsyncMock(return_value=[sac_row])):
             await adapter.import_season(1970)
 
         venue = db_session.query(Venue).one()
@@ -354,7 +355,8 @@ class TestMlbSync:
                 }],
             }]
         }
-        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)),              patch.object(adapter, "_fetch_schedule", AsyncMock(return_value=payload)):
+        with patch.object(adapter, "_get_text", AsyncMock(return_value=PARKS_CSV)), \
+             patch.object(adapter, "_fetch_schedule", AsyncMock(return_value=payload)):
             result = await adapter.sync_recent(since=date(2025, 7, 1))
 
         assert not result.errors
