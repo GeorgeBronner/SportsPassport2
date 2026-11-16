@@ -14,7 +14,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from sports_passport.core.config import settings
-from sports_passport.core.dependencies import get_current_admin_user
+from sports_passport.core.dependencies import require_metrics_access
 from sports_passport.core.limiter import limiter
 from sports_passport.db.database import SessionLocal
 from sports_passport.db.seed import seed_leagues
@@ -75,7 +75,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 Instrumentator().instrument(app).expose(
-    app, endpoint="/metrics", dependencies=[Depends(get_current_admin_user)]
+    app, endpoint="/metrics", dependencies=[Depends(require_metrics_access)]
 )
 
 # Rate limiting (forgot/reset-password endpoints)

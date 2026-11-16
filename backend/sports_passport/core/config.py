@@ -80,6 +80,9 @@ class Settings(BaseSettings):
     sync_hour: int = 6               # server-local hour (0-23) for the nightly run
     sync_lookback_days: int = 3      # window when the last run was recent / on first run
 
+    # Static bearer token for the Prometheus /metrics scrape (blank = admin JWT only)
+    metrics_token: str = ""
+
     # Sentry
     sentry_dsn: str | None = None
     sentry_environment: str = "production"
