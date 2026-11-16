@@ -82,6 +82,29 @@ class TestMetricsEndpoint:
         assert response.status_code == 200
 
 
+class TestMetricsScrapeToken:
+    def test_valid_token_allowed(self, client, monkeypatch):
+        from sports_passport.core.config import settings
+
+        monkeypatch.setattr(settings, "metrics_token", "scrape-token")
+        response = client.get("/metrics", headers={"Authorization": "Bearer scrape-token"})
+        assert response.status_code == 200
+
+    def test_wrong_token_rejected(self, client, monkeypatch):
+        from sports_passport.core.config import settings
+
+        monkeypatch.setattr(settings, "metrics_token", "scrape-token")
+        response = client.get("/metrics", headers={"Authorization": "Bearer nope"})
+        assert response.status_code == 401
+
+    def test_unset_token_not_accepted_as_empty(self, client, monkeypatch):
+        from sports_passport.core.config import settings
+
+        monkeypatch.setattr(settings, "metrics_token", "")
+        response = client.get("/metrics", headers={"Authorization": "Bearer "})
+        assert response.status_code == 401
+
+
 class TestLikePattern:
     def test_wildcards_are_escaped(self):
         assert contains_pattern("100%") == "%100\\%%"

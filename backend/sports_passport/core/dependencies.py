@@ -1,12 +1,16 @@
+import secrets
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
+from sports_passport.core.config import settings
 from sports_passport.core.security import decode_access_token
 from sports_passport.db.database import get_db
 from sports_passport.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+_optional_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 
 def get_current_user(
@@ -45,3 +49,25 @@ def get_current_admin_user(
             detail="Not enough permissions"
         )
     return current_user
+
+
+def require_metrics_access(
+    token: str | None = Depends(_optional_oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> None:
+    """Gate /metrics: the Prometheus scrape token, or else an admin JWT.
+
+    Prometheus can't hold a short-lived JWT, so it authenticates with the
+    static METRICS_TOKEN. With no token configured, only admins get in.
+    """
+    if token and settings.metrics_token and secrets.compare_digest(
+        token.encode(), settings.metrics_token.encode()
+    ):
+        return
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    get_current_admin_user(get_current_user(token=token, db=db))
